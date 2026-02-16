@@ -103,10 +103,13 @@ export default function App() {
   // Paywall — show when trial expired and not activated
   if ((needsPaywall() && !paywallDismissed) || showPaywall) {
     return (
-      <Paywall onActivated={() => {
-        setShowPaywall(false)
-        setPaywallDismissed(true)
-      }} />
+      <Paywall
+        onActivated={() => {
+          setShowPaywall(false)
+          setPaywallDismissed(true)
+        }}
+        onClose={showPaywall && !needsPaywall() ? () => setShowPaywall(false) : undefined}
+      />
     )
   }
 

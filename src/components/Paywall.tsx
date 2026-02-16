@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Shield, Check, Sparkles, Mail, X, Loader } from 'lucide-react'
+import { Shield, Check, Sparkles, Mail, X, Loader, ChevronLeft } from 'lucide-react'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONFIG — Update these after creating products in Stripe Dashboard
@@ -134,9 +134,10 @@ const features = [
 
 interface PaywallProps {
   onActivated: () => void
+  onClose?: () => void
 }
 
-export function Paywall({ onActivated }: PaywallProps) {
+export function Paywall({ onActivated, onClose }: PaywallProps) {
   const [showVerify, setShowVerify] = useState(false)
   const [verifyInput, setVerifyInput] = useState('')
   const [isGiftMode, setIsGiftMode] = useState(false)
@@ -204,6 +205,17 @@ export function Paywall({ onActivated }: PaywallProps) {
     >
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-md mx-auto px-5 py-8">
+          {/* Close button — only shown when opened voluntarily */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="flex items-center gap-1 text-sm mb-4 -ml-1"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <ChevronLeft size={18} />
+              Back
+            </button>
+          )}
           {/* Header */}
           <div className="text-center mb-8">
             <div
@@ -273,7 +285,7 @@ export function Paywall({ onActivated }: PaywallProps) {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                    $9.99
+                    $14.99
                     <span className="text-xs font-normal" style={{ color: 'var(--text-secondary)' }}>
                       /mo
                     </span>
@@ -306,7 +318,7 @@ export function Paywall({ onActivated }: PaywallProps) {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-purple-500">$49.99</p>
+                  <p className="text-lg font-bold text-purple-500">$89.99</p>
                   <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
                     pay once
                   </p>
