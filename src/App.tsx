@@ -15,6 +15,7 @@ import { useLocalStorage } from './hooks/useSettings'
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
 import { Paywall, TrialBanner, needsPaywall } from './components/Paywall'
+import { seedSampleData, hasSampleDataBeenOffered } from './data/sampleData'
 
 type Screen =
   | { type: 'tab' }
@@ -94,6 +95,10 @@ export default function App() {
   function finishTour() {
     setShowTour(false)
     setHasSeenTour(true)
+    // Seed sample data on first tour completion if never offered before
+    if (!hasSampleDataBeenOffered()) {
+      seedSampleData()
+    }
   }
 
   function restartTour() {

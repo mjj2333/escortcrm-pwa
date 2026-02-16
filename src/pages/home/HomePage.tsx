@@ -9,6 +9,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { Card, CardHeader } from '../../components/Card'
 import { EmptyState } from '../../components/EmptyState'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
+import { SampleDataBanner } from '../../components/SampleDataBanner'
 import { availabilityStatusColors } from '../../types'
 
 interface HomePageProps {
@@ -83,6 +84,8 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           <Settings size={20} />
         </button>
       </PageHeader>
+
+      <SampleDataBanner />
 
       <div className="px-4 py-4 space-y-4 max-w-lg mx-auto">
         {/* Safety Alert Banner */}
