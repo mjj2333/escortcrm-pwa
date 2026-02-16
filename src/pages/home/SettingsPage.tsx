@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, Trash2, RotateCcw, Database } from 'lucide-react'
+import { Plus, Trash2, RotateCcw, Database, MessageSquare } from 'lucide-react'
 import { db, newId } from '../../db'
 import { Modal, FormSection, FormToggle } from '../../components/Modal'
 import { PinLock } from '../../components/PinLock'
 import { BackupRestoreModal } from '../../components/BackupRestore'
-import { getActivation, isActivated, getTrialDaysRemaining } from '../../components/Paywall'
+import { getActivation, isActivated, getTrialDaysRemaining, isBetaTester } from '../../components/Paywall'
 import { useLocalStorage } from '../../hooks/useSettings'
 
 interface SettingsPageProps {
@@ -277,6 +277,35 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
               </div>
             )}
           </FormSection>
+
+          {/* Beta Feedback — only visible to gift code users */}
+          {isBetaTester() && (
+            <FormSection title="Beta Program">
+              {getActivation().betaExpiresAt && (
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Access expires</span>
+                  <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
+                    {new Date(getActivation().betaExpiresAt!).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+              <a
+                href="https://grand-horse-8a068e.netlify.app/feedback.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between px-4 py-3"
+                style={{ textDecoration: 'none' }}
+              >
+                <div className="flex items-center gap-3">
+                  <MessageSquare size={16} style={{ color: '#a855f7' }} />
+                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Share Feedback</span>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(168,85,247,0.15)', color: '#a855f7' }}>
+                  Beta Tester ✨
+                </span>
+              </a>
+            </FormSection>
+          )}
 
           {/* About */}
           <FormSection title="About">

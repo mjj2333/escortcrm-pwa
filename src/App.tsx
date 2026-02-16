@@ -35,6 +35,18 @@ export default function App() {
   // Paywall
   const [showPaywall, setShowPaywall] = useState(false)
   const [paywallDismissed, setPaywallDismissed] = useState(false)
+  const [deepLinkCode, setDeepLinkCode] = useState<string | undefined>()
+
+  // Check for ?code= URL param (deep link from share)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('code')
+    if (code) {
+      setDeepLinkCode(code)
+      setShowPaywall(true)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   // Auto-advance booking statuses based on time
   useAutoStatusTransitions()
@@ -107,8 +119,10 @@ export default function App() {
         onActivated={() => {
           setShowPaywall(false)
           setPaywallDismissed(true)
+          setDeepLinkCode(undefined)
         }}
-        onClose={showPaywall && !needsPaywall() ? () => setShowPaywall(false) : undefined}
+        onClose={showPaywall && !needsPaywall() ? () => { setShowPaywall(false); setDeepLinkCode(undefined); } : undefined}
+        initialCode={deepLinkCode}
       />
     )
   }
