@@ -1,0 +1,95 @@
+import { useEffect, useRef } from 'react'
+import { db, bookingDurationFormatted } from '../db'
+
+/**
+ * Booking Reminders using the Web Notifications API.
+ * 
+ * Fires notifications at:
+ * - 1 hour before a confirmed/in-progress booking
+ * - 15 minutes before a confirmed booking
+ * 
+ * Also shows birthday reminders once per day (at first check).
+ * 
+ * Keeps a Set of already-notified IDs (in memory) to avoid duplicates.
+ */
+export function useBookingReminders(enabled: boolean) {
+  const notifiedRef = useRef<Set<string>>(new Set())
+  const birthdayCheckedRef = useRef(false)
+
+  useEffect(() => {
+    if (!enabled) return
+    if (!('Notification' in window)) return
+
+    // Request permission on mount
+    if (Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+
+    async function checkReminders() {
+      if (Notification.permission !== 'granted') return
+
+      const now = Date.now()
+      const bookings = await db.bookings.toArray()
+      const clients = await db.clients.toArray()
+      const clientMap = Object.fromEntries(clients.map(c => [c.id, c]))
+
+      for (const b of bookings) {
+        if (b.status === 'Cancelled' || b.status === 'Completed' || b.status === 'No Show') continue
+
+        const start = new Date(b.dateTime).getTime()
+        const msBefore = start - now
+
+        const client = b.clientId ? clientMap[b.clientId] : undefined
+        const name = client?.alias ?? 'Client'
+
+        // 1 hour reminder (between 60 and 59 min before)
+        const key1h = `${b.id}-1h`
+        if (msBefore > 0 && msBefore <= 60 * 60_000 && msBefore > 59 * 60_000 && !notifiedRef.current.has(key1h)) {
+          notifiedRef.current.add(key1h)
+          new Notification('Booking in 1 hour', {
+            body: `${name} — ${bookingDurationFormatted(b.duration)} ${b.locationType}`,
+            icon: '/icon-192.png',
+            tag: key1h,
+          })
+        }
+
+        // 15 minute reminder (between 15 and 14 min before)
+        const key15 = `${b.id}-15m`
+        if (msBefore > 0 && msBefore <= 15 * 60_000 && msBefore > 14 * 60_000 && !notifiedRef.current.has(key15)) {
+          notifiedRef.current.add(key15)
+          new Notification('Booking in 15 minutes', {
+            body: `${name} — ${bookingDurationFormatted(b.duration)} ${b.locationType}`,
+            icon: '/icon-192.png',
+            tag: key15,
+          })
+        }
+      }
+
+      // Birthday check — once per day
+      if (!birthdayCheckedRef.current) {
+        birthdayCheckedRef.current = true
+        const today = new Date()
+        const todayMD = `${today.getMonth()}-${today.getDate()}`
+
+        const birthdayClients = clients.filter(c => {
+          if (!c.birthday || c.isBlocked) return false
+          const bday = new Date(c.birthday)
+          return `${bday.getMonth()}-${bday.getDate()}` === todayMD
+        })
+
+        if (birthdayClients.length > 0) {
+          const names = birthdayClients.map(c => c.alias).join(', ')
+          new Notification('🎂 Birthday today!', {
+            body: names,
+            icon: '/icon-192.png',
+            tag: `birthday-${todayMD}`,
+          })
+        }
+      }
+    }
+
+    checkReminders()
+    const interval = setInterval(checkReminders, 60_000)
+    return () => clearInterval(interval)
+  }, [enabled])
+}
