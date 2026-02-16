@@ -257,11 +257,11 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
                     {getActivation().plan === 'lifetime' ? '✨ Lifetime' : 'Pro Monthly'}
                   </span>
                 </div>
-                {getActivation().licenseKey && (
+                {getActivation().email && (
                   <div className="flex items-center justify-between px-4 py-3">
-                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>License</span>
+                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Account</span>
                     <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
-                      {getActivation().licenseKey!.slice(0, 8)}...
+                      {getActivation().email}
                     </span>
                   </div>
                 )}
