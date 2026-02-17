@@ -429,8 +429,34 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
         {/* Duration */}
         <FormSection title="Duration">
+          {/* Min / Hr toggle - always visible */}
+          <div className="px-4 pt-3 pb-1 flex items-center gap-2">
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Unit:</span>
+            <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
+              <button
+                onClick={() => setDurationUnit('min')}
+                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  durationUnit === 'min' ? 'bg-purple-500/20 text-purple-500' : ''
+                }`}
+                style={durationUnit !== 'min' ? { color: 'var(--text-secondary)' } : {}}
+              >
+                Minutes
+              </button>
+              <button
+                onClick={() => setDurationUnit('hr')}
+                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  durationUnit === 'hr' ? 'bg-purple-500/20 text-purple-500' : ''
+                }`}
+                style={durationUnit !== 'hr' ? { color: 'var(--text-secondary)' } : {}}
+              >
+                Hours
+              </button>
+            </div>
+          </div>
+
+          {/* Service rate quick-select buttons */}
           {serviceRates.length > 0 && (
-            <div className="px-4 py-3">
+            <div className="px-4 py-2">
               <div className="flex flex-wrap gap-2">
                 {serviceRates.map(rate => (
                   <button
@@ -447,7 +473,12 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                         : {}
                     }
                   >
-                    <div className="font-bold">{durationFormatted(rate.duration)}</div>
+                    <div className="font-bold">
+                      {durationUnit === 'hr'
+                        ? (rate.duration >= 60 ? `${Math.round((rate.duration / 60) * 10) / 10}h` : `${rate.duration}m`)
+                        : durationFormatted(rate.duration)
+                      }
+                    </div>
                     <div className="text-xs opacity-70">${rate.rate}</div>
                   </button>
                 ))}
@@ -463,36 +494,28 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
               </div>
             </div>
           )}
+
+          {/* Custom / manual duration input */}
           {(customDuration || serviceRates.length === 0) && (
             <div className="flex items-center gap-3 px-4 py-3">
-              <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
-                <button
-                  onClick={() => setDurationUnit('min')}
-                  className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
-                    durationUnit === 'min' ? 'bg-purple-500/20 text-purple-500' : ''
-                  }`}
-                  style={durationUnit !== 'min' ? { color: 'var(--text-secondary)' } : {}}
-                >
-                  Min
-                </button>
-                <button
-                  onClick={() => setDurationUnit('hr')}
-                  className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
-                    durationUnit === 'hr' ? 'bg-purple-500/20 text-purple-500' : ''
-                  }`}
-                  style={durationUnit !== 'hr' ? { color: 'var(--text-secondary)' } : {}}
-                >
-                  Hr
-                </button>
-              </div>
+              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                {durationUnit === 'hr' ? 'Hours' : 'Minutes'}
+              </span>
               <input
                 type="number"
                 inputMode="decimal"
-                step={durationUnit === 'hr' ? '0.5' : '1'}
-                value={durationUnit === 'hr' ? Math.round((duration / 60) * 10) / 10 : duration}
+                step={durationUnit === 'hr' ? '0.5' : '15'}
+                value={durationUnit === 'hr'
+                  ? (duration === 0 ? '' : Math.round((duration / 60) * 10) / 10)
+                  : (duration === 0 ? '' : duration)
+                }
                 onChange={e => {
-                  const val = parseFloat(e.target.value) || 0
-                  setDuration(durationUnit === 'hr' ? Math.round(val * 60) : val)
+                  const raw = e.target.value
+                  if (raw === '') { setDuration(0); return }
+                  const val = parseFloat(raw)
+                  if (!isNaN(val)) {
+                    setDuration(durationUnit === 'hr' ? Math.round(val * 60) : Math.round(val))
+                  }
                 }}
                 className="flex-1 text-sm text-right bg-transparent outline-none"
                 style={{ color: 'var(--text-primary)' }}

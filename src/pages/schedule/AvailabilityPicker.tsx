@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { startOfDay, format } from 'date-fns'
 import { Clock } from 'lucide-react'
 import { db, newId } from '../../db'
@@ -13,48 +13,49 @@ interface AvailabilityPickerProps {
 
 const statuses: { status: AvailabilityStatus; color: string; label: string; desc: string }[] = [
   { status: 'Available', color: '#22c55e', label: 'Available', desc: 'Open for bookings' },
-  { status: 'Limited', color: '#f97316', label: 'Limited', desc: 'Selective availability' },
-  { status: 'Busy', color: '#ef4444', label: 'Busy', desc: 'Fully booked / blocked' },
+  { status: 'Limited', color: '#f97316', label: 'Limited', desc: 'Selective hours' },
+  { status: 'Busy', color: '#ef4444', label: 'Busy', desc: 'Blocked' },
   { status: 'Off', color: '#6b7280', label: 'Day Off', desc: 'Not working' },
 ]
 
 const timeOptions = generateTimeOptions()
 
 export function AvailabilityPicker({ date, current, onClose }: AvailabilityPickerProps) {
+  // If current status needs config (Available), pre-expand it
+  const needsConfig = (s: AvailabilityStatus | null) => s === 'Available' || s === 'Limited'
+  const [expanded, setExpanded] = useState(current ? needsConfig(current.status) : false)
   const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus | null>(current?.status ?? null)
   const [startTime, setStartTime] = useState(current?.startTime ?? '10:00')
   const [endTime, setEndTime] = useState(current?.endTime ?? '22:00')
   const [notes, setNotes] = useState(current?.notes ?? '')
 
-  async function handleSave() {
-    if (!selectedStatus) return
-
+  const saveStatus = useCallback(async (status: AvailabilityStatus, start?: string, end?: string) => {
     const dayStart = startOfDay(date)
     const existing = await db.availability.where('date').equals(dayStart).first()
 
+    // Toggle off if tapping same status
+    if (existing && existing.status === status && !needsConfig(status)) {
+      await db.availability.delete(existing.id)
+      onClose()
+      return
+    }
+
     const record: Partial<DayAvailability> = {
-      status: selectedStatus,
+      status,
       notes: notes.trim() || undefined,
     }
 
-    // Set time range for Available
-    if (selectedStatus === 'Available') {
-      record.startTime = startTime
-      record.endTime = endTime
+    if (status === 'Available') {
+      record.startTime = start ?? startTime
+      record.endTime = end ?? endTime
       record.openSlots = undefined
-    }
-
-    // Keep existing open slots when switching to Limited
-    if (selectedStatus === 'Limited') {
+    } else if (status === 'Limited') {
       record.startTime = undefined
       record.endTime = undefined
-      if (existing?.openSlots) {
-        record.openSlots = existing.openSlots
-      }
-    }
-
-    // Clear time data for Off/Busy
-    if (selectedStatus === 'Off' || selectedStatus === 'Busy') {
+      // Preserve existing open slots from booking overrides
+      if (existing?.openSlots) record.openSlots = existing.openSlots
+    } else {
+      // Off / Busy — clear everything
       record.startTime = undefined
       record.endTime = undefined
       record.openSlots = undefined
@@ -70,6 +71,19 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
       } as DayAvailability)
     }
     onClose()
+  }, [date, notes, startTime, endTime, onClose])
+
+  function handleStatusTap(status: AvailabilityStatus) {
+    setSelectedStatus(status)
+
+    // Off / Busy: save immediately (one-tap)
+    if (status === 'Off' || status === 'Busy') {
+      saveStatus(status)
+      return
+    }
+
+    // Available / Limited: expand for config
+    setExpanded(true)
   }
 
   async function handleClear() {
@@ -83,12 +97,27 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      {/* Backdrop */}
       <div
-        className="relative w-full max-w-lg rounded-t-2xl p-4 pb-8 overflow-y-auto"
-        style={{ backgroundColor: 'var(--bg-card)', maxHeight: '85vh' }}
+        className="absolute inset-0 bg-black/40"
+        style={{ zIndex: 0 }}
+        onClick={onClose}
+      />
+
+      {/* Content panel — explicit z-index above backdrop */}
+      <div
+        className="w-full max-w-lg rounded-t-2xl p-4 pb-8 overflow-y-auto"
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          maxHeight: '85vh',
+          position: 'relative',
+          zIndex: 1,
+        }}
+        onClick={e => e.stopPropagation()}
       >
+        {/* Handle bar */}
         <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ backgroundColor: 'var(--border)' }} />
+
         <p className="text-sm font-semibold mb-1 text-center" style={{ color: 'var(--text-primary)' }}>
           {format(date, 'EEEE, MMM d')}
         </p>
@@ -101,27 +130,35 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
           {statuses.map(s => (
             <button
               key={s.status}
-              onClick={() => setSelectedStatus(s.status)}
-              className={`flex items-center gap-2.5 p-3 rounded-xl border transition-colors ${
+              type="button"
+              onClick={() => handleStatusTap(s.status)}
+              className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-[0.97] ${
                 selectedStatus === s.status ? 'ring-2 ring-purple-500' : ''
               }`}
-              style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                borderColor: selectedStatus === s.status ? 'transparent' : 'var(--border)',
+                WebkitTapHighlightColor: 'transparent',
+              }}
             >
               <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-              <div className="text-left">
+              <div className="text-left min-w-0">
                 <span className="text-sm font-medium block" style={{ color: 'var(--text-primary)' }}>
                   {s.label}
                 </span>
-                <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                <span className="text-[10px] block" style={{ color: 'var(--text-secondary)' }}>
                   {s.desc}
+                  {(s.status === 'Off' || s.status === 'Busy') && (
+                    <span className="opacity-50"> · tap to set</span>
+                  )}
                 </span>
               </div>
             </button>
           ))}
         </div>
 
-        {/* Time range for Available */}
-        {selectedStatus === 'Available' && (
+        {/* Expanded config for Available */}
+        {expanded && selectedStatus === 'Available' && (
           <div
             className="rounded-xl p-3 mb-4 border"
             style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
@@ -136,26 +173,34 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
               <select
                 value={startTime}
                 onChange={e => setStartTime(e.target.value)}
-                className="flex-1 text-sm rounded-lg px-3 py-2 outline-none appearance-none"
+                className="flex-1 text-sm rounded-lg px-3 py-2.5 outline-none"
                 style={{
                   backgroundColor: 'var(--bg-primary)',
                   color: 'var(--text-primary)',
                   border: '1px solid var(--border)',
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'none',
+                  appearance: 'none',
+                  fontSize: '16px', // prevents iOS zoom
                 }}
               >
                 {timeOptions.map(t => (
                   <option key={t} value={t}>{formatTime12(t)}</option>
                 ))}
               </select>
-              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>to</span>
+              <span className="text-xs font-medium shrink-0" style={{ color: 'var(--text-secondary)' }}>to</span>
               <select
                 value={endTime}
                 onChange={e => setEndTime(e.target.value)}
-                className="flex-1 text-sm rounded-lg px-3 py-2 outline-none appearance-none"
+                className="flex-1 text-sm rounded-lg px-3 py-2.5 outline-none"
                 style={{
                   backgroundColor: 'var(--bg-primary)',
                   color: 'var(--text-primary)',
                   border: '1px solid var(--border)',
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'none',
+                  appearance: 'none',
+                  fontSize: '16px',
                 }}
               >
                 {timeOptions.map(t => (
@@ -167,13 +212,13 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
         )}
 
         {/* Open slots display for Limited */}
-        {selectedStatus === 'Limited' && hasOpenSlots && (
+        {expanded && selectedStatus === 'Limited' && hasOpenSlots && (
           <div
             className="rounded-xl p-3 mb-4 border"
             style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
           >
             <span className="text-xs font-semibold block mb-2" style={{ color: 'var(--text-secondary)' }}>
-              Open Windows
+              Open Windows (from bookings)
             </span>
             <div className="space-y-1.5">
               {current!.openSlots!.map((slot, i) => (
@@ -190,39 +235,45 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
               ))}
             </div>
             <p className="text-[10px] mt-2" style={{ color: 'var(--text-secondary)' }}>
-              These windows were created from confirmed bookings
+              Created automatically from confirmed bookings
             </p>
           </div>
         )}
 
-        {/* Notes */}
-        <input
-          type="text"
-          placeholder="Notes (optional)"
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          className="w-full text-sm rounded-xl px-4 py-3 mb-4 outline-none"
-          style={{
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border)',
-          }}
-        />
+        {/* Notes (only show when expanded) */}
+        {expanded && (
+          <input
+            type="text"
+            placeholder="Notes (optional)"
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            className="w-full text-sm rounded-xl px-4 py-3 mb-4 outline-none"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border)',
+              fontSize: '16px',
+            }}
+          />
+        )}
 
-        {/* Actions */}
-        <button
-          onClick={handleSave}
-          disabled={!selectedStatus}
-          className={`w-full py-3 rounded-xl font-semibold text-sm text-white mb-2 ${
-            selectedStatus ? 'bg-purple-600 active:bg-purple-700' : 'bg-purple-600 opacity-40'
-          }`}
-        >
-          Save
-        </button>
+        {/* Save button (for Available / Limited) */}
+        {expanded && selectedStatus && needsConfig(selectedStatus) && (
+          <button
+            type="button"
+            onClick={() => saveStatus(selectedStatus)}
+            className="w-full py-3 rounded-xl font-semibold text-sm text-white bg-purple-600 active:bg-purple-700 mb-2"
+          >
+            Save
+          </button>
+        )}
+
+        {/* Clear button */}
         {current && (
           <button
+            type="button"
             onClick={handleClear}
-            className="w-full py-2 text-sm text-center"
+            className="w-full py-2 text-sm text-center active:opacity-70"
             style={{ color: 'var(--text-secondary)' }}
           >
             Clear Status

@@ -159,9 +159,17 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
                     <input
                       type="number"
                       inputMode="decimal"
-                      step={newRateUnit === 'hr' ? '0.5' : '1'}
-                      value={newRateDuration}
-                      onChange={e => setNewRateDuration(parseFloat(e.target.value) || 0)}
+                      step={newRateUnit === 'hr' ? '0.5' : '15'}
+                      value={newRateUnit === 'hr'
+                        ? (newRateDuration === 0 ? '' : newRateDuration)
+                        : (newRateDuration === 0 ? '' : newRateDuration)
+                      }
+                      onChange={e => {
+                        const raw = e.target.value
+                        if (raw === '') { setNewRateDuration(0); return }
+                        const val = parseFloat(raw)
+                        if (!isNaN(val)) setNewRateDuration(val)
+                      }}
                       className="w-full text-sm bg-transparent outline-none py-1"
                       style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}
                     />
