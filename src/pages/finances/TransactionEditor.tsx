@@ -7,6 +7,7 @@ import type { TransactionType, TransactionCategory, PaymentMethod } from '../../
 
 const categories: TransactionCategory[] = ['booking', 'tip', 'gift', 'supplies', 'travel', 'advertising', 'clothing', 'health', 'rent', 'phone', 'other']
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
+const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 interface TransactionEditorProps {
   isOpen: boolean
@@ -80,7 +81,7 @@ export function TransactionEditor({ isOpen, onClose }: TransactionEditorProps) {
 
         <FormSection title="Details">
           <FormCurrency label="Amount" value={amount} onChange={setAmount} />
-          <FormSelect label="Category" value={category} options={categories} onChange={setCategory} />
+          <FormSelect label="Category" value={category} options={categories} onChange={setCategory} displayFn={titleCase} />
           <FormSelect label="Payment" value={paymentMethod} options={paymentMethods} onChange={setPaymentMethod} />
           <div className="flex items-center gap-3 px-4 py-3">
             <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Date</span>

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, ChevronRight, User, UserPlus, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, ChevronRight, User, UserPlus, Search, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, createBooking, createClient } from '../../db'
 import { Modal, FormSection, FormInput, FormSelect, FormToggle, FormCurrency, FormRow } from '../../components/Modal'
 import { useLocalStorage } from '../../hooks/useSettings'
+import { checkBookingConflict, adjustAvailabilityForBooking } from '../../utils/availability'
 import type {
   Booking, BookingStatus, LocationType, PaymentMethod, ContactMethod, ScreeningStatus,
   RecurrencePattern
@@ -36,6 +37,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   )
   const [duration, setDuration] = useState(booking?.duration ?? rebookFrom?.duration ?? 60)
   const [customDuration, setCustomDuration] = useState(false)
+  const [durationUnit, setDurationUnit] = useState<'min' | 'hr'>('min')
   const [locationType, setLocationType] = useState<LocationType>(booking?.locationType ?? rebookFrom?.locationType ?? 'Incall')
   const [locationAddress, setLocationAddress] = useState(booking?.locationAddress ?? rebookFrom?.locationAddress ?? '')
   const [locationNotes, setLocationNotes] = useState(booking?.locationNotes ?? rebookFrom?.locationNotes ?? '')
@@ -64,6 +66,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const [newClientPreferences, setNewClientPreferences] = useState('')
   const [newClientBoundaries, setNewClientBoundaries] = useState('')
   const [newClientNotes, setNewClientNotes] = useState('')
+
+  // Availability conflict
+  const [conflictWarning, setConflictWarning] = useState<{ reason: string; dayStatus: string; isDoubleBook: boolean } | null>(null)
 
   const selectedClient = clients.find(c => c.id === clientId)
   const total = baseRate + extras + travelFee
@@ -123,6 +128,23 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   async function handleSave() {
     if (!isValid) return
     const dt = new Date(dateTime)
+
+    // Check availability conflict
+    const conflict = await checkBookingConflict(dt, duration, booking?.id)
+    if (conflict.hasConflict) {
+      setConflictWarning({
+        reason: conflict.reason,
+        dayStatus: conflict.dayStatus ?? '',
+        isDoubleBook: conflict.isDoubleBook ?? false,
+      })
+      return
+    }
+
+    await saveBooking()
+  }
+
+  async function saveBooking(overrideAvailability = false) {
+    const dt = new Date(dateTime)
     const finalTravelFee = (locationType === 'Outcall' || locationType === 'Travel') ? travelFee : 0
 
     if (isEditing && booking) {
@@ -144,6 +166,10 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         requiresSafetyCheck,
         recurrence,
       })
+
+      if (overrideAvailability) {
+        await adjustAvailabilityForBooking(dt, duration, booking.id)
+      }
     } else {
       const newBooking = createBooking({
         clientId,
@@ -164,8 +190,13 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         recurrence,
       })
       await db.bookings.add(newBooking)
+
+      if (overrideAvailability) {
+        await adjustAvailabilityForBooking(dt, duration, newBooking.id)
+      }
     }
 
+    setConflictWarning(null)
     onClose()
   }
 
@@ -434,12 +465,35 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
           )}
           {(customDuration || serviceRates.length === 0) && (
             <div className="flex items-center gap-3 px-4 py-3">
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Minutes</span>
+              <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
+                <button
+                  onClick={() => setDurationUnit('min')}
+                  className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    durationUnit === 'min' ? 'bg-purple-500/20 text-purple-500' : ''
+                  }`}
+                  style={durationUnit !== 'min' ? { color: 'var(--text-secondary)' } : {}}
+                >
+                  Min
+                </button>
+                <button
+                  onClick={() => setDurationUnit('hr')}
+                  className={`px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    durationUnit === 'hr' ? 'bg-purple-500/20 text-purple-500' : ''
+                  }`}
+                  style={durationUnit !== 'hr' ? { color: 'var(--text-secondary)' } : {}}
+                >
+                  Hr
+                </button>
+              </div>
               <input
                 type="number"
-                inputMode="numeric"
-                value={duration}
-                onChange={e => setDuration(parseInt(e.target.value) || 0)}
+                inputMode="decimal"
+                step={durationUnit === 'hr' ? '0.5' : '1'}
+                value={durationUnit === 'hr' ? Math.round((duration / 60) * 10) / 10 : duration}
+                onChange={e => {
+                  const val = parseFloat(e.target.value) || 0
+                  setDuration(durationUnit === 'hr' ? Math.round(val * 60) : val)
+                }}
                 className="flex-1 text-sm text-right bg-transparent outline-none"
                 style={{ color: 'var(--text-primary)' }}
               />
@@ -546,6 +600,73 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
         <div className="h-8" />
       </div>
+
+      {/* Availability Conflict Warning */}
+      {conflictWarning && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center px-6"
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setConflictWarning(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl p-6"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-primary)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: conflictWarning.isDoubleBook ? 'rgba(239,68,68,0.15)' : 'rgba(249,115,22,0.15)' }}
+              >
+                <AlertTriangle size={20} style={{ color: conflictWarning.isDoubleBook ? '#ef4444' : '#f97316' }} />
+              </div>
+              <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
+                {conflictWarning.isDoubleBook ? 'Double Booking' : 'Availability Conflict'}
+              </h3>
+            </div>
+            <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
+              {conflictWarning.reason}
+            </p>
+            {!conflictWarning.isDoubleBook && (
+              <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+                If you continue, this day will be set to <strong style={{ color: '#f97316' }}>Limited</strong> and
+                only this booking's time slot will be open.
+              </p>
+            )}
+            {conflictWarning.isDoubleBook && (
+              <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+                This booking will overlap with another appointment. Are you sure you want to proceed?
+              </p>
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConflictWarning(null)}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold"
+                style={{
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                Go Back
+              </button>
+              <button
+                onClick={() => saveBooking(!conflictWarning.isDoubleBook)}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
+                style={{
+                  background: conflictWarning.isDoubleBook
+                    ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                    : 'linear-gradient(135deg, #f97316, #ef4444)',
+                }}
+              >
+                Book Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }

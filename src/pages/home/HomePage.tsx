@@ -10,6 +10,7 @@ import { Card, CardHeader } from '../../components/Card'
 import { EmptyState } from '../../components/EmptyState'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
 import { SampleDataBanner } from '../../components/SampleDataBanner'
+import { formatTime12 } from '../../utils/availability'
 import { availabilityStatusColors } from '../../types'
 
 interface HomePageProps {
@@ -132,7 +133,11 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                   Today's Status
                 </p>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  {todayAvailability?.status ?? 'Not set'}{todayAvailability?.notes ? ` — ${todayAvailability.notes}` : ''}
+                  {todayAvailability?.status ?? 'Not set'}
+                  {todayAvailability?.startTime && todayAvailability?.endTime
+                    ? ` · ${formatTime12(todayAvailability.startTime)} – ${formatTime12(todayAvailability.endTime)}`
+                    : ''}
+                  {todayAvailability?.notes ? ` — ${todayAvailability.notes}` : ''}
                 </p>
               </div>
             </div>

@@ -16,6 +16,7 @@ import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
 import { Paywall, TrialBanner, needsPaywall } from './components/Paywall'
 import { seedSampleData, hasSampleDataBeenOffered } from './data/sampleData'
+import { db } from './db'
 
 type Screen =
   | { type: 'tab' }
@@ -72,6 +73,15 @@ export default function App() {
   useEffect(() => {
     if (!pinEnabled) setIsLocked(false)
   }, [pinEnabled])
+
+  // Seed sample data if DB is empty and never offered
+  useEffect(() => {
+    if (!hasSampleDataBeenOffered()) {
+      db.clients.count().then(count => {
+        if (count === 0) seedSampleData()
+      })
+    }
+  }, [])
 
   function handleTabChange(tab: number) {
     setActiveTab(tab)

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Trash2, RotateCcw, Database, MessageSquare } from 'lucide-react'
-import { db, newId } from '../../db'
+import { db, newId, bookingDurationFormatted } from '../../db'
 import { Modal, FormSection, FormToggle } from '../../components/Modal'
 import { PinLock } from '../../components/PinLock'
 import { BackupRestoreModal } from '../../components/BackupRestore'
@@ -27,6 +27,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
   const [showAddRate, setShowAddRate] = useState(false)
   const [newRateName, setNewRateName] = useState('')
   const [newRateDuration, setNewRateDuration] = useState(60)
+  const [newRateUnit, setNewRateUnit] = useState<'min' | 'hr'>('min')
   const [newRateAmount, setNewRateAmount] = useState(0)
 
   // PIN setup
@@ -35,16 +36,18 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
 
   async function addRate() {
     if (!newRateName.trim() || newRateAmount <= 0) return
+    const durationInMinutes = newRateUnit === 'hr' ? Math.round(newRateDuration * 60) : newRateDuration
     await db.serviceRates.add({
       id: newId(),
       name: newRateName.trim(),
-      duration: newRateDuration,
+      duration: durationInMinutes,
       rate: newRateAmount,
       isActive: true,
       sortOrder: serviceRates.length,
     })
     setNewRateName('')
     setNewRateDuration(60)
+    setNewRateUnit('min')
     setNewRateAmount(0)
     setShowAddRate(false)
   }
@@ -91,7 +94,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
                     {rate.name}
                   </p>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {rate.duration}min — ${rate.rate}
+                    {bookingDurationFormatted(rate.duration)} — ${rate.rate}
                   </p>
                 </div>
                 <button
@@ -120,11 +123,45 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
                 />
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <label className="text-[10px] uppercase" style={{ color: 'var(--text-secondary)' }}>Minutes</label>
+                    <div className="flex items-center gap-2 mb-1">
+                      <label className="text-[10px] uppercase" style={{ color: 'var(--text-secondary)' }}>Duration</label>
+                      <div className="flex rounded overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
+                        <button
+                          onClick={() => {
+                            if (newRateUnit === 'hr') {
+                              setNewRateUnit('min')
+                              setNewRateDuration(Math.round(newRateDuration * 60))
+                            }
+                          }}
+                          className={`px-1.5 py-0.5 text-[10px] font-semibold ${
+                            newRateUnit === 'min' ? 'bg-purple-500/20 text-purple-500' : ''
+                          }`}
+                          style={newRateUnit !== 'min' ? { color: 'var(--text-secondary)' } : {}}
+                        >
+                          Min
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (newRateUnit === 'min') {
+                              setNewRateUnit('hr')
+                              setNewRateDuration(Math.round((newRateDuration / 60) * 10) / 10)
+                            }
+                          }}
+                          className={`px-1.5 py-0.5 text-[10px] font-semibold ${
+                            newRateUnit === 'hr' ? 'bg-purple-500/20 text-purple-500' : ''
+                          }`}
+                          style={newRateUnit !== 'hr' ? { color: 'var(--text-secondary)' } : {}}
+                        >
+                          Hr
+                        </button>
+                      </div>
+                    </div>
                     <input
                       type="number"
+                      inputMode="decimal"
+                      step={newRateUnit === 'hr' ? '0.5' : '1'}
                       value={newRateDuration}
-                      onChange={e => setNewRateDuration(parseInt(e.target.value) || 0)}
+                      onChange={e => setNewRateDuration(parseFloat(e.target.value) || 0)}
                       className="w-full text-sm bg-transparent outline-none py-1"
                       style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}
                     />

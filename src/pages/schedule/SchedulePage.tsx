@@ -11,6 +11,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { BookingEditor } from './BookingEditor'
 import { AvailabilityPicker } from './AvailabilityPicker'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
+import { formatTime12 } from '../../utils/availability'
 
 interface SchedulePageProps {
   onOpenBooking: (bookingId: string) => void
@@ -179,6 +180,11 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                     style={{ backgroundColor: availColor(selectedDate) ?? 'var(--text-secondary)' }}
                   />
                   {availForDay(selectedDate)?.status ?? 'Set Availability'}
+                  {availForDay(selectedDate)?.startTime && availForDay(selectedDate)?.endTime && (
+                    <span className="opacity-60 ml-1">
+                      {formatTime12(availForDay(selectedDate)!.startTime!)} – {formatTime12(availForDay(selectedDate)!.endTime!)}
+                    </span>
+                  )}
                 </button>
                 {selectedBookings.length === 0 ? (
                   <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No bookings</p>
@@ -232,7 +238,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
       {showAvailPicker && selectedDate && (
         <AvailabilityPicker
           date={selectedDate}
-          currentStatus={availForDay(selectedDate)?.status}
+          current={availForDay(selectedDate)}
           onClose={() => setShowAvailPicker(false)}
         />
       )}

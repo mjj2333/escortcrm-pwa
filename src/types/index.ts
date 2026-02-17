@@ -86,6 +86,12 @@ export interface Transaction {
   notes: string
 }
 
+export interface TimeSlot {
+  start: string  // "14:00"
+  end: string    // "16:30"
+  bookingId?: string  // if auto-created from a booking override
+}
+
 export interface DayAvailability {
   id: string
   date: Date
@@ -93,6 +99,7 @@ export interface DayAvailability {
   startTime?: string // "09:00"
   endTime?: string   // "22:00"
   notes?: string
+  openSlots?: TimeSlot[]  // explicit open windows on Busy/Off/Limited days
 }
 
 export interface SafetyContact {
