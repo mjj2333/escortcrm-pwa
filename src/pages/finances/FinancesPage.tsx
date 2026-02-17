@@ -530,13 +530,13 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
           <div className="flex items-center gap-3 px-4 py-3">
             <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Target ($)</span>
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
               value={target}
-              onChange={e => setTarget(e.target.value)}
+              onChange={e => setTarget(e.target.value.replace(/[^0-9]/g, ''))}
               placeholder="5000"
               className="flex-1 text-sm text-right bg-transparent outline-none"
-              style={{ color: 'var(--text-primary)' }}
+              style={{ color: 'var(--text-primary)', fontSize: '16px' }}
             />
           </div>
           <div className="flex items-center gap-3 px-4 py-3">

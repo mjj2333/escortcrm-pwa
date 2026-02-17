@@ -429,25 +429,33 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
         {/* Duration */}
         <FormSection title="Duration">
-          {/* Min / Hr toggle - always visible */}
-          <div className="px-4 pt-3 pb-1 flex items-center gap-2">
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Unit:</span>
-            <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
+          {/* Min / Hr toggle - prominent, always visible */}
+          <div className="px-4 py-3">
+            <div
+              className="flex rounded-xl overflow-hidden"
+              style={{ border: '2px solid var(--border)' }}
+            >
               <button
+                type="button"
                 onClick={() => setDurationUnit('min')}
-                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  durationUnit === 'min' ? 'bg-purple-500/20 text-purple-500' : ''
-                }`}
-                style={durationUnit !== 'min' ? { color: 'var(--text-secondary)' } : {}}
+                className="flex-1 py-2.5 text-sm font-bold text-center transition-colors active:opacity-80"
+                style={{
+                  backgroundColor: durationUnit === 'min' ? '#a855f7' : 'transparent',
+                  color: durationUnit === 'min' ? '#fff' : 'var(--text-secondary)',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
               >
                 Minutes
               </button>
               <button
+                type="button"
                 onClick={() => setDurationUnit('hr')}
-                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  durationUnit === 'hr' ? 'bg-purple-500/20 text-purple-500' : ''
-                }`}
-                style={durationUnit !== 'hr' ? { color: 'var(--text-secondary)' } : {}}
+                className="flex-1 py-2.5 text-sm font-bold text-center transition-colors active:opacity-80"
+                style={{
+                  backgroundColor: durationUnit === 'hr' ? '#a855f7' : 'transparent',
+                  color: durationUnit === 'hr' ? '#fff' : 'var(--text-secondary)',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
               >
                 Hours
               </button>
@@ -502,23 +510,24 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                 {durationUnit === 'hr' ? 'Hours' : 'Minutes'}
               </span>
               <input
-                type="number"
+                type="text"
                 inputMode="decimal"
-                step={durationUnit === 'hr' ? '0.5' : '15'}
-                value={durationUnit === 'hr'
-                  ? (duration === 0 ? '' : Math.round((duration / 60) * 10) / 10)
-                  : (duration === 0 ? '' : duration)
-                }
+                value={(() => {
+                  if (duration === 0) return ''
+                  if (durationUnit === 'hr') return String(Math.round((duration / 60) * 10) / 10)
+                  return String(duration)
+                })()}
                 onChange={e => {
-                  const raw = e.target.value
-                  if (raw === '') { setDuration(0); return }
+                  const raw = e.target.value.replace(/[^0-9.]/g, '')
+                  if (raw === '' || raw === '.') { setDuration(0); return }
                   const val = parseFloat(raw)
                   if (!isNaN(val)) {
                     setDuration(durationUnit === 'hr' ? Math.round(val * 60) : Math.round(val))
                   }
                 }}
+                placeholder="0"
                 className="flex-1 text-sm text-right bg-transparent outline-none"
-                style={{ color: 'var(--text-primary)' }}
+                style={{ color: 'var(--text-primary)', fontSize: '16px' }}
               />
             </div>
           )}

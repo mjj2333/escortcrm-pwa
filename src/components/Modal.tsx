@@ -233,13 +233,18 @@ export function FormCurrency({ label, value, onChange }: FormCurrencyProps) {
       <div className="flex-1 flex items-center justify-end gap-1">
         <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>$</span>
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
-          value={value || ''}
-          onChange={e => onChange(parseFloat(e.target.value) || 0)}
+          value={value > 0 ? String(value) : ''}
+          onChange={e => {
+            const raw = e.target.value.replace(/[^0-9.]/g, '')
+            if (raw === '' || raw === '.') { onChange(0); return }
+            const parsed = parseFloat(raw)
+            if (!isNaN(parsed)) onChange(parsed)
+          }}
           placeholder="0"
           className="w-24 text-sm text-right bg-transparent outline-none"
-          style={{ color: 'var(--text-primary)' }}
+          style={{ color: 'var(--text-primary)', fontSize: '16px' }}
         />
       </div>
     </div>

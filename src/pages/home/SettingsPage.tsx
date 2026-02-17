@@ -123,65 +123,74 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
                 />
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <label className="text-[10px] uppercase" style={{ color: 'var(--text-secondary)' }}>Duration</label>
-                      <div className="flex rounded overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
-                        <button
-                          onClick={() => {
-                            if (newRateUnit === 'hr') {
-                              setNewRateUnit('min')
-                              setNewRateDuration(Math.round(newRateDuration * 60))
-                            }
-                          }}
-                          className={`px-1.5 py-0.5 text-[10px] font-semibold ${
-                            newRateUnit === 'min' ? 'bg-purple-500/20 text-purple-500' : ''
-                          }`}
-                          style={newRateUnit !== 'min' ? { color: 'var(--text-secondary)' } : {}}
-                        >
-                          Min
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (newRateUnit === 'min') {
-                              setNewRateUnit('hr')
-                              setNewRateDuration(Math.round((newRateDuration / 60) * 10) / 10)
-                            }
-                          }}
-                          className={`px-1.5 py-0.5 text-[10px] font-semibold ${
-                            newRateUnit === 'hr' ? 'bg-purple-500/20 text-purple-500' : ''
-                          }`}
-                          style={newRateUnit !== 'hr' ? { color: 'var(--text-secondary)' } : {}}
-                        >
-                          Hr
-                        </button>
-                      </div>
+                    <label className="text-[10px] uppercase block mb-1" style={{ color: 'var(--text-secondary)' }}>Duration</label>
+                    <div
+                      className="flex rounded-lg overflow-hidden mb-2"
+                      style={{ border: '2px solid var(--border)' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newRateUnit === 'hr') {
+                            setNewRateUnit('min')
+                            setNewRateDuration(Math.round(newRateDuration * 60))
+                          }
+                        }}
+                        className="flex-1 py-1.5 text-xs font-bold text-center"
+                        style={{
+                          backgroundColor: newRateUnit === 'min' ? '#a855f7' : 'transparent',
+                          color: newRateUnit === 'min' ? '#fff' : 'var(--text-secondary)',
+                        }}
+                      >
+                        Min
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newRateUnit === 'min') {
+                            setNewRateUnit('hr')
+                            setNewRateDuration(Math.round((newRateDuration / 60) * 10) / 10)
+                          }
+                        }}
+                        className="flex-1 py-1.5 text-xs font-bold text-center"
+                        style={{
+                          backgroundColor: newRateUnit === 'hr' ? '#a855f7' : 'transparent',
+                          color: newRateUnit === 'hr' ? '#fff' : 'var(--text-secondary)',
+                        }}
+                      >
+                        Hr
+                      </button>
                     </div>
                     <input
-                      type="number"
+                      type="text"
                       inputMode="decimal"
-                      step={newRateUnit === 'hr' ? '0.5' : '15'}
-                      value={newRateUnit === 'hr'
-                        ? (newRateDuration === 0 ? '' : newRateDuration)
-                        : (newRateDuration === 0 ? '' : newRateDuration)
-                      }
+                      placeholder="0"
+                      value={newRateDuration > 0 ? String(newRateDuration) : ''}
                       onChange={e => {
-                        const raw = e.target.value
-                        if (raw === '') { setNewRateDuration(0); return }
+                        const raw = e.target.value.replace(/[^0-9.]/g, '')
+                        if (raw === '' || raw === '.') { setNewRateDuration(0); return }
                         const val = parseFloat(raw)
                         if (!isNaN(val)) setNewRateDuration(val)
                       }}
                       className="w-full text-sm bg-transparent outline-none py-1"
-                      style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}
+                      style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}
                     />
                   </div>
                   <div className="flex-1">
                     <label className="text-[10px] uppercase" style={{ color: 'var(--text-secondary)' }}>Rate ($)</label>
                     <input
-                      type="number"
-                      value={newRateAmount || ''}
-                      onChange={e => setNewRateAmount(parseInt(e.target.value) || 0)}
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0"
+                      value={newRateAmount > 0 ? String(newRateAmount) : ''}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/[^0-9.]/g, '')
+                        if (raw === '' || raw === '.') { setNewRateAmount(0); return }
+                        const val = parseFloat(raw)
+                        if (!isNaN(val)) setNewRateAmount(val)
+                      }}
                       className="w-full text-sm bg-transparent outline-none py-1"
-                      style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}
+                      style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}
                     />
                   </div>
                 </div>
@@ -217,14 +226,18 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
               <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Percentage</span>
               <div className="flex-1 flex items-center justify-end gap-1">
                 <input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  value={depositPct}
-                  onChange={e => setDepositPct(parseInt(e.target.value) || 0)}
-                  min={0}
-                  max={100}
+                  value={depositPct > 0 ? String(depositPct) : ''}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '')
+                    if (raw === '') { setDepositPct(0); return }
+                    const val = parseInt(raw)
+                    if (!isNaN(val) && val <= 100) setDepositPct(val)
+                  }}
+                  placeholder="0"
                   className="w-16 text-sm text-right bg-transparent outline-none"
-                  style={{ color: 'var(--text-primary)' }}
+                  style={{ color: 'var(--text-primary)', fontSize: '16px' }}
                 />
                 <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>%</span>
               </div>
