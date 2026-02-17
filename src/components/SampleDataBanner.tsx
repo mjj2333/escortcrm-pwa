@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Sparkles, X, Trash2 } from 'lucide-react'
+import { Sparkles, Trash2 } from 'lucide-react'
 import { isSampleDataActive, clearSampleData } from '../data/sampleData'
 
 export function SampleDataBanner() {

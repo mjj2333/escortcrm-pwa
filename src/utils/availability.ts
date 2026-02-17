@@ -54,11 +54,6 @@ function snapToHalfHour(time: string, roundUp = false): string {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
 }
 
-/** Check if time range A overlaps with time range B */
-function rangesOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
-  return aStart < bEnd && aEnd > bStart
-}
-
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONFLICT CHECKING
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -81,8 +76,8 @@ export async function checkBookingConflict(
   excludeBookingId?: string
 ): Promise<AvailabilityConflict> {
   // 1. Check for overlapping bookings first
-  const bookingStart = bookingDateTime.getTime()
-  const bookingEnd = bookingStart + durationMinutes * 60000
+  const bookingStartMs = bookingDateTime.getTime()
+  const bookingEndMs = bookingStartMs + durationMinutes * 60000
 
   const allBookings = await db.bookings.toArray()
   const overlapping = allBookings.find(b => {
@@ -90,7 +85,7 @@ export async function checkBookingConflict(
     if (b.status === 'Cancelled' || b.status === 'No Show') return false
     const bStart = new Date(b.dateTime).getTime()
     const bEnd = bStart + b.duration * 60000
-    return bookingStart < bEnd && bookingEnd > bStart
+    return bookingStartMs < bEnd && bookingEndMs > bStart
   })
 
   if (overlapping) {
