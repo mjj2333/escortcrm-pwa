@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Plus, ArrowUpCircle, ArrowDownCircle, Trash2, Target,
-  Percent, ChevronRight, Settings, AlertCircle, Filter, Search, X, Check, BarChart3, ArrowDownUp
+  Percent, ChevronRight, AlertCircle, Search, X, Check, BarChart3, ArrowDownUp
 } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import {
@@ -39,7 +39,6 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
   const [showGoalEditor, setShowGoalEditor] = useState(false)
   const [showTaxSettings, setShowTaxSettings] = useState(false)
   const [showAllTransactions, setShowAllTransactions] = useState(false)
-  const [showMenu, setShowMenu] = useState(false)
   const [showImportExport, setShowImportExport] = useState(false)
 
   const allTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray()) ?? []
@@ -97,9 +96,13 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
     if (filtered.length === 0) return []
     const useDaily = period === 'Week' || period === 'Month'
     const now = new Date()
+    // For "All", start from earliest transaction instead of year 2000
+    const chartStart = period === 'All' && filtered.length > 0
+      ? startOfMonth(new Date(filtered[filtered.length - 1].date))
+      : startDate
     const intervals = useDaily
-      ? eachDayOfInterval({ start: startDate, end: now })
-      : eachMonthOfInterval({ start: startDate, end: now })
+      ? eachDayOfInterval({ start: chartStart, end: now })
+      : eachMonthOfInterval({ start: chartStart, end: now })
 
     return intervals.map(d => {
       const match = filtered.filter(t =>
@@ -132,63 +135,9 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
   return (
     <div className="pb-20">
       <PageHeader title="Finances">
-        <div className="flex items-center gap-1">
-          <div className="relative">
-            <button onClick={() => setShowMenu(!showMenu)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
-              <Settings size={18} />
-            </button>
-            {showMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-                <div
-                  className="absolute right-0 top-10 z-50 w-48 rounded-xl border py-1 shadow-xl"
-                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
-                >
-                  <button
-                    onClick={() => { setShowGoalEditor(true); setShowMenu(false) }}
-                    className="flex items-center gap-3 px-4 py-2.5 w-full text-left text-sm"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    <Target size={15} className="text-purple-500" /> Income Goal
-                  </button>
-                  <button
-                    onClick={() => { setShowTaxSettings(true); setShowMenu(false) }}
-                    className="flex items-center gap-3 px-4 py-2.5 w-full text-left text-sm"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    <Percent size={15} className="text-orange-500" /> Tax Settings
-                  </button>
-                  <button
-                    onClick={() => { setShowAllTransactions(true); setShowMenu(false) }}
-                    className="flex items-center gap-3 px-4 py-2.5 w-full text-left text-sm"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    <Filter size={15} className="text-blue-500" /> All Transactions
-                  </button>
-                  {onOpenAnalytics && (
-                    <button
-                      onClick={() => { onOpenAnalytics(); setShowMenu(false) }}
-                      className="flex items-center gap-3 px-4 py-2.5 w-full text-left text-sm"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      <BarChart3 size={15} className="text-green-500" /> Full Analytics
-                    </button>
-                  )}
-                  <button
-                    onClick={() => { setShowImportExport(true); setShowMenu(false) }}
-                    className="flex items-center gap-3 px-4 py-2.5 w-full text-left text-sm"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    <ArrowDownUp size={15} style={{ color: '#a855f7' }} /> Import / Export
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-          <button onClick={() => setShowEditor(true)} className="p-2 rounded-lg text-purple-500">
-            <Plus size={20} />
-          </button>
-        </div>
+        <button onClick={() => setShowEditor(true)} className="p-2 rounded-lg text-purple-500">
+          <Plus size={20} />
+        </button>
       </PageHeader>
 
       <div className="px-4 py-3 max-w-lg mx-auto space-y-4">
@@ -285,7 +234,7 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
               <Percent size={16} className="text-orange-500" />
               <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Tax Estimate</p>
             </div>
-            <Settings size={14} style={{ color: 'var(--text-secondary)' }} />
+            <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
           </div>
           <div className="flex gap-4">
             <div className="flex-1">
@@ -304,35 +253,74 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
         {chartData.length > 0 && (
           <Card>
             <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Income vs Expenses</p>
-            <div className="flex items-end gap-0.5 h-40">
-              {chartData.map((d, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
-                  {/* Income bar */}
+            <div className="relative" style={{ height: '160px' }}>
+              {/* Zero axis line */}
+              <div
+                className="absolute left-0 right-0"
+                style={{ top: '50%', height: '1px', backgroundColor: 'var(--border)' }}
+              />
+
+              {/* Bars container */}
+              <div className="flex items-center h-full justify-center" style={{ gap: chartData.length > 20 ? '1px' : '3px' }}>
+                {chartData.map((d, i) => (
                   <div
-                    className="w-full rounded-t"
+                    key={i}
+                    className="flex flex-col h-full relative"
                     style={{
-                      height: `${Math.max(1, (d.income / chartMax) * 100)}%`,
-                      backgroundColor: d.income > 0 ? 'rgba(34,197,94,0.6)' : 'transparent',
-                      minHeight: d.income > 0 ? '2px' : '0',
+                      width: chartData.length <= 6
+                        ? '40px'
+                        : chartData.length <= 14
+                          ? '24px'
+                          : undefined,
+                      flex: chartData.length > 14 ? '1' : undefined,
+                      maxWidth: '48px',
                     }}
-                  />
-                  {/* Expense bar */}
-                  <div
-                    className="w-full rounded-t"
-                    style={{
-                      height: `${Math.max(1, (d.expense / chartMax) * 100)}%`,
-                      backgroundColor: d.expense > 0 ? 'rgba(239,68,68,0.5)' : 'transparent',
-                      minHeight: d.expense > 0 ? '2px' : '0',
-                    }}
-                  />
-                </div>
-              ))}
+                  >
+                    {/* Top half — income grows up from center */}
+                    <div className="flex-1 flex items-end justify-center">
+                      <div
+                        className="w-full rounded-t"
+                        style={{
+                          height: chartMax > 0 && d.income > 0
+                            ? `${Math.max(4, (d.income / chartMax) * 100)}%`
+                            : '0',
+                          backgroundColor: 'rgba(34,197,94,0.6)',
+                        }}
+                      />
+                    </div>
+                    {/* Bottom half — expense grows down from center */}
+                    <div className="flex-1 flex items-start justify-center">
+                      <div
+                        className="w-full rounded-b"
+                        style={{
+                          height: chartMax > 0 && d.expense > 0
+                            ? `${Math.max(4, (d.expense / chartMax) * 100)}%`
+                            : '0',
+                          backgroundColor: 'rgba(239,68,68,0.5)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
             {/* Labels */}
-            <div className="flex gap-0.5 mt-1">
+            <div className="flex mt-1 justify-center" style={{ gap: chartData.length > 20 ? '1px' : '3px' }}>
               {chartData.map((d, i) => (
-                <div key={i} className="flex-1 text-center">
-                  {(chartData.length <= 12 || i % Math.ceil(chartData.length / 8) === 0) && (
+                <div
+                  key={i}
+                  className="text-center"
+                  style={{
+                    width: chartData.length <= 6
+                      ? '40px'
+                      : chartData.length <= 14
+                        ? '24px'
+                        : undefined,
+                    flex: chartData.length > 14 ? '1' : undefined,
+                    maxWidth: '48px',
+                  }}
+                >
+                  {(chartData.length <= 14 || i % Math.ceil(chartData.length / 8) === 0) && (
                     <span className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>{d.label}</span>
                   )}
                 </div>
@@ -349,6 +337,16 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
                 <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Expenses</span>
               </div>
             </div>
+            {/* Full Analytics link */}
+            {onOpenAnalytics && (
+              <button
+                onClick={onOpenAnalytics}
+                className="flex items-center justify-center gap-2 w-full mt-3 pt-3 text-xs font-semibold text-green-500 active:opacity-70"
+                style={{ borderTop: '1px solid var(--border)' }}
+              >
+                <BarChart3 size={14} /> Full Analytics
+              </button>
+            )}
           </Card>
         )}
 
@@ -447,6 +445,14 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
               ))}
             </div>
           )}
+          {/* Import / Export link */}
+          <button
+            onClick={() => setShowImportExport(true)}
+            className="flex items-center justify-center gap-2 w-full mt-3 pt-3 text-xs font-semibold active:opacity-70"
+            style={{ borderTop: '1px solid var(--border)', color: '#a855f7' }}
+          >
+            <ArrowDownUp size={14} /> Import / Export
+          </button>
         </Card>
       </div>
 
