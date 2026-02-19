@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Phone, MessageSquare, Mail, Copy, Check,
   UserX, Pin, PinOff, Gift, Heart, ChevronRight, Shield,
-  ThumbsUp, ShieldAlert, StickyNote
+  ThumbsUp, ShieldAlert, StickyNote, Plus, RotateCcw, Trash2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted } from '../../db'
@@ -13,6 +13,7 @@ import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { Card } from '../../components/Card'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ClientEditor } from './ClientEditor'
+import { BookingEditor } from '../schedule/BookingEditor'
 import { screeningStatusColors, riskLevelColors } from '../../types'
 
 interface ClientDetailProps {
@@ -27,14 +28,19 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
     db.bookings.where('clientId').equals(clientId).toArray()
   ) ?? []
   const [showEditor, setShowEditor] = useState(false)
+  const [showBookingEditor, setShowBookingEditor] = useState(false)
+  const [showRebook, setShowRebook] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [showBlockConfirm, setShowBlockConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   if (!client) return null
 
   const completedBookings = bookings
     .filter(b => b.status === 'Completed')
     .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+
+  const lastCompletedBooking = completedBookings[0] ?? undefined
 
   const upcomingBookings = bookings
     .filter(b => new Date(b.dateTime) > new Date() && b.status !== 'Cancelled' && b.status !== 'Completed')
@@ -64,6 +70,15 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
   async function confirmBlock() {
     await db.clients.update(clientId, { isBlocked: true })
     setShowBlockConfirm(false)
+    onBack()
+  }
+
+  async function confirmDelete() {
+    // Delete all bookings for this client
+    await db.bookings.where('clientId').equals(clientId).delete()
+    // Delete the client
+    await db.clients.delete(clientId)
+    setShowDeleteConfirm(false)
     onBack()
   }
 
@@ -182,68 +197,43 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
           </Card>
         )}
 
-        {/* Contact with Quick Actions */}
-        <Card>
-          <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Contact</p>
-          {client.phone && (
-            <div className="py-2">
-              <div className="flex items-center gap-3 mb-2">
+        {/* Contact Info */}
+        {(client.phone || client.email) && (
+          <Card>
+            <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Contact</p>
+            {client.phone && (
+              <div className="flex items-center gap-3 py-1.5">
                 <Phone size={14} style={{ color: 'var(--text-secondary)' }} />
                 <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{client.phone}</span>
-              </div>
-              <div className="flex gap-2">
-                <a
-                  href={`tel:${client.phone}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-500/15 text-green-500"
-                >
-                  <Phone size={12} /> Call
-                </a>
-                <a
-                  href={`sms:${client.phone}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-500/15 text-blue-500"
-                >
-                  <MessageSquare size={12} /> Text
-                </a>
                 <button
                   onClick={() => copyToClipboard(client.phone!, 'phone')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                  style={{ backgroundColor: 'var(--bg-secondary)', color: copiedField === 'phone' ? '#22c55e' : 'var(--text-secondary)' }}
+                  className="p-1.5 rounded-lg"
+                  style={{ color: copiedField === 'phone' ? '#22c55e' : 'var(--text-secondary)' }}
                 >
-                  {copiedField === 'phone' ? <Check size={12} /> : <Copy size={12} />}
-                  {copiedField === 'phone' ? 'Copied' : 'Copy'}
+                  {copiedField === 'phone' ? <Check size={14} /> : <Copy size={14} />}
                 </button>
               </div>
-            </div>
-          )}
-          {client.email && (
-            <div className="py-2">
-              <div className="flex items-center gap-3 mb-2">
+            )}
+            {client.email && (
+              <div className="flex items-center gap-3 py-1.5">
                 <Mail size={14} style={{ color: 'var(--text-secondary)' }} />
                 <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{client.email}</span>
-              </div>
-              <div className="flex gap-2">
-                <a
-                  href={`mailto:${client.email}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-500/15 text-blue-500"
-                >
-                  <Mail size={12} /> Email
-                </a>
                 <button
                   onClick={() => copyToClipboard(client.email!, 'email')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                  style={{ backgroundColor: 'var(--bg-secondary)', color: copiedField === 'email' ? '#22c55e' : 'var(--text-secondary)' }}
+                  className="p-1.5 rounded-lg"
+                  style={{ color: copiedField === 'email' ? '#22c55e' : 'var(--text-secondary)' }}
                 >
-                  {copiedField === 'email' ? <Check size={12} /> : <Copy size={12} />}
-                  {copiedField === 'email' ? 'Copied' : 'Copy'}
+                  {copiedField === 'email' ? <Check size={14} /> : <Copy size={14} />}
                 </button>
               </div>
+            )}
+            <div className="flex items-center gap-3 py-1.5">
+              <MessageSquare size={14} style={{ color: 'var(--text-secondary)' }} />
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Preferred:</span>
+              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{client.preferredContact}</span>
             </div>
-          )}
-          <div className="flex items-center gap-3 py-1.5">
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Preferred:</span>
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{client.preferredContact}</span>
-          </div>
-        </Card>
+          </Card>
+        )}
 
         {/* Preferences & Boundaries */}
         {(client.preferences || client.boundaries) && (
@@ -366,6 +356,26 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
           )}
         </Card>
 
+        {/* Quick Booking Actions — Items 7 + 12 */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowBookingEditor(true)}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white active:opacity-80"
+            style={{ backgroundColor: '#a855f7' }}
+          >
+            <Plus size={16} /> New Booking
+          </button>
+          {lastCompletedBooking && (
+            <button
+              onClick={() => setShowRebook(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
+              style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
+            >
+              <RotateCcw size={14} /> Rebook
+            </button>
+          )}
+        </div>
+
         {/* Upcoming Bookings */}
         {upcomingBookings.length > 0 && (
           <Card>
@@ -447,6 +457,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
           >
             {client.isBlocked ? 'Unblock Client' : 'Block Client'}
           </button>
+          <div style={{ borderTop: '1px solid var(--border)' }} />
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full py-2 text-sm font-medium text-center flex items-center justify-center gap-2"
+            style={{ color: '#ef4444' }}
+          >
+            <Trash2 size={14} /> Delete Client
+          </button>
         </Card>
       </div>
 
@@ -458,7 +476,19 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
         onConfirm={confirmBlock}
         onCancel={() => setShowBlockConfirm(false)}
       />
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Client"
+        message={`Permanently delete ${client.alias} and all ${bookings.length} associated booking${bookings.length !== 1 ? 's' : ''}? This cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
       <ClientEditor isOpen={showEditor} onClose={() => setShowEditor(false)} client={client} />
+      <BookingEditor isOpen={showBookingEditor} onClose={() => setShowBookingEditor(false)} preselectedClientId={clientId} />
+      {lastCompletedBooking && (
+        <BookingEditor isOpen={showRebook} onClose={() => setShowRebook(false)} rebookFrom={lastCompletedBooking} />
+      )}
     </div>
   )
 }

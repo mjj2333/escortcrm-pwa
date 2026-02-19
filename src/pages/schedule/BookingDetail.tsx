@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Clock, MapPin,
   CheckCircle, XCircle, UserX, RotateCcw, Shield,
-  ChevronRight
+  ChevronRight, Trash2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, createBookingIncomeTransaction } from '../../db'
@@ -38,7 +38,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
   )
   const [showEditor, setShowEditor] = useState(false)
   const [showRebook, setShowRebook] = useState(false)
-  const [confirmAction, setConfirmAction] = useState<'noshow' | 'cancel' | null>(null)
+  const [confirmAction, setConfirmAction] = useState<'noshow' | 'cancel' | 'delete' | null>(null)
 
   if (!booking) return null
 
@@ -91,6 +91,12 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
       cancellationReason: reason?.trim() || undefined,
     })
     setConfirmAction(null)
+  }
+
+  async function deleteBooking() {
+    await db.bookings.delete(bookingId)
+    setConfirmAction(null)
+    onBack()
   }
 
   async function toggleDeposit() {
@@ -374,6 +380,17 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
               <span className="text-sm font-medium text-red-500">Cancel Booking</span>
             </button>
           )}
+
+          {/* Delete */}
+          {isTerminal && (
+            <button
+              onClick={() => setConfirmAction('delete')}
+              className="flex items-center gap-3 py-3 w-full text-left"
+            >
+              <Trash2 size={18} className="text-red-500" />
+              <span className="text-sm font-medium text-red-500">Delete Booking</span>
+            </button>
+          )}
         </Card>
 
         {/* Timestamps */}
@@ -422,6 +439,14 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
         confirmLabel="Cancel Booking"
         inputPlaceholder="Cancellation reason (optional)"
         onConfirm={(reason) => cancelBooking(reason)}
+        onCancel={() => setConfirmAction(null)}
+      />
+      <ConfirmDialog
+        isOpen={confirmAction === 'delete'}
+        title="Delete Booking"
+        message="Permanently delete this booking? This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={deleteBooking}
         onCancel={() => setConfirmAction(null)}
       />
 

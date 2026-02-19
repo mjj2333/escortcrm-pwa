@@ -12,6 +12,8 @@ import type { Client } from '../../types'
 
 import { ImportExportModal } from '../../components/ImportExport'
 
+type SortMode = 'az' | 'recent' | 'newest'
+
 interface ClientsPageProps {
   onOpenClient: (clientId: string) => void
 }
@@ -21,6 +23,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   const [showEditor, setShowEditor] = useState(false)
   const [showImportExport, setShowImportExport] = useState(false)
   const [showBlocked, setShowBlocked] = useState(false)
+  const [sortMode, setSortMode] = useState<SortMode>('az')
   const [pinnedToast, setPinnedToast] = useState<{ id: string; pinned: boolean } | null>(null)
   const clients = useLiveQuery(() => db.clients.orderBy('alias').toArray()) ?? []
 
@@ -35,7 +38,22 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
     )
     .sort((a, b) => {
       if (!showBlocked && a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1
-      return a.alias.localeCompare(b.alias)
+      switch (sortMode) {
+        case 'recent': {
+          const aTime = a.lastSeen ? new Date(a.lastSeen).getTime() : 0
+          const bTime = b.lastSeen ? new Date(b.lastSeen).getTime() : 0
+          if (aTime !== bTime) return bTime - aTime
+          return a.alias.localeCompare(b.alias)
+        }
+        case 'newest': {
+          const aTime = a.dateAdded ? new Date(a.dateAdded).getTime() : 0
+          const bTime = b.dateAdded ? new Date(b.dateAdded).getTime() : 0
+          if (aTime !== bTime) return bTime - aTime
+          return a.alias.localeCompare(b.alias)
+        }
+        default:
+          return a.alias.localeCompare(b.alias)
+      }
     })
 
   const togglePin = useCallback(async (clientId: string) => {
@@ -95,6 +113,24 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
             </button>
           </div>
         )}
+
+        {/* Sort options */}
+        <div className="flex gap-2 mt-2">
+          {([['az', 'A–Z'], ['recent', 'Last Seen'], ['newest', 'Newest']] as [SortMode, string][]).map(([mode, label]) => (
+            <button
+              key={mode}
+              onClick={() => setSortMode(mode)}
+              className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
+              style={{
+                backgroundColor: sortMode === mode ? 'var(--bg-card)' : 'transparent',
+                color: sortMode === mode ? 'var(--text-primary)' : 'var(--text-secondary)',
+                border: sortMode === mode ? '1px solid var(--border)' : '1px solid transparent',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="px-4 py-3 max-w-lg mx-auto">

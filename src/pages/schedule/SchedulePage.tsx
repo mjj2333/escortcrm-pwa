@@ -3,7 +3,7 @@ import { Plus, CalendarDays, List } from 'lucide-react'
 import { useState } from 'react'
 import {
   startOfMonth, endOfMonth, eachDayOfInterval, format, isSameDay, isToday,
-  startOfWeek, endOfWeek, isSameMonth, addMonths, subMonths
+  startOfWeek, endOfWeek, isSameMonth, addMonths, subMonths, subDays
 } from 'date-fns'
 import { db } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
@@ -37,6 +37,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const calEnd = endOfWeek(monthEnd)
   const days = eachDayOfInterval({ start: calStart, end: calEnd })
 
+  const isViewingCurrentMonth = isSameMonth(currentMonth, new Date())
+
   const bookingsForDay = (day: Date) =>
     bookings.filter(b => isSameDay(new Date(b.dateTime), day) && b.status !== 'Cancelled')
 
@@ -47,10 +49,19 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
     ? bookingsForDay(selectedDate).sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
     : []
 
-  // List view: group by date
-  const upcomingBookings = bookings
-    .filter(b => new Date(b.dateTime) >= startOfMonth(new Date()) && b.status !== 'Cancelled')
+  // List view: upcoming + recent 30 days, split into sections
+  const now = new Date()
+  const past30 = subDays(now, 30)
+  const listBookings = bookings
+    .filter(b => new Date(b.dateTime) >= past30 && b.status !== 'Cancelled')
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+  const pastBookings = listBookings.filter(b => new Date(b.dateTime) < now)
+  const futureBookings = listBookings.filter(b => new Date(b.dateTime) >= now)
+
+  function goToToday() {
+    setCurrentMonth(new Date())
+    setSelectedDate(new Date())
+  }
 
   const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
@@ -102,9 +113,20 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
               >
                 ‹ Prev
               </button>
-              <h2 className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                {format(currentMonth, 'MMMM yyyy')}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-bold" style={{ color: 'var(--text-primary)' }}>
+                  {format(currentMonth, 'MMMM yyyy')}
+                </h2>
+                {!isViewingCurrentMonth && (
+                  <button
+                    onClick={goToToday}
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
+                  >
+                    Today
+                  </button>
+                )}
+              </div>
               <button
                 onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
                 className="text-sm font-medium px-3 py-1 rounded-lg"
@@ -209,25 +231,50 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
         ) : (
           /* List view */
           <div className="px-4 py-3">
-            {upcomingBookings.length === 0 ? (
+            {listBookings.length === 0 ? (
               <EmptyState
                 icon={<CalendarDays size={40} />}
                 title="No bookings"
                 description="Create your first booking to see it here"
               />
             ) : (
-              <div className="space-y-2">
-                {upcomingBookings.map(b => {
-                  const client = clientFor(b.clientId)
-                  return (
-                    <SwipeableBookingRow
-                      key={b.id}
-                      booking={b}
-                      client={client}
-                      onOpen={() => onOpenBooking(b.id)}
-                    />
-                  )
-                })}
+              <div className="space-y-4">
+                {/* Upcoming */}
+                {futureBookings.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--text-secondary)' }}>
+                      Upcoming ({futureBookings.length})
+                    </p>
+                    <div className="space-y-2">
+                      {futureBookings.map(b => (
+                        <SwipeableBookingRow
+                          key={b.id}
+                          booking={b}
+                          client={clientFor(b.clientId)}
+                          onOpen={() => onOpenBooking(b.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Recent */}
+                {pastBookings.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--text-secondary)' }}>
+                      Recent (last 30 days)
+                    </p>
+                    <div className="space-y-2">
+                      {[...pastBookings].reverse().map(b => (
+                        <SwipeableBookingRow
+                          key={b.id}
+                          booking={b}
+                          client={clientFor(b.clientId)}
+                          onOpen={() => onOpenBooking(b.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
