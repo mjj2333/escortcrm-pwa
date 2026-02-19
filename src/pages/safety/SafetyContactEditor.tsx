@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { db, newId } from '../../db'
-import { Modal, FormSection, FormInput, FormToggle } from '../../components/Modal'
+import { Modal } from '../../components/Modal'
+import { SectionLabel, FieldTextInput, FieldToggle } from '../../components/FormFields'
 import type { SafetyContact } from '../../types'
 
 interface SafetyContactEditorProps {
@@ -30,7 +31,6 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
         isPrimary,
       })
     } else {
-      // If marking as primary, unset existing primary
       if (isPrimary) {
         const existing = await db.safetyContacts.filter(c => c.isPrimary).toArray()
         for (const c of existing) {
@@ -55,34 +55,30 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
       onClose={onClose}
       title={isEditing ? 'Edit Contact' : 'New Safety Contact'}
       actions={
-        <button
-          onClick={handleSave}
-          disabled={!isValid}
-          className={`p-1 ${isValid ? 'text-purple-500' : 'opacity-30'}`}
-        >
+        <button onClick={handleSave} disabled={!isValid}
+          className={`p-1 ${isValid ? 'text-purple-500' : 'opacity-30'}`}>
           <Check size={20} />
         </button>
       }
     >
-      <div style={{ backgroundColor: 'var(--bg-secondary)' }}>
-        <FormSection title="Contact Info">
-          <FormInput label="Name" value={name} onChange={setName} placeholder="Full name" required />
-          <FormInput label="Phone" value={phone} onChange={setPhone} placeholder="Phone number" type="tel" required />
-          <FormInput label="Relationship" value={relationship} onChange={setRelationship} placeholder="e.g. Friend, Sister" />
-        </FormSection>
+      <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <SectionLabel label="Contact Info" />
+        <FieldTextInput label="Name" value={name} onChange={setName} placeholder="Full name" required
+          hint="Your safety contact's name." />
+        <FieldTextInput label="Phone" value={phone} onChange={setPhone} placeholder="Phone number" type="tel" required
+          hint="The number that will be contacted for safety check-ins." />
+        <FieldTextInput label="Relationship" value={relationship} onChange={setRelationship} placeholder="e.g. Friend, Sister"
+          hint="How you know this person." />
 
-        <FormSection title="Settings" footer="Primary contact receives all safety check-in alerts">
-          <FormToggle label="Primary Contact" value={isPrimary} onChange={setIsPrimary} />
-        </FormSection>
+        <SectionLabel label="Settings" />
+        <FieldToggle label="Primary Contact" value={isPrimary} onChange={setIsPrimary}
+          hint="Primary contact receives all safety check-in alerts." />
 
-        <div className="px-4 py-4">
-          <button
-            onClick={handleSave}
-            disabled={!isValid}
+        <div className="py-4">
+          <button onClick={handleSave} disabled={!isValid}
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
               isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
-            }`}
-          >
+            }`}>
             {isEditing ? 'Save Changes' : 'Add Contact'}
           </button>
         </div>

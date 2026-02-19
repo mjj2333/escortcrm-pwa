@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react'
-import {
-  Check, ThumbsUp, ShieldAlert, StickyNote,
-  User, Phone, MessageCircle, ShieldCheck,
-  IdCard, Mail, Globe, ClipboardCheck, Cake, CalendarDays
-} from 'lucide-react'
+import { Check, Plus, ChevronLeft } from 'lucide-react'
 import { db, createClient } from '../../db'
-import { Modal, FormSection, FormInput, FormSelect } from '../../components/Modal'
+import { Modal } from '../../components/Modal'
+import { SectionLabel, FieldHint, FieldTextInput, FieldTextArea, FieldSelect, FieldDate } from '../../components/FormFields'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { TagPicker } from '../../components/TagPicker'
 import type { Client, ClientTag, ContactMethod, ScreeningStatus, RiskLevel } from '../../types'
@@ -104,7 +101,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         clientSince: clientSince ? new Date(clientSince) : undefined,
       })
       await db.clients.add(newClient)
-      onClose(newClient.id) // pass back the new ID
+      onClose(newClient.id)
     }
   }
 
@@ -114,82 +111,91 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       onClose={() => onClose()}
       title={isEditing ? 'Edit Client' : 'New Client'}
       actions={
-        <button
-          onClick={handleSave}
-          disabled={!isValid}
-          className={`p-1 ${isValid ? 'text-purple-500' : 'opacity-30'}`}
-        >
+        <button onClick={handleSave} disabled={!isValid}
+          className={`p-1 ${isValid ? 'text-purple-500' : 'opacity-30'}`}>
           <Check size={20} />
         </button>
       }
     >
-      <div style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         {/* Basic Info */}
-        <FormSection title="Basic Info">
-          <FormInput label={<span className="flex items-center gap-1.5"><User size={13} style={{ color: '#a855f7' }} /> Alias</span>} value={alias} onChange={setAlias} placeholder="Display name" required />
-          <FormInput label={<span className="flex items-center gap-1.5"><Phone size={13} style={{ color: '#3b82f6' }} /> Phone</span>} value={phone} onChange={setPhone} placeholder="Phone number" type="tel" />
-          <FormSelect label={<span className="flex items-center gap-1.5"><MessageCircle size={13} style={{ color: '#f97316' }} /> Contact</span>} value={preferredContact} options={contactMethods} onChange={setPreferredContact} />
-          <FormSelect label={<span className="flex items-center gap-1.5"><ShieldCheck size={13} style={{ color: '#eab308' }} /> Screening</span>} value={screeningStatus} options={screeningStatuses} onChange={setScreeningStatus} />
-        </FormSection>
+        <SectionLabel label="Basic Info" />
+        <FieldTextInput label="Alias" value={alias} onChange={setAlias} placeholder="Display name" required
+          hint="A name or nickname you use to identify this client." />
+        <FieldTextInput label="Phone" value={phone} onChange={setPhone} placeholder="Phone number" type="tel"
+          hint="Enables one-tap calling and texting from their profile." />
+        <FieldSelect label="Preferred Contact" value={preferredContact} options={contactMethods} onChange={setPreferredContact}
+          hint="How this client prefers to be reached." />
+        <FieldSelect label="Screening Status" value={screeningStatus} options={screeningStatuses} onChange={setScreeningStatus}
+          hint="Track where they are in your screening process." />
 
-        {/* Risk Level Bar — always visible */}
-        <div className="px-4 py-3">
+        {/* Risk Level Bar */}
+        <SectionLabel label="Risk Level" />
+        <div className="mb-3">
           <RiskLevelBar value={riskLevel} onChange={setRiskLevel} />
+          <FieldHint text="Slide to set risk level. Unknown means not yet assessed." />
         </div>
 
         {/* Tags */}
-        <div className="px-4 py-3">
-          <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Tags</p>
+        <SectionLabel label="Tags" optional />
+        <div className="mb-3">
           <TagPicker selected={tags} onChange={setTags} />
         </div>
 
         {/* Toggle all details */}
-        <div className="px-4 py-2">
-          <button
-            onClick={() => setShowAllDetails(!showAllDetails)}
-            className="text-sm text-purple-500 font-medium"
-          >
-            {showAllDetails ? 'Hide Details' : 'All Details ▸'}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowAllDetails(!showAllDetails)}
+          className="flex items-center gap-2 mb-4 text-xs font-semibold active:opacity-70"
+          style={{ color: '#a855f7' }}
+        >
+          {showAllDetails ? <ChevronLeft size={14} /> : <Plus size={14} />}
+          {showAllDetails ? 'Hide Details' : 'All Details'}
+        </button>
 
         {showAllDetails && (
           <>
-            <FormSection title="Identity">
-              <FormInput label={<span className="flex items-center gap-1.5"><IdCard size={13} style={{ color: '#8b5cf6' }} /> Real Name</span>} value={realName} onChange={setRealName} placeholder="Legal name" />
-              <FormInput label={<span className="flex items-center gap-1.5"><Mail size={13} style={{ color: '#3b82f6' }} /> Email</span>} value={email} onChange={setEmail} placeholder="Email" type="email" />
-            </FormSection>
+            <SectionLabel label="Identity" optional />
+            <FieldTextInput label="Real Name" value={realName} onChange={setRealName} placeholder="Legal name"
+              hint="Their legal name, if verified. Only visible to you." />
+            <FieldTextInput label="Email" value={email} onChange={setEmail} placeholder="Email" type="email"
+              hint="Enables one-tap email from their profile." />
 
-            <FormSection title="Dates">
-              <FormInput label={<span className="flex items-center gap-1.5"><Cake size={13} style={{ color: '#ec4899' }} /> Birthday</span>} value={birthday} onChange={setBirthday} type="date" />
-              <FormInput label={<span className="flex items-center gap-1.5"><CalendarDays size={13} style={{ color: '#a855f7' }} /> Client Since</span>} value={clientSince} onChange={setClientSince} type="date" />
-            </FormSection>
+            <SectionLabel label="Dates" optional />
+            <FieldDate label="Birthday" value={birthday} onChange={setBirthday}
+              hint="Get a reminder on the home page when their birthday is coming up." />
+            <FieldDate label="Client Since" value={clientSince} onChange={setClientSince}
+              hint="When you first started seeing this client." />
 
-            <FormSection title="Screening Details">
-              <FormInput label={<span className="flex items-center gap-1.5"><Globe size={13} style={{ color: '#22c55e' }} /> Reference</span>} value={referenceSource} onChange={setReferenceSource} placeholder="How they found you" />
-              <FormInput label={<span className="flex items-center gap-1.5"><ClipboardCheck size={13} style={{ color: '#eab308' }} /> Verification</span>} value={verificationNotes} onChange={setVerificationNotes} placeholder="ID, references..." multiline />
-            </FormSection>
+            <SectionLabel label="Screening Details" optional />
+            <FieldTextInput label="Referral Source" value={referenceSource} onChange={setReferenceSource}
+              placeholder="How they found you"
+              hint="Website, friend, Twitter, etc." />
+            <FieldTextArea label="Verification Notes" value={verificationNotes} onChange={setVerificationNotes}
+              placeholder="ID, references..."
+              hint="Notes about their screening or verification process." />
 
-            <FormSection title="Preferences & Boundaries">
-              <FormInput label={<span className="flex items-center gap-1.5"><ThumbsUp size={13} style={{ color: '#22c55e' }} /> Preferences</span>} value={preferences} onChange={setPreferences} placeholder="Likes, requests..." multiline />
-              <FormInput label={<span className="flex items-center gap-1.5"><ShieldAlert size={13} style={{ color: '#ef4444' }} /> Boundaries</span>} value={boundaries} onChange={setBoundaries} placeholder="Hard limits, boundaries..." multiline />
-            </FormSection>
+            <SectionLabel label="Preferences & Boundaries" optional />
+            <FieldTextArea label="Preferences" value={preferences} onChange={setPreferences}
+              placeholder="Likes, requests..."
+              hint="Things to remember. Shows on booking details." />
+            <FieldTextArea label="Boundaries" value={boundaries} onChange={setBoundaries}
+              placeholder="Hard limits, boundaries..."
+              hint="Shows prominently on booking details." />
 
-            <FormSection title="Notes">
-              <FormInput label={<span className="flex items-center gap-1.5"><StickyNote size={13} style={{ color: '#a855f7' }} /> Notes</span>} value={notes} onChange={setNotes} placeholder="General notes..." multiline />
-            </FormSection>
+            <SectionLabel label="Notes" optional />
+            <FieldTextArea label="Notes" value={notes} onChange={setNotes}
+              placeholder="General notes..."
+              hint="Visible on their profile." />
           </>
         )}
 
         {/* Save button */}
-        <div className="px-4 py-4">
-          <button
-            onClick={handleSave}
-            disabled={!isValid}
+        <div className="py-4">
+          <button onClick={handleSave} disabled={!isValid}
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
               isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
-            }`}
-          >
+            }`}>
             {isEditing ? 'Save Changes' : 'Create Client'}
           </button>
         </div>

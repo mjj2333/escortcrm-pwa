@@ -147,7 +147,7 @@ export function FormInput({ label, value, onChange, placeholder, type = 'text', 
           placeholder={placeholder}
           rows={3}
           className="flex-1 text-sm text-right bg-transparent outline-none resize-none"
-          style={{ color: 'var(--text-primary)' }}
+          style={{ color: 'var(--text-primary)', fontSize: '16px' }}
         />
       ) : (
         <input
@@ -156,7 +156,7 @@ export function FormInput({ label, value, onChange, placeholder, type = 'text', 
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           className="flex-1 text-sm text-right bg-transparent outline-none"
-          style={{ color: 'var(--text-primary)' }}
+          style={{ color: 'var(--text-primary)', fontSize: '16px' }}
         />
       )}
     </div>
@@ -177,16 +177,18 @@ export function FormSelect<T extends string>({ label, value, options, onChange, 
       <span className="text-sm shrink-0" style={{ color: 'var(--text-primary)' }}>
         {label}
       </span>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value as T)}
-        className="flex-1 text-sm text-right bg-transparent outline-none appearance-none cursor-pointer"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        {options.map(opt => (
-          <option key={opt} value={opt}>{displayFn ? displayFn(opt) : opt}</option>
-        ))}
-      </select>
+      <div className="flex-1 flex items-center justify-end gap-1">
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value as T)}
+          className="text-sm text-right bg-transparent outline-none cursor-pointer"
+          style={{ color: 'var(--text-secondary)', fontSize: '16px' }}
+        >
+          {options.map(opt => (
+            <option key={opt} value={opt}>{displayFn ? displayFn(opt) : opt}</option>
+          ))}
+        </select>
+      </div>
     </div>
   )
 }

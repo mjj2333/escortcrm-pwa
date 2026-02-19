@@ -12,7 +12,8 @@ import {
 import { db, formatCurrency, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card } from '../../components/Card'
-import { Modal, FormSection, FormInput } from '../../components/Modal'
+import { Modal } from '../../components/Modal'
+import { SectionLabel, FieldHint, FieldTextInput, fieldInputStyle } from '../../components/FormFields'
 import { ImportExportModal } from '../../components/ImportExport'
 import { TransactionEditor } from './TransactionEditor'
 import { useLocalStorage } from '../../hooks/useSettings'
@@ -530,52 +531,36 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
         </button>
       }
     >
-      <div style={{ backgroundColor: 'var(--bg-secondary)' }}>
-        <FormSection title="Goal Details">
-          <FormInput label="Name" value={name} onChange={setName} placeholder="e.g. Monthly Income" />
-          <div className="flex items-center gap-3 px-4 py-3">
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Target ($)</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={target}
-              onChange={e => setTarget(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="5000"
-              className="flex-1 text-sm text-right bg-transparent outline-none"
-              style={{ color: 'var(--text-primary)', fontSize: '16px' }}
-            />
+      <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <SectionLabel label="Goal Details" />
+        <FieldTextInput label="Name" value={name} onChange={setName} placeholder="e.g. Monthly Income" />
+        <div className="mb-3">
+          <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>Target ($)</label>
+          <input type="text" inputMode="numeric"
+            value={target} onChange={e => setTarget(e.target.value.replace(/[^0-9]/g, ''))}
+            placeholder="5000" className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+            style={fieldInputStyle} />
+        </div>
+        <div className="mb-3">
+          <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>Period</label>
+          <div className="flex gap-2">
+            {(['weekly', 'monthly', 'quarterly'] as const).map(p => (
+              <button key={p} type="button" onClick={() => setPeriod(p)}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold text-center ${period === p ? 'bg-purple-600 text-white' : ''}`}
+                style={period !== p ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' } : { WebkitTapHighlightColor: 'transparent' }}>
+                {p.charAt(0).toUpperCase() + p.slice(1)}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-3 px-4 py-3">
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Period</span>
-            <div className="flex-1 flex justify-end gap-2">
-              {(['weekly', 'monthly', 'quarterly'] as const).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                    period === p ? 'bg-purple-600 text-white' : ''
-                  }`}
-                  style={period !== p ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)' } : {}}
-                >
-                  {p.charAt(0).toUpperCase() + p.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </FormSection>
+        </div>
 
-        <div className="px-4 py-4 space-y-3">
-          <button
-            onClick={save}
-            className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 text-white active:bg-purple-700"
-          >
+        <div className="py-4 space-y-3">
+          <button onClick={save}
+            className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 text-white active:bg-purple-700">
             Save Goal
           </button>
           {goalName.length > 0 && (
-            <button
-              onClick={remove}
-              className="w-full py-2 text-sm text-red-500 font-medium"
-            >
+            <button onClick={remove} className="w-full py-2 text-sm text-red-500 font-medium">
               Delete Goal
             </button>
           )}
@@ -617,54 +602,34 @@ function TaxSettingsEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         </button>
       }
     >
-      <div style={{ backgroundColor: 'var(--bg-secondary)' }}>
-        <FormSection
-          title="Tax Rate"
-          footer="Your estimated tax bracket. Used to calculate how much tax you might owe."
-        >
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Estimated Tax Rate</span>
-              <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{taxRate}%</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={50}
-              step={1}
-              value={taxRate}
-              onChange={e => setTaxRate(parseInt(e.target.value))}
-              className="w-full accent-purple-500"
-            />
+      <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <SectionLabel label="Tax Rate" />
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Estimated Tax Rate</span>
+            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{taxRate}%</span>
           </div>
-        </FormSection>
+          <input type="range" min={0} max={50} step={1} value={taxRate}
+            onChange={e => setTaxRate(parseInt(e.target.value))}
+            className="w-full accent-purple-500" />
+          <FieldHint text="Your estimated tax bracket. Used to calculate how much tax you might owe." />
+        </div>
 
-        <FormSection
-          title="Savings"
-          footer="Set aside slightly more than your tax rate to cover self-employment tax."
-        >
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Set Aside Percentage</span>
-              <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{setAsideRate}%</span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={50}
-              step={1}
-              value={setAsideRate}
-              onChange={e => setSetAsideRate(parseInt(e.target.value))}
-              className="w-full accent-purple-500"
-            />
+        <SectionLabel label="Savings" />
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Set Aside Percentage</span>
+            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{setAsideRate}%</span>
           </div>
-        </FormSection>
+          <input type="range" min={0} max={50} step={1} value={setAsideRate}
+            onChange={e => setSetAsideRate(parseInt(e.target.value))}
+            className="w-full accent-purple-500" />
+          <FieldHint text="Set aside slightly more than your tax rate to cover self-employment tax." />
+        </div>
 
-        <div className="px-4 py-4">
-          <button
-            onClick={save}
-            className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 text-white active:bg-purple-700"
-          >
+        <div className="py-4">
+          <button onClick={save}
+            className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 text-white active:bg-purple-700">
             Save Settings
           </button>
         </div>
