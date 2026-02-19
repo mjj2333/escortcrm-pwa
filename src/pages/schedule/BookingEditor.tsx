@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { db, createBooking, createClient } from '../../db'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
+import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../../utils/availability'
 import type {
@@ -315,14 +316,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                         <option key={m} value={m}>{m}</option>
                       ))}
                     </select>
-                    <span className="text-xs ml-auto" style={{ color: 'var(--text-secondary)' }}>Screening:</span>
-                    <select value={newClientScreening} onChange={e => setNewClientScreening(e.target.value as ScreeningStatus)}
-                      className="text-sm bg-transparent outline-none"
-                      style={{ color: 'var(--text-primary)', fontSize: '16px' }}>
-                      {(['Pending', 'In Progress', 'Verified', 'Declined'] as ScreeningStatus[]).map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
+                  </div>
+                  <div className="mt-1">
+                    <ScreeningStatusBar value={newClientScreening} onChange={setNewClientScreening} compact />
                   </div>
 
                   {/* Expandable details */}

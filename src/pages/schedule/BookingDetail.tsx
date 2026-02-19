@@ -8,6 +8,7 @@ import {
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
+import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { Card } from '../../components/Card'
 import { BookingEditor } from './BookingEditor'
 import { bookingStatusColors } from '../../types'
@@ -266,6 +267,19 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
             />
           </button>
         </Card>
+
+        {/* Client Screening — quick toggle */}
+        {client && (
+          <Card>
+            <ScreeningStatusBar
+              value={client.screeningStatus}
+              onChange={async (status) => {
+                await db.clients.update(client.id, { screeningStatus: status })
+              }}
+              compact
+            />
+          </Card>
+        )}
 
         {/* Safety */}
         {booking.requiresSafetyCheck && (

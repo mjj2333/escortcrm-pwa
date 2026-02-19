@@ -4,11 +4,11 @@ import { db, createClient } from '../../db'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldTextInput, FieldTextArea, FieldSelect, FieldDate } from '../../components/FormFields'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
+import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { TagPicker } from '../../components/TagPicker'
 import type { Client, ClientTag, ContactMethod, ScreeningStatus, RiskLevel } from '../../types'
 
 const contactMethods: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp', 'Other']
-const screeningStatuses: ScreeningStatus[] = ['Pending', 'In Progress', 'Verified', 'Declined']
 
 interface ClientEditorProps {
   isOpen: boolean
@@ -126,8 +126,12 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           hint="Enables one-tap calling and texting from their profile." />
         <FieldSelect label="Preferred Contact" value={preferredContact} options={contactMethods} onChange={setPreferredContact}
           hint="How this client prefers to be reached." />
-        <FieldSelect label="Screening Status" value={screeningStatus} options={screeningStatuses} onChange={setScreeningStatus}
-          hint="Track where they are in your screening process." />
+        {/* Screening Status */}
+        <SectionLabel label="Screening" />
+        <div className="mb-3">
+          <ScreeningStatusBar value={screeningStatus} onChange={setScreeningStatus} />
+          <FieldHint text="Slide or tap to set. Declined → Pending → Verified." />
+        </div>
 
         {/* Risk Level Bar */}
         <SectionLabel label="Risk Level" />

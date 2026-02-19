@@ -9,6 +9,7 @@ import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
+import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { Card } from '../../components/Card'
 import { ClientEditor } from './ClientEditor'
 import { screeningStatusColors, riskLevelColors } from '../../types'
@@ -273,10 +274,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
 
         {/* Screening & Risk */}
         <Card>
-          <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Screening</p>
-          <div className="flex items-center justify-between py-1.5">
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Status</span>
-            <StatusBadge text={client.screeningStatus} color={screeningStatusColors[client.screeningStatus]} />
+          {/* Interactive Screening Bar */}
+          <div className="py-2">
+            <ScreeningStatusBar
+              value={client.screeningStatus}
+              onChange={async (status) => {
+                await db.clients.update(client.id, { screeningStatus: status })
+              }}
+            />
           </div>
           {noShowCount > 0 && (
             <div className="flex items-center justify-between py-1.5">
