@@ -79,33 +79,6 @@ export function FieldTextArea({ label, value, onChange, placeholder, hint, icon 
   )
 }
 
-export function FieldNumber({ label, value, onChange, hint }:
-  { label: string; value: number; onChange: (v: number) => void; hint?: string }
-) {
-  return (
-    <div className="mb-3">
-      <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
-        {label}
-      </label>
-      <input
-        type="text"
-        inputMode="decimal"
-        value={value > 0 ? String(value) : ''}
-        onChange={e => {
-          const raw = e.target.value.replace(/[^0-9.]/g, '')
-          if (raw === '' || raw === '.') { onChange(0); return }
-          const v = parseFloat(raw)
-          if (!isNaN(v)) onChange(v)
-        }}
-        placeholder="0"
-        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-        style={fieldInputStyle}
-      />
-      {hint && <FieldHint text={hint} />}
-    </div>
-  )
-}
-
 export function FieldCurrency({ label, value, onChange, hint }:
   { label: string; value: number; onChange: (v: number) => void; hint?: string }
 ) {

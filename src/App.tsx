@@ -65,7 +65,13 @@ export default function App() {
   const [showSetup, setShowSetup] = useState(false)
 
   useEffect(() => {
-    document.documentElement.classList.add('dark')
+    // Apply dark mode + OLED setting from localStorage
+    const dm = localStorage.getItem('darkMode')
+    const oled = localStorage.getItem('oledBlack')
+    const isDark = dm === null ? true : JSON.parse(dm)
+    const isOled = oled === null ? true : JSON.parse(oled)
+    document.documentElement.classList.toggle('dark', isDark)
+    document.documentElement.classList.toggle('oled-black', isDark && isOled)
     // Show splash on first launch (after unlock)
     if (!hasSeenTour && (!pinEnabled || !isLocked)) {
       setTimeout(() => setShowSplash(true), 500)

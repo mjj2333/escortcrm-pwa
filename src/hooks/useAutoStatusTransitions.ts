@@ -1,13 +1,16 @@
 import { useEffect } from 'react'
-import { addWeeks, addMonths } from 'date-fns'
-import { db, createBooking, createBookingIncomeTransaction } from '../db'
+import { addWeeks, addMonths, addMinutes } from 'date-fns'
+import { db, createBooking, createBookingIncomeTransaction, newId } from '../db'
 
 /**
  * Auto-advance booking statuses based on time:
  * - Confirmed → In Progress: when booking dateTime has passed
  * - In Progress → Completed: 5 minutes after scheduled end time (dateTime + duration)
  *
- * Also spawns the next occurrence of recurring bookings when one completes.
+ * Also:
+ * - Spawns the next occurrence of recurring bookings when one completes
+ * - Creates safety check-ins when bookings go In Progress (if requiresSafetyCheck)
+ * - Auto-transitions pending safety checks → overdue when scheduledTime + buffer has passed
  *
  * Runs every 60 seconds.
  */
@@ -24,6 +27,22 @@ export function useAutoStatusTransitions() {
 
         if (b.status === 'Confirmed' && now >= startTime) {
           await db.bookings.update(b.id, { status: 'In Progress' })
+
+          // Create safety check if required
+          if (b.requiresSafetyCheck) {
+            const existing = await db.safetyChecks.where('bookingId').equals(b.id).first()
+            if (!existing) {
+              const checkTime = addMinutes(new Date(b.dateTime), b.safetyCheckMinutesAfter || 15)
+              await db.safetyChecks.add({
+                id: newId(),
+                bookingId: b.id,
+                safetyContactId: b.safetyContactId,
+                scheduledTime: checkTime,
+                bufferMinutes: 15,
+                status: 'pending',
+              })
+            }
+          }
         } else if (b.status === 'In Progress' && now >= fiveAfterEnd) {
           await db.bookings.update(b.id, {
             status: 'Completed',
@@ -72,6 +91,15 @@ export function useAutoStatusTransitions() {
             })
             await db.bookings.add(nextBooking)
           }
+        }
+      }
+
+      // Auto-transition pending safety checks → overdue
+      const pendingChecks = await db.safetyChecks.where('status').equals('pending').toArray()
+      for (const check of pendingChecks) {
+        const deadline = new Date(check.scheduledTime).getTime() + check.bufferMinutes * 60_000
+        if (now >= deadline) {
+          await db.safetyChecks.update(check.id, { status: 'overdue' })
         }
       }
     }

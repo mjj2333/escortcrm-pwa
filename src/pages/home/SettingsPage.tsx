@@ -66,6 +66,17 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
   function handleDarkModeChange(value: boolean) {
     setDarkMode(value)
     document.documentElement.classList.toggle('dark', value)
+    // If turning dark off, also remove OLED
+    if (!value) {
+      document.documentElement.classList.remove('oled-black')
+    } else if (oledBlack) {
+      document.documentElement.classList.add('oled-black')
+    }
+  }
+
+  function handleOledBlackChange(value: boolean) {
+    setOledBlack(value)
+    document.documentElement.classList.toggle('oled-black', value)
   }
 
   function handlePinToggle(value: boolean) {
@@ -190,7 +201,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
           <SectionLabel label="Appearance" />
           <FieldToggle label="Dark Mode" value={darkMode} onChange={handleDarkModeChange} />
           {darkMode && (
-            <FieldToggle label="True Black (OLED)" value={oledBlack} onChange={setOledBlack} />
+            <FieldToggle label="True Black (OLED)" value={oledBlack} onChange={handleOledBlackChange} />
           )}
 
           {/* Notifications */}
