@@ -301,7 +301,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
               className="flex items-center gap-3 px-4 py-3 w-full text-left"
             >
               <RotateCcw size={16} className="text-purple-500" />
-              <span className="text-sm font-medium text-purple-500">Restart Feature Tour</span>
+              <span className="text-sm font-medium text-purple-500">Restart Welcome &amp; Setup Guide</span>
             </button>
           </FormSection>
 

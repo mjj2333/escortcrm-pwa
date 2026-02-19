@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { TabBar } from './components/TabBar'
 import { PinLock } from './components/PinLock'
-import { AppTour } from './components/AppTour'
+import { WelcomeSplash } from './components/WelcomeSplash'
+import { SetupGuide } from './components/SetupGuide'
 import { HomePage } from './pages/home/HomePage'
 import { ClientsPage } from './pages/clients/ClientsPage'
 import { ClientDetail } from './pages/clients/ClientDetail'
@@ -57,15 +58,16 @@ export default function App() {
   const [remindersEnabled] = useLocalStorage('remindersEnabled', false)
   useBookingReminders(remindersEnabled)
 
-  // Tour
+  // Onboarding
   const [hasSeenTour, setHasSeenTour] = useLocalStorage('hasCompletedAppTour', false)
-  const [showTour, setShowTour] = useState(false)
+  const [showSplash, setShowSplash] = useState(false)
+  const [showSetup, setShowSetup] = useState(false)
 
   useEffect(() => {
     document.documentElement.classList.add('dark')
-    // Show tour on first launch (after unlock)
+    // Show splash on first launch (after unlock)
     if (!hasSeenTour && (!pinEnabled || !isLocked)) {
-      setTimeout(() => setShowTour(true), 500)
+      setTimeout(() => setShowSplash(true), 500)
     }
   }, [isLocked])
 
@@ -102,20 +104,26 @@ export default function App() {
     setScreen({ type: 'tab' })
   }
 
-  function finishTour() {
-    setShowTour(false)
+  function finishOnboarding() {
+    setShowSplash(false)
+    setShowSetup(false)
     setHasSeenTour(true)
-    // Seed sample data on first tour completion if never offered before
+    // Seed sample data on first completion if never offered before
     if (!hasSampleDataBeenOffered()) {
       seedSampleData()
     }
+  }
+
+  function startSetupGuide() {
+    setShowSplash(false)
+    setShowSetup(true)
   }
 
   function restartTour() {
     setShowSettings(false)
     setActiveTab(0)
     setScreen({ type: 'tab' })
-    setTimeout(() => setShowTour(true), 300)
+    setTimeout(() => setShowSplash(true), 300)
   }
 
   // PIN Lock Screen
@@ -194,7 +202,8 @@ export default function App() {
       {renderContent()}
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
       <SettingsPage isOpen={showSettings} onClose={() => setShowSettings(false)} onRestartTour={restartTour} />
-      <AppTour isActive={showTour} onFinish={finishTour} onTabChange={setActiveTab} />
+      {showSplash && <WelcomeSplash onComplete={finishOnboarding} onStartSetup={startSetupGuide} />}
+      {showSetup && <SetupGuide onComplete={finishOnboarding} onTabChange={setActiveTab} />}
     </div>
   )
 }
