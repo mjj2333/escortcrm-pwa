@@ -167,9 +167,9 @@ export function SwipeableBookingRow({ booking, client, onOpen }: Props) {
   ]
 
   const screeningPills: { status: ScreeningStatus; label: string; color: string }[] = [
-    { status: 'Declined', label: 'Decl', color: '#ef4444' },
-    { status: 'Pending',  label: 'Pend', color: '#f59e0b' },
-    { status: 'Verified', label: 'Verif', color: '#22c55e' },
+    { status: 'Declined', label: 'Declined', color: '#ef4444' },
+    { status: 'Pending',  label: 'Pending', color: '#f59e0b' },
+    { status: 'Verified', label: 'Verified', color: '#22c55e' },
   ]
 
   return (

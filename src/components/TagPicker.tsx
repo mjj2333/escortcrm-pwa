@@ -268,7 +268,7 @@ export function MiniTags({ tags, max = 2 }: { tags: ClientTag[]; max?: number })
           style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
           title={tag.name}
         >
-          {tag.icon ? tag.icon : tag.name.slice(0, 6)}
+          {tag.icon ? tag.icon : tag.name}
         </span>
       ))}
       {extra > 0 && (

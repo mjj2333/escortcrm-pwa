@@ -136,12 +136,15 @@ export function FieldCurrency({ label, value, onChange, hint }:
   )
 }
 
-export function FieldSelect<T extends string>({ label, value, options, onChange, hint, displayFn }:
-  { label: string; value: T; options: readonly T[]; onChange: (v: T) => void; hint?: string; displayFn?: (v: T) => string }
+export function FieldSelect<T extends string>({ label, value, options, onChange, hint, displayFn, icon }:
+  { label: string; value: T; options: readonly T[]; onChange: (v: T) => void; hint?: string; displayFn?: (v: T) => string; icon?: React.ReactNode }
 ) {
   return (
     <div className="mb-3">
-      <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>{label}</label>
+      <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
+        {icon && <span className="inline-flex items-center gap-1.5">{icon} </span>}
+        {label}
+      </label>
       <select
         value={value}
         onChange={e => onChange(e.target.value as T)}
@@ -184,12 +187,15 @@ export function FieldToggle({ label, value, onChange, hint, disabled }:
   )
 }
 
-export function FieldDate({ label, value, onChange, hint }:
-  { label: string; value: string; onChange: (v: string) => void; hint?: string }
+export function FieldDate({ label, value, onChange, hint, icon }:
+  { label: string; value: string; onChange: (v: string) => void; hint?: string; icon?: React.ReactNode }
 ) {
   return (
     <div className="mb-3">
-      <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>{label}</label>
+      <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
+        {icon && <span className="inline-flex items-center gap-1.5">{icon} </span>}
+        {label}
+      </label>
       <input
         type="date"
         value={value}

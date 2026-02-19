@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Check, Plus, ChevronLeft } from 'lucide-react'
+import { Check, Plus, ChevronLeft, User, Phone as PhoneIcon, MessageSquare, UserCheck, Mail, Cake, CalendarDays, Share2, ShieldCheck, Heart, ShieldAlert, FileText } from 'lucide-react'
 import { db, createClient } from '../../db'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldTextInput, FieldTextArea, FieldSelect, FieldDate } from '../../components/FormFields'
@@ -121,11 +121,11 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         {/* Basic Info */}
         <SectionLabel label="Basic Info" />
         <FieldTextInput label="Alias" value={alias} onChange={setAlias} placeholder="Display name" required
-          hint="A name or nickname you use to identify this client." />
+          hint="A name or nickname you use to identify this client." icon={<User size={12} />} />
         <FieldTextInput label="Phone" value={phone} onChange={setPhone} placeholder="Phone number" type="tel"
-          hint="Enables one-tap calling and texting from their profile." />
+          hint="Enables one-tap calling and texting from their profile." icon={<PhoneIcon size={12} />} />
         <FieldSelect label="Preferred Contact" value={preferredContact} options={contactMethods} onChange={setPreferredContact}
-          hint="How this client prefers to be reached." />
+          hint="How this client prefers to be reached." icon={<MessageSquare size={12} />} />
         {/* Screening Status */}
         <SectionLabel label="Screening" />
         <div className="mb-3">
@@ -161,36 +161,36 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           <>
             <SectionLabel label="Identity" optional />
             <FieldTextInput label="Real Name" value={realName} onChange={setRealName} placeholder="Legal name"
-              hint="Their legal name, if verified. Only visible to you." />
+              hint="Their legal name, if verified. Only visible to you." icon={<UserCheck size={12} />} />
             <FieldTextInput label="Email" value={email} onChange={setEmail} placeholder="Email" type="email"
-              hint="Enables one-tap email from their profile." />
+              hint="Enables one-tap email from their profile." icon={<Mail size={12} />} />
 
             <SectionLabel label="Dates" optional />
             <FieldDate label="Birthday" value={birthday} onChange={setBirthday}
-              hint="Get a reminder on the home page when their birthday is coming up." />
+              hint="Get a reminder on the home page when their birthday is coming up." icon={<Cake size={12} />} />
             <FieldDate label="Client Since" value={clientSince} onChange={setClientSince}
-              hint="When you first started seeing this client." />
+              hint="When you first started seeing this client." icon={<CalendarDays size={12} />} />
 
             <SectionLabel label="Screening Details" optional />
             <FieldTextInput label="Referral Source" value={referenceSource} onChange={setReferenceSource}
               placeholder="How they found you"
-              hint="Website, friend, Twitter, etc." />
+              hint="Website, friend, Twitter, etc." icon={<Share2 size={12} />} />
             <FieldTextArea label="Verification Notes" value={verificationNotes} onChange={setVerificationNotes}
               placeholder="ID, references..."
-              hint="Notes about their screening or verification process." />
+              hint="Notes about their screening or verification process." icon={<ShieldCheck size={12} />} />
 
             <SectionLabel label="Preferences & Boundaries" optional />
             <FieldTextArea label="Preferences" value={preferences} onChange={setPreferences}
               placeholder="Likes, requests..."
-              hint="Things to remember. Shows on booking details." />
+              hint="Things to remember. Shows on booking details." icon={<Heart size={12} />} />
             <FieldTextArea label="Boundaries" value={boundaries} onChange={setBoundaries}
               placeholder="Hard limits, boundaries..."
-              hint="Shows prominently on booking details." />
+              hint="Shows prominently on booking details." icon={<ShieldAlert size={12} />} />
 
             <SectionLabel label="Notes" optional />
             <FieldTextArea label="Notes" value={notes} onChange={setNotes}
               placeholder="General notes..."
-              hint="Visible on their profile." />
+              hint="Visible on their profile." icon={<FileText size={12} />} />
           </>
         )}
 
