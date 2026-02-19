@@ -27,6 +27,11 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
   const bookings = useLiveQuery(() =>
     db.bookings.where('clientId').equals(clientId).toArray()
   ) ?? []
+  const allPayments = useLiveQuery(async () => {
+    const bIds = (await db.bookings.where('clientId').equals(clientId).toArray()).map(b => b.id)
+    if (bIds.length === 0) return []
+    return db.payments.where('bookingId').anyOf(bIds).toArray()
+  }, [clientId]) ?? []
   const [showEditor, setShowEditor] = useState(false)
   const [showBookingEditor, setShowBookingEditor] = useState(false)
   const [showRebook, setShowRebook] = useState(false)
@@ -48,6 +53,15 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
 
   const noShowCount = bookings.filter(b => b.status === 'No Show').length
   const totalRevenue = completedBookings.reduce((sum, b) => sum + bookingTotal(b), 0)
+
+  // Outstanding balance: sum of (total - paid) for non-cancelled bookings
+  const activeBookings = bookings.filter(b => b.status !== 'Cancelled' && b.status !== 'No Show')
+  const outstandingBalance = activeBookings.reduce((sum, b) => {
+    const bTotal = bookingTotal(b)
+    const bPaid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
+    const owing = bTotal - bPaid
+    return sum + (owing > 0 ? owing : 0)
+  }, 0)
 
   function copyToClipboard(text: string, field: string) {
     navigator.clipboard.writeText(text)
@@ -152,6 +166,29 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Last Seen</p>
           </div>
         </div>
+
+        {/* Outstanding Balance */}
+        {outstandingBalance > 0 && (
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Outstanding Balance</p>
+                <p className="text-lg font-bold text-orange-500 mt-0.5">{formatCurrency(outstandingBalance)}</p>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-500">
+                {activeBookings.filter(b => {
+                  const bTotal = bookingTotal(b)
+                  const bPaid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
+                  return bTotal - bPaid > 0
+                }).length} booking{activeBookings.filter(b => {
+                  const bTotal = bookingTotal(b)
+                  const bPaid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
+                  return bTotal - bPaid > 0
+                }).length !== 1 ? 's' : ''}
+              </span>
+            </div>
+          </Card>
+        )}
 
         {/* Tags */}
         {client.tags.length > 0 && (

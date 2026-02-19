@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react'
 import { format, isToday, isTomorrow, differenceInDays, startOfDay } from 'date-fns'
-import { db, formatCurrency, bookingTotal, bookingDurationFormatted, createBookingIncomeTransaction } from '../db'
+import { db, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment, removeBookingPayment as removePayment } from '../db'
 import { StatusBadge } from './StatusBadge'
 import { MiniTags } from './TagPicker'
 import { bookingStatusColors, screeningStatusColors } from '../types'
@@ -137,7 +137,22 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
 
   // ━━━ Actions ━━━
   async function toggleDeposit() {
-    await db.bookings.update(booking.id, { depositReceived: !booking.depositReceived })
+    if (booking.depositReceived) {
+      // Remove deposit payment
+      const payments = await db.payments.where('bookingId').equals(booking.id).toArray()
+      const depositPayment = payments.find(p => p.label === 'Deposit')
+      if (depositPayment) await removePayment(depositPayment.id)
+      else await db.bookings.update(booking.id, { depositReceived: false })
+    } else if (booking.depositAmount > 0) {
+      // Record deposit payment
+      await recordBookingPayment({
+        bookingId: booking.id,
+        amount: booking.depositAmount,
+        method: booking.depositMethod,
+        label: 'Deposit',
+        clientAlias: client?.alias,
+      })
+    }
     if (navigator.vibrate) navigator.vibrate(15)
   }
 
@@ -156,9 +171,8 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
 
     if (newStatus === 'Completed') {
       updates.completedAt = new Date()
-      updates.paymentReceived = true
-      // Create income transaction (guards against duplicates)
-      await createBookingIncomeTransaction(booking, client?.alias)
+      // Record remaining payment via ledger
+      await completeBookingPayment(booking, client?.alias)
     }
 
     if (newStatus === 'Cancelled') {

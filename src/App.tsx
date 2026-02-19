@@ -18,7 +18,7 @@ import { useBookingReminders } from './hooks/useBookingReminders'
 import { Paywall, TrialBanner, needsPaywall } from './components/Paywall'
 import { ToastContainer } from './components/Toast'
 import { seedSampleData, hasSampleDataBeenOffered } from './data/sampleData'
-import { db } from './db'
+import { db, migrateToPaymentLedger } from './db'
 
 type Screen =
   | { type: 'tab' }
@@ -90,6 +90,11 @@ export default function App() {
         if (count === 0) seedSampleData()
       })
     }
+  }, [])
+
+  // Migrate existing bookings to payment ledger (one-time)
+  useEffect(() => {
+    migrateToPaymentLedger()
   }, [])
 
   function handleTabChange(tab: number) {

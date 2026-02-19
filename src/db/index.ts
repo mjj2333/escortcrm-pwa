@@ -1,8 +1,9 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type {
   Client, Booking, Transaction, DayAvailability,
-  SafetyContact, SafetyCheck, IncidentLog, ServiceRate
+  SafetyContact, SafetyCheck, IncidentLog, ServiceRate, BookingPayment
 } from '../types'
+import type { PaymentLabel, PaymentMethod } from '../types'
 
 class EscortCRMDatabase extends Dexie {
   clients!: EntityTable<Client, 'id'>
@@ -13,6 +14,7 @@ class EscortCRMDatabase extends Dexie {
   safetyChecks!: EntityTable<SafetyCheck, 'id'>
   incidents!: EntityTable<IncidentLog, 'id'>
   serviceRates!: EntityTable<ServiceRate, 'id'>
+  payments!: EntityTable<BookingPayment, 'id'>
 
   constructor() {
     super('EscortCRM')
@@ -26,6 +28,19 @@ class EscortCRMDatabase extends Dexie {
       safetyChecks: 'id, bookingId, status, scheduledTime',
       incidents: 'id, clientId, bookingId, date, severity',
       serviceRates: 'id, sortOrder, isActive',
+    })
+
+    // v2: add payments ledger table
+    this.version(2).stores({
+      clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
+      bookings: 'id, clientId, dateTime, status, createdAt',
+      transactions: 'id, bookingId, type, category, date',
+      availability: 'id, date',
+      safetyContacts: 'id, isPrimary, isActive',
+      safetyChecks: 'id, bookingId, status, scheduledTime',
+      incidents: 'id, clientId, bookingId, date, severity',
+      serviceRates: 'id, sortOrder, isActive',
+      payments: 'id, bookingId, label, date',
     })
   }
 }
@@ -163,4 +178,139 @@ export async function createBookingIncomeTransaction(booking: Booking, clientAli
     date: new Date(),
     notes: `Booking with ${clientAlias ?? 'client'}`,
   })
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PAYMENT LEDGER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** Record a payment against a booking. Also creates an income transaction. */
+export async function recordBookingPayment(opts: {
+  bookingId: string
+  amount: number
+  method?: PaymentMethod
+  label: PaymentLabel
+  clientAlias?: string
+  notes?: string
+}): Promise<string> {
+  const paymentId = newId()
+  await db.payments.add({
+    id: paymentId,
+    bookingId: opts.bookingId,
+    amount: opts.amount,
+    method: opts.method,
+    label: opts.label,
+    date: new Date(),
+    notes: opts.notes,
+  })
+  // Create matching income transaction
+  if (opts.amount > 0) {
+    await db.transactions.add({
+      id: newId(),
+      bookingId: opts.bookingId,
+      amount: opts.amount,
+      type: 'income',
+      category: opts.label === 'Tip' ? 'tip' : 'booking',
+      paymentMethod: opts.method,
+      date: new Date(),
+      notes: `${opts.label} — ${opts.clientAlias ?? 'client'}`,
+    })
+  }
+  // Sync convenience booleans
+  if (opts.label === 'Deposit') {
+    await db.bookings.update(opts.bookingId, { depositReceived: true })
+  }
+  const booking = await db.bookings.get(opts.bookingId)
+  if (booking) {
+    const paid = await getBookingTotalPaid(opts.bookingId)
+    if (paid >= bookingTotal(booking)) {
+      await db.bookings.update(opts.bookingId, { paymentReceived: true })
+    }
+  }
+  return paymentId
+}
+
+/** Remove a payment record and its corresponding income transaction. */
+export async function removeBookingPayment(paymentId: string): Promise<void> {
+  const payment = await db.payments.get(paymentId)
+  if (!payment) return
+  await db.payments.delete(paymentId)
+  // Find and remove the matching income transaction (closest match by amount + bookingId)
+  const txns = await db.transactions.where('bookingId').equals(payment.bookingId).toArray()
+  const matching = txns.find(t => t.type === 'income' && Math.abs(t.amount - payment.amount) < 0.01)
+  if (matching) await db.transactions.delete(matching.id)
+  // Sync convenience booleans
+  if (payment.label === 'Deposit') {
+    await db.bookings.update(payment.bookingId, { depositReceived: false })
+  }
+  const booking = await db.bookings.get(payment.bookingId)
+  if (booking) {
+    const paid = await getBookingTotalPaid(payment.bookingId)
+    if (paid < bookingTotal(booking)) {
+      await db.bookings.update(payment.bookingId, { paymentReceived: false })
+    }
+  }
+}
+
+/** Get total paid for a booking from the payment ledger. */
+export async function getBookingTotalPaid(bookingId: string): Promise<number> {
+  const payments = await db.payments.where('bookingId').equals(bookingId).toArray()
+  return payments.reduce((sum, p) => sum + p.amount, 0)
+}
+
+/** Complete a booking's payment: record a payment for any remaining balance. */
+export async function completeBookingPayment(booking: Booking, clientAlias?: string): Promise<void> {
+  const total = bookingTotal(booking)
+  const paid = await getBookingTotalPaid(booking.id)
+  const remaining = total - paid
+  if (remaining > 0) {
+    await recordBookingPayment({
+      bookingId: booking.id,
+      amount: remaining,
+      method: booking.paymentMethod,
+      label: 'Payment',
+      clientAlias,
+    })
+  }
+  await db.bookings.update(booking.id, { paymentReceived: true })
+}
+
+/**
+ * One-time migration: backfill BookingPayment records from legacy boolean flags
+ * so existing completed/deposited bookings show correct balances.
+ */
+export async function migrateToPaymentLedger(): Promise<void> {
+  if (localStorage.getItem('paymentsLedgerMigrated')) return
+  const bookings = await db.bookings.toArray()
+  for (const b of bookings) {
+    const existing = await db.payments.where('bookingId').equals(b.id).count()
+    if (existing > 0) continue
+    // Deposit received → create deposit payment (no transaction — old system already has it)
+    if (b.depositReceived && b.depositAmount > 0) {
+      await db.payments.add({
+        id: newId(),
+        bookingId: b.id,
+        amount: b.depositAmount,
+        method: b.depositMethod,
+        label: 'Deposit',
+        date: b.confirmedAt ?? b.createdAt,
+      })
+    }
+    // Payment received → create balance payment for the remainder
+    if (b.paymentReceived && (b.status === 'Completed' || b.status === 'In Progress')) {
+      const depositPaid = b.depositReceived ? b.depositAmount : 0
+      const remaining = bookingTotal(b) - depositPaid
+      if (remaining > 0) {
+        await db.payments.add({
+          id: newId(),
+          bookingId: b.id,
+          amount: remaining,
+          method: b.paymentMethod,
+          label: 'Payment',
+          date: b.completedAt ?? new Date(),
+        })
+      }
+    }
+  }
+  localStorage.setItem('paymentsLedgerMigrated', '1')
 }

@@ -3,17 +3,21 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Clock, MapPin,
   CheckCircle, XCircle, UserX, RotateCcw, Shield,
-  ChevronRight, Trash2
+  ChevronRight, Trash2, Plus, DollarSign
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, createBookingIncomeTransaction } from '../../db'
+import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, completeBookingPayment, recordBookingPayment, removeBookingPayment } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
 import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Card } from '../../components/Card'
 import { BookingEditor } from './BookingEditor'
+import { showToast } from '../../components/Toast'
 import { bookingStatusColors } from '../../types'
-import type { Booking, BookingStatus } from '../../types'
+import type { Booking, BookingStatus, PaymentMethod, PaymentLabel } from '../../types'
+
+const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
+const paymentLabels: PaymentLabel[] = ['Deposit', 'Payment', 'Tip', 'Adjustment']
 
 interface BookingDetailProps {
   bookingId: string
@@ -36,9 +40,19 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
     () => booking?.clientId ? db.clients.get(booking.clientId) : undefined,
     [booking?.clientId]
   )
+  const payments = useLiveQuery(
+    () => db.payments.where('bookingId').equals(bookingId).toArray(),
+    [bookingId]
+  )
   const [showEditor, setShowEditor] = useState(false)
   const [showRebook, setShowRebook] = useState(false)
   const [confirmAction, setConfirmAction] = useState<'noshow' | 'cancel' | 'delete' | null>(null)
+  const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [payAmount, setPayAmount] = useState('')
+  const [payMethod, setPayMethod] = useState<PaymentMethod | ''>('')
+  const [payLabel, setPayLabel] = useState<PaymentLabel>('Payment')
+  const [payNotes, setPayNotes] = useState('')
+  const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null)
 
   if (!booking) return null
 
@@ -47,15 +61,18 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
   const isTerminal = ['Completed', 'Cancelled', 'No Show'].includes(booking.status)
   const next = nextStatus[booking.status]
 
+  const totalPaid = (payments ?? []).reduce((sum, p) => sum + p.amount, 0)
+  const balance = total - totalPaid
+  const isFullyPaid = balance <= 0
+
   async function updateStatus(status: BookingStatus) {
     const updates: Partial<Booking> = { status }
     if (status === 'Confirmed') updates.confirmedAt = new Date()
     if (status === 'Completed') {
       updates.completedAt = new Date()
-      updates.paymentReceived = true
-      // Create income transaction (guards against duplicates)
-      const client = await db.clients.get(booking!.clientId ?? '')
-      await createBookingIncomeTransaction(booking!, client?.alias)
+      // Record remaining payment via ledger
+      const c = await db.clients.get(booking!.clientId ?? '')
+      await completeBookingPayment(booking!, c?.alias)
       // Update client lastSeen
       if (booking!.clientId) {
         await db.clients.update(booking!.clientId, { lastSeen: new Date() })
@@ -94,17 +111,41 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
   }
 
   async function deleteBooking() {
+    // Also delete associated payments
+    await db.payments.where('bookingId').equals(bookingId).delete()
     await db.bookings.delete(bookingId)
     setConfirmAction(null)
     onBack()
   }
 
-  async function toggleDeposit() {
-    await db.bookings.update(bookingId, { depositReceived: !booking!.depositReceived })
+  function openPaymentForm(defaultLabel?: PaymentLabel, defaultAmount?: number) {
+    setPayLabel(defaultLabel ?? 'Payment')
+    setPayAmount(defaultAmount != null ? String(defaultAmount) : '')
+    setPayMethod(booking!.paymentMethod ?? '')
+    setPayNotes('')
+    setShowPaymentForm(true)
   }
 
-  async function togglePayment() {
-    await db.bookings.update(bookingId, { paymentReceived: !booking!.paymentReceived })
+  async function submitPayment() {
+    const amount = parseFloat(payAmount)
+    if (!amount || amount <= 0) return
+    await recordBookingPayment({
+      bookingId,
+      amount,
+      method: payMethod || undefined,
+      label: payLabel,
+      clientAlias: client?.alias,
+      notes: payNotes.trim() || undefined,
+    })
+    setShowPaymentForm(false)
+    showToast(`${payLabel} of ${formatCurrency(amount)} recorded`)
+  }
+
+  async function confirmDeletePayment() {
+    if (!deletePaymentId) return
+    await removeBookingPayment(deletePaymentId)
+    setDeletePaymentId(null)
+    showToast('Payment removed')
   }
 
   return (
@@ -246,35 +287,105 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
           </div>
         </Card>
 
-        {/* Payment Status */}
+        {/* Payment Ledger */}
         <Card>
-          <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Payment</p>
-          {booking.depositAmount > 0 && (
-            <button
-              onClick={toggleDeposit}
-              className="flex items-center justify-between py-2 w-full text-left"
-            >
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                Deposit ({formatCurrency(booking.depositAmount)})
-              </span>
-              <StatusBadge
-                text={booking.depositReceived ? 'Received' : 'Pending'}
-                color={booking.depositReceived ? 'green' : 'orange'}
-              />
-            </button>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Payments</p>
+            <div className="flex items-center gap-2">
+              {!isFullyPaid && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-500">
+                  {formatCurrency(balance)} due
+                </span>
+              )}
+              {isFullyPaid && totalPaid > 0 && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/15 text-green-500">
+                  Paid in full
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Balance bar */}
+          {total > 0 && (
+            <div className="mb-3">
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.min(100, (totalPaid / total) * 100)}%`,
+                    backgroundColor: isFullyPaid ? '#22c55e' : '#f59e0b',
+                  }}
+                />
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                  {formatCurrency(totalPaid)} paid
+                </span>
+                <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                  {formatCurrency(total)} total
+                </span>
+              </div>
+            </div>
           )}
-          <button
-            onClick={togglePayment}
-            className="flex items-center justify-between py-2 w-full text-left"
-          >
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-              Full Payment {booking.paymentMethod && `(${booking.paymentMethod})`}
-            </span>
-            <StatusBadge
-              text={booking.paymentReceived ? 'Received' : 'Pending'}
-              color={booking.paymentReceived ? 'green' : 'orange'}
-            />
-          </button>
+
+          {/* Payment entries */}
+          {(payments ?? []).length > 0 && (
+            <div className="space-y-1 mb-3">
+              {(payments ?? [])
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                .map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setDeletePaymentId(p.id)}
+                  className="flex items-center justify-between w-full py-2 px-2 rounded-lg text-left"
+                  style={{ backgroundColor: 'var(--bg-base)' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <DollarSign size={14} className={p.label === 'Tip' ? 'text-purple-500' : 'text-green-500'} />
+                    <div>
+                      <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+                        {p.label}{p.method ? ` · ${p.method}` : ''}
+                      </p>
+                      <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                        {format(new Date(p.date), 'MMM d, h:mm a')}
+                        {p.notes ? ` — ${p.notes}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold text-green-500">{formatCurrency(p.amount)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Quick actions */}
+          <div className="flex gap-2">
+            {booking.depositAmount > 0 && !booking.depositReceived && (
+              <button
+                onClick={() => openPaymentForm('Deposit', booking.depositAmount)}
+                className="flex-1 text-xs font-medium py-2 rounded-lg"
+                style={{ backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' }}
+              >
+                Record Deposit ({formatCurrency(booking.depositAmount)})
+              </button>
+            )}
+            {!isFullyPaid && balance > 0 && (
+              <button
+                onClick={() => openPaymentForm('Payment', balance)}
+                className="flex-1 text-xs font-medium py-2 rounded-lg"
+                style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}
+              >
+                Record {booking.depositReceived ? 'Balance' : 'Payment'} ({formatCurrency(balance)})
+              </button>
+            )}
+            <button
+              onClick={() => openPaymentForm()}
+              className="text-xs font-medium py-2 px-3 rounded-lg"
+              style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-secondary)' }}
+            >
+              <Plus size={14} />
+            </button>
+          </div>
         </Card>
 
         {/* Client Screening — quick toggle */}
@@ -453,6 +564,100 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
       {/* Editors */}
       <BookingEditor isOpen={showEditor} onClose={() => setShowEditor(false)} booking={booking} />
       <BookingEditor isOpen={showRebook} onClose={() => setShowRebook(false)} rebookFrom={booking} />
+
+      {/* Record Payment Modal */}
+      {showPaymentForm && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowPaymentForm(false)} />
+          <div
+            className="relative w-full max-w-lg rounded-t-2xl p-5 space-y-4 safe-bottom"
+            style={{ backgroundColor: 'var(--bg-card)' }}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Record Payment</h3>
+              <button onClick={() => setShowPaymentForm(false)} className="text-sm text-purple-500">Cancel</button>
+            </div>
+
+            {/* Label selector */}
+            <div className="flex gap-2">
+              {paymentLabels.map(l => (
+                <button
+                  key={l}
+                  onClick={() => setPayLabel(l)}
+                  className="text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
+                  style={{
+                    backgroundColor: payLabel === l ? 'rgba(168,85,247,0.2)' : 'var(--bg-base)',
+                    color: payLabel === l ? '#a855f7' : 'var(--text-secondary)',
+                  }}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+
+            {/* Amount */}
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={payAmount}
+                onChange={e => setPayAmount(e.target.value)}
+                placeholder="0"
+                className="w-full text-2xl font-bold py-2 px-3 rounded-lg border-0 outline-none"
+                style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}
+                autoFocus
+              />
+            </div>
+
+            {/* Method */}
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Method</label>
+              <select
+                value={payMethod}
+                onChange={e => setPayMethod(e.target.value as PaymentMethod | '')}
+                className="w-full py-2 px-3 rounded-lg border-0 outline-none text-sm"
+                style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}
+              >
+                <option value="">Not specified</option>
+                {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Notes (optional)</label>
+              <input
+                type="text"
+                value={payNotes}
+                onChange={e => setPayNotes(e.target.value)}
+                placeholder="e.g. sent via e-Transfer"
+                className="w-full py-2 px-3 rounded-lg border-0 outline-none text-sm"
+                style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}
+              />
+            </div>
+
+            <button
+              onClick={submitPayment}
+              disabled={!payAmount || parseFloat(payAmount) <= 0}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
+              style={{ backgroundColor: '#a855f7' }}
+            >
+              Record {payLabel} {payAmount ? `(${formatCurrency(parseFloat(payAmount))})` : ''}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Payment Confirm */}
+      <ConfirmDialog
+        isOpen={deletePaymentId !== null}
+        title="Remove Payment"
+        message="Remove this payment record? The associated income transaction will also be removed."
+        confirmLabel="Remove"
+        onConfirm={confirmDeletePayment}
+        onCancel={() => setDeletePaymentId(null)}
+      />
     </div>
   )
 }

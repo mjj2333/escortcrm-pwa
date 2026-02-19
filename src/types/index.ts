@@ -11,6 +11,7 @@ export type TransactionCategory = 'booking' | 'tip' | 'gift' | 'supplies' | 'tra
 export type AvailabilityStatus = 'Available' | 'Limited' | 'Busy' | 'Off'
 export type SafetyCheckStatus = 'pending' | 'checkedIn' | 'overdue' | 'alert'
 export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical'
+export type PaymentLabel = 'Deposit' | 'Payment' | 'Tip' | 'Adjustment'
 
 export interface ClientTag {
   id: string
@@ -129,6 +130,16 @@ export interface IncidentLog {
   severity: IncidentSeverity
   description: string
   actionTaken: string
+}
+
+export interface BookingPayment {
+  id: string
+  bookingId: string
+  amount: number
+  method?: PaymentMethod
+  label: PaymentLabel
+  date: Date
+  notes?: string
 }
 
 export interface ServiceRate {

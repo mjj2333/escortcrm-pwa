@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
 import { useState } from 'react'
-import { db, formatCurrency, isUpcoming } from '../../db'
+import { db, formatCurrency, isUpcoming, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card, CardHeader } from '../../components/Card'
 import { EmptyState } from '../../components/EmptyState'
@@ -36,6 +36,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const allBookings = useLiveQuery(() => db.bookings.toArray()) ?? []
   const clients = useLiveQuery(() => db.clients.toArray()) ?? []
   const transactions = useLiveQuery(() => db.transactions.toArray()) ?? []
+  const allPayments = useLiveQuery(() => db.payments.toArray()) ?? []
   const safetyChecks = useLiveQuery(() => db.safetyChecks.where('status').equals('pending').toArray()) ?? []
   const availability = useLiveQuery(() => db.availability.toArray()) ?? []
   const todayAvailability = useLiveQuery(() =>
@@ -85,6 +86,20 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 
   const clientForBooking = (clientId?: string) =>
     clients.find(c => c.id === clientId)
+
+  // Outstanding balances — bookings with unpaid amounts
+  const bookingsWithBalance = allBookings
+    .filter(b => b.status !== 'Cancelled' && b.status !== 'No Show')
+    .map(b => {
+      const total = bookingTotal(b)
+      const paid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
+      const owing = total - paid
+      return { booking: b, owing, client: clientForBooking(b.clientId) }
+    })
+    .filter(x => x.owing > 0)
+    .sort((a, b) => b.owing - a.owing)
+
+  const totalOutstanding = bookingsWithBalance.reduce((sum, x) => sum + x.owing, 0)
 
   return (
     <div className="pb-20">
@@ -207,6 +222,51 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>income</p>
           </Card>
         </div>
+
+        {/* Outstanding Balances */}
+        {totalOutstanding > 0 && (
+          <Card>
+            <CardHeader
+              title="Outstanding Balances"
+              icon={<DollarSign size={16} className="text-orange-500" />}
+              action={<span className="text-sm font-bold text-orange-500">{formatCurrency(totalOutstanding)}</span>}
+            />
+            <div className="space-y-2 mt-2">
+              {bookingsWithBalance.slice(0, 4).map(({ booking, owing, client: c }) => (
+                <button
+                  key={booking.id}
+                  onClick={() => onOpenBooking(booking.id)}
+                  className="flex items-center justify-between w-full py-1.5 text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: 'rgba(249,115,22,0.15)' }}
+                    >
+                      <span className="text-[10px] font-bold text-orange-500">
+                        {c?.alias?.charAt(0)?.toUpperCase() ?? '?'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+                        {c?.alias ?? 'Unknown'}
+                      </p>
+                      <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                        {booking.status}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-semibold text-orange-500">{formatCurrency(owing)}</span>
+                </button>
+              ))}
+              {bookingsWithBalance.length > 4 && (
+                <p className="text-[10px] text-center" style={{ color: 'var(--text-secondary)' }}>
+                  +{bookingsWithBalance.length - 4} more
+                </p>
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* Quick Expense Button — Item 16 */}
         <button

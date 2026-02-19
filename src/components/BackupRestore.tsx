@@ -65,6 +65,7 @@ interface BackupPayload {
     safetyChecks: unknown[]
     incidents: unknown[]
     serviceRates: unknown[]
+    payments?: unknown[]
   }
 }
 
@@ -81,6 +82,7 @@ async function createBackup(): Promise<BackupPayload> {
       safetyChecks: await db.safetyChecks.toArray(),
       incidents: await db.incidents.toArray(),
       serviceRates: await db.serviceRates.toArray(),
+      payments: await db.payments.toArray(),
     },
   }
 }
@@ -97,6 +99,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   await db.safetyChecks.clear()
   await db.incidents.clear()
   await db.serviceRates.clear()
+  await db.payments.clear()
 
   const t = payload.tables
   if (t.clients?.length) { await db.clients.bulkAdd(t.clients as any); total += t.clients.length }
@@ -107,6 +110,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   if (t.safetyChecks?.length) { await db.safetyChecks.bulkAdd(t.safetyChecks as any); total += t.safetyChecks.length }
   if (t.incidents?.length) { await db.incidents.bulkAdd(t.incidents as any); total += t.incidents.length }
   if (t.serviceRates?.length) { await db.serviceRates.bulkAdd(t.serviceRates as any); total += t.serviceRates.length }
+  if (t.payments?.length) { await db.payments.bulkAdd(t.payments as any); total += t.payments.length }
 
   return { total }
 }

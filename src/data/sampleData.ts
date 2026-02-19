@@ -1,7 +1,7 @@
 import { db, newId } from '../db'
 import type {
   Client, Booking, Transaction, SafetyContact,
-  ServiceRate, DayAvailability
+  ServiceRate, DayAvailability, BookingPayment
 } from '../types'
 
 const SAMPLE_DATA_KEY = 'companion_sample_data'
@@ -234,6 +234,20 @@ export async function seedSampleData(): Promise<void> {
     { id: newId(), amount: 120, type: 'expense', category: 'advertising', date: daysAgo(10), notes: 'Monthly ad renewal', paymentMethod: undefined },
   ]
 
+  // ═══ PAYMENT LEDGER ═══
+  const payments: BookingPayment[] = [
+    // James completed booking — deposit + balance
+    { id: newId(), bookingId: bookingA1, amount: 150, method: 'e-Transfer', label: 'Deposit', date: daysAgo(6) },
+    { id: newId(), bookingId: bookingA1, amount: 450, method: 'Cash', label: 'Payment', date: daysAgo(5) },
+    // James upcoming — deposit received, balance outstanding
+    { id: newId(), bookingId: bookingA2, amount: 150, method: 'e-Transfer', label: 'Deposit', date: daysAgo(2) },
+    // David completed — full payment + tip
+    { id: newId(), bookingId: bookingD1, amount: 200, method: 'Cash App', label: 'Deposit', date: daysAgo(10) },
+    { id: newId(), bookingId: bookingD1, amount: 950, method: 'Cash', label: 'Payment', date: daysAgo(8) },
+    { id: newId(), bookingId: bookingD1, amount: 100, method: 'Cash', label: 'Tip', date: daysAgo(8), notes: 'Generous tip' },
+    // M. Thompson — no payments yet (screening stage)
+  ]
+
   // ═══ SAFETY CONTACT ═══
   const safetyContacts: SafetyContact[] = [
     {
@@ -270,7 +284,7 @@ export async function seedSampleData(): Promise<void> {
 
   // ═══ WRITE TO DB ═══
   await db.transaction('rw',
-    [db.clients, db.bookings, db.transactions, db.safetyContacts, db.serviceRates, db.availability],
+    [db.clients, db.bookings, db.transactions, db.safetyContacts, db.serviceRates, db.availability, db.payments],
     async () => {
       await db.clients.bulkAdd(clients)
       await db.bookings.bulkAdd(bookings)
@@ -278,6 +292,7 @@ export async function seedSampleData(): Promise<void> {
       await db.safetyContacts.bulkAdd(safetyContacts)
       await db.serviceRates.bulkAdd(serviceRates)
       await db.availability.bulkAdd(availability)
+      await db.payments.bulkAdd(payments)
     }
   )
 
@@ -289,7 +304,7 @@ export async function seedSampleData(): Promise<void> {
  */
 export async function clearSampleData(): Promise<void> {
   await db.transaction('rw',
-    [db.clients, db.bookings, db.transactions, db.safetyContacts, db.safetyChecks, db.incidents, db.serviceRates, db.availability],
+    [db.clients, db.bookings, db.transactions, db.safetyContacts, db.safetyChecks, db.incidents, db.serviceRates, db.availability, db.payments],
     async () => {
       await db.clients.clear()
       await db.bookings.clear()
@@ -299,6 +314,7 @@ export async function clearSampleData(): Promise<void> {
       await db.incidents.clear()
       await db.serviceRates.clear()
       await db.availability.clear()
+      await db.payments.clear()
     }
   )
   markSampleDataCleared()
