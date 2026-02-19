@@ -1,11 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, newId } from '../../db'
 import { Modal } from '../../components/Modal'
-import { SectionLabel, FieldSelect, FieldTextArea, FieldDate } from '../../components/FormFields'
-import { fieldInputStyle } from '../../components/FormFields'
+import { SectionLabel, FieldSelect, FieldTextArea, FieldDate, fieldInputStyle } from '../../components/FormFields'
 import type { IncidentSeverity } from '../../types'
 
 const severities: IncidentSeverity[] = ['low', 'medium', 'high', 'critical']
@@ -22,6 +21,17 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
   const [description, setDescription] = useState('')
   const [actionTaken, setActionTaken] = useState('')
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setClientId('')
+      setSeverity('medium')
+      setDescription('')
+      setActionTaken('')
+      setDate(format(new Date(), 'yyyy-MM-dd'))
+    }
+  }, [isOpen])
 
   const isValid = description.trim().length > 0
 

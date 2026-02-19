@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Check } from 'lucide-react'
 import { db, newId } from '../../db'
 import { Modal } from '../../components/Modal'
@@ -17,6 +17,16 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
   const [phone, setPhone] = useState(contact?.phone ?? '')
   const [relationship, setRelationship] = useState(contact?.relationship ?? '')
   const [isPrimary, setIsPrimary] = useState(contact?.isPrimary ?? false)
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setName(contact?.name ?? '')
+      setPhone(contact?.phone ?? '')
+      setRelationship(contact?.relationship ?? '')
+      setIsPrimary(contact?.isPrimary ?? false)
+    }
+  }, [isOpen, contact])
 
   const isValid = name.trim().length > 0 && phone.trim().length > 0
 
