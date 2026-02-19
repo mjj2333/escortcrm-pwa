@@ -209,11 +209,7 @@ export function SwipeableBookingRow({ booking, client, onOpen }: Props) {
             <ActionPill
               key={p.status}
               label={p.label}
-              active={booking.status === p.status || (
-                // Highlight "Confirm" for Screening/Pending Deposit too
-                p.status === 'Confirmed' && (booking.status === 'Screening' || booking.status === 'Pending Deposit')
-                  ? false : false
-              )}
+              active={booking.status === p.status}
               color={p.color}
               onTap={() => {
                 if (p.status !== booking.status) setBookingStatus(p.status)

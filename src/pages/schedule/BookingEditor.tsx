@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ChevronRight, User, UserPlus, Search, ChevronDown, ChevronUp, AlertTriangle, Plus, ChevronLeft } from 'lucide-react'
 import { format } from 'date-fns'
-import { db, createBooking, createClient, bookingDurationFormatted } from '../../db'
+import { db, createBooking, createClient, bookingDurationFormatted, formatCurrency } from '../../db'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
 import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
@@ -436,7 +436,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         {total > 0 && (
           <div className="flex items-center justify-between mb-3 px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
             <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Total</span>
-            <span className="text-lg font-bold text-green-500">${total}</span>
+            <span className="text-lg font-bold text-green-500">{formatCurrency(total)}</span>
           </div>
         )}
 

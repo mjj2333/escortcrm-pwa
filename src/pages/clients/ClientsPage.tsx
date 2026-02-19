@@ -178,8 +178,13 @@ function ClientRow({ client, onOpen, onTogglePin, showPinToast, pinToastValue }:
         <div className="flex items-center gap-1.5">
           {client.isPinned && <Pin size={11} className="text-purple-400 shrink-0" />}
           <p className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-            {client.realName ?? client.alias}
+            {client.alias}
           </p>
+          {client.realName && client.realName !== client.alias && (
+            <span className="text-[10px] shrink-0" style={{ color: 'var(--text-secondary)' }}>
+              ({client.realName})
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5 mt-0.5">
           <StatusBadge text={client.screeningStatus} color={screeningStatusColors[client.screeningStatus]} />

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, createTransaction } from '../../db'
@@ -22,6 +22,18 @@ export function TransactionEditor({ isOpen, onClose }: TransactionEditorProps) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash')
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [notes, setNotes] = useState('')
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setType('income')
+      setAmount(0)
+      setCategory('booking')
+      setPaymentMethod('Cash')
+      setDate(format(new Date(), 'yyyy-MM-dd'))
+      setNotes('')
+    }
+  }, [isOpen])
 
   const isValid = amount > 0
 

@@ -24,15 +24,17 @@ export function AnalyticsPage({ onBack }: AnalyticsPageProps) {
   return (
     <div className="pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-30" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="flex items-center gap-3 px-4 py-3">
-          <button onClick={onBack} className="p-1" style={{ color: 'var(--text-primary)' }}>
-            <ArrowLeft size={20} />
+      <header className="sticky top-0 z-30 border-b backdrop-blur-xl header-frosted"
+        style={{ borderColor: 'var(--border)' }}>
+        <div className="flex items-center gap-3 px-4 py-3 max-w-lg mx-auto">
+          <button onClick={onBack} className="flex items-center gap-1 text-purple-500">
+            <ArrowLeft size={18} />
+            <span className="text-sm">Back</span>
           </button>
           <h1 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Analytics</h1>
         </div>
         {/* Tab bar */}
-        <div className="flex px-4 pb-2">
+        <div className="flex px-4 pb-2 max-w-lg mx-auto">
           <div className="flex rounded-xl overflow-hidden w-full" style={{ backgroundColor: 'var(--bg-secondary)' }}>
             {TABS.map(t => (
               <button
@@ -48,7 +50,7 @@ export function AnalyticsPage({ onBack }: AnalyticsPageProps) {
             ))}
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="px-4 py-3 max-w-lg mx-auto space-y-4">
         {tab === 'Overview' && <OverviewTab bookings={bookings} clients={clients} transactions={transactions} />}
