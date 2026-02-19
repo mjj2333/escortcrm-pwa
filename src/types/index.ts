@@ -141,10 +141,6 @@ export interface ServiceRate {
 }
 
 // Display helpers
-export const contactMethodIcons: Record<ContactMethod, string> = {
-  'Phone': 'Phone', 'Text': 'MessageSquare', 'Email': 'Mail',
-  'Telegram': 'Send', 'Signal': 'ShieldCheck', 'WhatsApp': 'MessageCircle', 'Other': 'MoreHorizontal'
-}
 
 export const screeningStatusColors: Record<ScreeningStatus, string> = {
   'Pending': 'orange', 'In Progress': 'blue', 'Verified': 'green', 'Declined': 'red'
@@ -160,22 +156,6 @@ export const bookingStatusColors: Record<BookingStatus, string> = {
   'Cancelled': 'red', 'No Show': 'red'
 }
 
-export const bookingStatusIcons: Record<BookingStatus, string> = {
-  'Inquiry': 'HelpCircle', 'Screening': 'Search', 'Pending Deposit': 'DollarSign',
-  'Confirmed': 'CheckCircle', 'In Progress': 'Clock', 'Completed': 'CheckCircle2',
-  'Cancelled': 'XCircle', 'No Show': 'UserX'
-}
-
-export const locationTypeIcons: Record<LocationType, string> = {
-  'Incall': 'Home', 'Outcall': 'Car', 'Travel': 'Plane', 'Virtual': 'Video'
-}
-
 export const availabilityStatusColors: Record<AvailabilityStatus, string> = {
   'Available': 'green', 'Limited': 'orange', 'Busy': 'red', 'Off': 'gray'
-}
-
-export const paymentMethodIcons: Record<PaymentMethod, string> = {
-  'Cash': 'Banknote', 'e-Transfer': 'ArrowLeftRight', 'Crypto': 'Bitcoin',
-  'Venmo': 'Smartphone', 'Cash App': 'Smartphone', 'Zelle': 'Smartphone',
-  'Gift Card': 'Gift', 'Other': 'MoreHorizontal'
 }

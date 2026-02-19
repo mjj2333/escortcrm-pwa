@@ -6,15 +6,6 @@ import type { DayAvailability, TimeSlot } from '../types'
 // TIME SLOT HELPERS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-/** Generate half-hour time options: ["00:00", "00:30", "01:00", ...] */
-export function generateTimeOptions(): string[] {
-  return Array.from({ length: 48 }, (_, i) => {
-    const h = Math.floor(i / 2)
-    const m = i % 2 === 0 ? '00' : '30'
-    return `${h.toString().padStart(2, '0')}:${m}`
-  })
-}
-
 /** Format "14:00" → "2:00 PM" */
 export function formatTime12(time: string): string {
   const [hStr, mStr] = time.split(':')

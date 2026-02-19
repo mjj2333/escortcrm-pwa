@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ChevronRight, User, UserPlus, Search, ChevronDown, ChevronUp, AlertTriangle, Plus, ChevronLeft } from 'lucide-react'
 import { format } from 'date-fns'
-import { db, createBooking, createClient } from '../../db'
+import { db, createBooking, createClient, bookingDurationFormatted } from '../../db'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
 import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
@@ -199,13 +199,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
     onClose()
   }
 
-  const durationFormatted = (mins: number) => {
-    const h = Math.floor(mins / 60)
-    const m = mins % 60
-    if (h > 0 && m > 0) return `${h}h ${m}m`
-    if (h > 0) return `${h}h`
-    return `${m}m`
-  }
 
   return (
     <Modal
@@ -390,7 +383,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                 <div className="font-bold">
                   {durationUnit === 'hr'
                     ? (rate.duration >= 60 ? `${Math.round((rate.duration / 60) * 10) / 10}h` : `${rate.duration}m`)
-                    : durationFormatted(rate.duration)}
+                    : bookingDurationFormatted(rate.duration)}
                 </div>
                 <div className="text-xs opacity-70">${rate.rate}</div>
               </button>
