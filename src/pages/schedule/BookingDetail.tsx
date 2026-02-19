@@ -6,9 +6,10 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime } from '../../db'
+import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, createBookingIncomeTransaction } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
 import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Card } from '../../components/Card'
 import { BookingEditor } from './BookingEditor'
 import { bookingStatusColors } from '../../types'
@@ -37,6 +38,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
   )
   const [showEditor, setShowEditor] = useState(false)
   const [showRebook, setShowRebook] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<'noshow' | 'cancel' | null>(null)
 
   if (!booking) return null
 
@@ -51,6 +53,9 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
     if (status === 'Completed') {
       updates.completedAt = new Date()
       updates.paymentReceived = true
+      // Create income transaction (guards against duplicates)
+      const client = await db.clients.get(booking!.clientId ?? '')
+      await createBookingIncomeTransaction(booking!, client?.alias)
       // Update client lastSeen
       if (booking!.clientId) {
         await db.clients.update(booking!.clientId, { lastSeen: new Date() })
@@ -60,7 +65,6 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
   }
 
   async function markNoShow() {
-    if (!confirm('Mark this booking as a no-show?')) return
     await db.bookings.update(bookingId, {
       status: 'No Show' as BookingStatus,
       cancelledAt: new Date(),
@@ -68,7 +72,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
     // Update client risk
     if (booking!.clientId) {
       const clientBookings = await db.bookings.where('clientId').equals(booking!.clientId).toArray()
-      const noShows = clientBookings.filter(b => b.status === 'No Show').length + 1
+      const noShows = clientBookings.filter(b => b.status === 'No Show').length
       const currentClient = await db.clients.get(booking!.clientId)
       if (currentClient) {
         let riskLevel = currentClient.riskLevel
@@ -77,16 +81,16 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
         await db.clients.update(booking!.clientId, { riskLevel })
       }
     }
+    setConfirmAction(null)
   }
 
-  async function cancelBooking() {
-    const reason = prompt('Cancellation reason (optional):')
-    if (reason === null) return // user hit Cancel on prompt
+  async function cancelBooking(reason?: string) {
     await db.bookings.update(bookingId, {
       status: 'Cancelled' as BookingStatus,
       cancelledAt: new Date(),
-      cancellationReason: reason || undefined,
+      cancellationReason: reason?.trim() || undefined,
     })
+    setConfirmAction(null)
   }
 
   async function toggleDeposit() {
@@ -101,9 +105,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
     <div className="pb-20">
       {/* Header */}
       <header
-        className="sticky top-0 z-30 border-b backdrop-blur-xl"
+        className="sticky top-0 z-30 border-b backdrop-blur-xl header-frosted"
         style={{
-          backgroundColor: 'color-mix(in srgb, var(--bg-primary) 85%, transparent)',
           borderColor: 'var(--border)',
         }}
       >
@@ -353,7 +356,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
           {/* No Show */}
           {!isTerminal && (
             <button
-              onClick={markNoShow}
+              onClick={() => setConfirmAction('noshow')}
               className="flex items-center gap-3 py-3 w-full text-left"
             >
               <UserX size={18} className="text-red-500" />
@@ -364,7 +367,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
           {/* Cancel */}
           {!isTerminal && (
             <button
-              onClick={cancelBooking}
+              onClick={() => setConfirmAction('cancel')}
               className="flex items-center gap-3 py-3 w-full text-left"
             >
               <XCircle size={18} className="text-red-500" />
@@ -402,6 +405,25 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
           </div>
         </Card>
       </div>
+
+      {/* Confirm Dialogs */}
+      <ConfirmDialog
+        isOpen={confirmAction === 'noshow'}
+        title="Mark as No-Show"
+        message="Mark this booking as a no-show? This may increase the client's risk level."
+        confirmLabel="No-Show"
+        onConfirm={markNoShow}
+        onCancel={() => setConfirmAction(null)}
+      />
+      <ConfirmDialog
+        isOpen={confirmAction === 'cancel'}
+        title="Cancel Booking"
+        message="Are you sure you want to cancel this booking?"
+        confirmLabel="Cancel Booking"
+        inputPlaceholder="Cancellation reason (optional)"
+        onConfirm={(reason) => cancelBooking(reason)}
+        onCancel={() => setConfirmAction(null)}
+      />
 
       {/* Editors */}
       <BookingEditor isOpen={showEditor} onClose={() => setShowEditor(false)} booking={booking} />

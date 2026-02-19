@@ -12,6 +12,7 @@ import {
 import { db, formatCurrency, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card } from '../../components/Card'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldTextInput, fieldInputStyle } from '../../components/FormFields'
 import { ImportExportModal } from '../../components/ImportExport'
@@ -647,6 +648,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const allTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray()) ?? []
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
   const [search, setSearch] = useState('')
+  const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null)
 
   const filtered = allTransactions
     .filter(t => filterType === 'all' || t.type === filterType)
@@ -656,6 +658,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
     )
 
   return (
+    <>
     <Modal isOpen={isOpen} onClose={onClose} title="All Transactions">
       <div style={{ backgroundColor: 'var(--bg-secondary)' }}>
         {/* Filter */}
@@ -727,7 +730,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                 </p>
                 <button
-                  onClick={() => { if (confirm('Delete this transaction?')) db.transactions.delete(t.id) }}
+                  onClick={() => setDeleteTxnId(t.id)}
                   className="p-1 opacity-40 active:opacity-100"
                   style={{ color: 'var(--text-secondary)' }}
                 >
@@ -754,5 +757,14 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
         <div className="h-8" />
       </div>
     </Modal>
+    <ConfirmDialog
+      isOpen={!!deleteTxnId}
+      title="Delete Transaction"
+      message="Delete this transaction? This cannot be undone."
+      confirmLabel="Delete"
+      onConfirm={() => { if (deleteTxnId) db.transactions.delete(deleteTxnId); setDeleteTxnId(null) }}
+      onCancel={() => setDeleteTxnId(null)}
+    />
+    </>
   )
 }

@@ -8,6 +8,7 @@ import { format } from 'date-fns'
 import { db } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card } from '../../components/Card'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { EmptyState } from '../../components/EmptyState'
 import { SafetyContactEditor } from './SafetyContactEditor'
 import { IncidentEditor } from './IncidentEditor'
@@ -16,6 +17,7 @@ export function SafetyPage() {
   const [tab, setTab] = useState<'checkins' | 'contacts' | 'incidents'>('checkins')
   const [showContactEditor, setShowContactEditor] = useState(false)
   const [showIncidentEditor, setShowIncidentEditor] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'contact' | 'incident'; id: string; name: string } | null>(null)
 
   const safetyChecks = useLiveQuery(() => db.safetyChecks.orderBy('scheduledTime').reverse().toArray()) ?? []
   const contacts = useLiveQuery(() => db.safetyContacts.toArray()) ?? []
@@ -156,7 +158,7 @@ export function SafetyPage() {
                         <Phone size={18} className="text-green-500" />
                       </a>
                       <button
-                        onClick={() => { if (confirm(`Remove ${contact.name}?`)) db.safetyContacts.delete(contact.id) }}
+                        onClick={() => setDeleteTarget({ type: 'contact', id: contact.id, name: contact.name })}
                         className="p-1"
                         style={{ color: 'var(--text-secondary)' }}
                       >
@@ -194,7 +196,7 @@ export function SafetyPage() {
                           {format(new Date(incident.date), 'MMM d, yyyy')}
                         </span>
                         <button
-                          onClick={() => { if (confirm('Delete this incident?')) db.incidents.delete(incident.id) }}
+                          onClick={() => setDeleteTarget({ type: 'incident', id: incident.id, name: 'this incident' })}
                           className="p-1"
                           style={{ color: 'var(--text-secondary)' }}
                         >
@@ -215,6 +217,20 @@ export function SafetyPage() {
 
       <SafetyContactEditor isOpen={showContactEditor} onClose={() => setShowContactEditor(false)} />
       <IncidentEditor isOpen={showIncidentEditor} onClose={() => setShowIncidentEditor(false)} />
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title={deleteTarget?.type === 'contact' ? 'Remove Contact' : 'Delete Incident'}
+        message={deleteTarget?.type === 'contact'
+          ? `Remove ${deleteTarget?.name ?? ''}?`
+          : 'Delete this incident log?'}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (deleteTarget?.type === 'contact') await db.safetyContacts.delete(deleteTarget.id)
+          else if (deleteTarget?.type === 'incident') await db.incidents.delete(deleteTarget!.id)
+          setDeleteTarget(null)
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

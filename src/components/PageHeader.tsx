@@ -8,9 +8,8 @@ interface PageHeaderProps {
 export function PageHeader({ title, children }: PageHeaderProps) {
   return (
     <header
-      className="sticky top-0 z-30 border-b backdrop-blur-xl"
+      className="sticky top-0 z-30 border-b backdrop-blur-xl header-frosted"
       style={{
-        backgroundColor: 'color-mix(in srgb, var(--bg-primary) 85%, transparent)',
         borderColor: 'var(--border)',
       }}
     >

@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react'
 import { format } from 'date-fns'
-import { db, formatCurrency, bookingTotal, bookingDurationFormatted, newId } from '../db'
+import { db, formatCurrency, bookingTotal, bookingDurationFormatted, createBookingIncomeTransaction } from '../db'
 import { StatusBadge } from './StatusBadge'
 import { MiniTags } from './TagPicker'
 import { bookingStatusColors, screeningStatusColors } from '../types'
@@ -137,16 +137,8 @@ export function SwipeableBookingRow({ booking, client, onOpen }: Props) {
     if (newStatus === 'Completed') {
       updates.completedAt = new Date()
       updates.paymentReceived = true
-      // Create income transaction
-      await db.transactions.add({
-        id: newId(),
-        bookingId: booking.id,
-        amount: bookingTotal(booking),
-        type: 'income',
-        category: 'booking',
-        date: new Date(),
-        notes: `Booking with ${client?.alias ?? 'client'}`,
-      })
+      // Create income transaction (guards against duplicates)
+      await createBookingIncomeTransaction(booking, client?.alias)
     }
 
     if (newStatus === 'Cancelled') {

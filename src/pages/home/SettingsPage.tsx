@@ -5,6 +5,7 @@ import { db, newId, bookingDurationFormatted } from '../../db'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldToggle, fieldInputStyle } from '../../components/FormFields'
 import { PinLock } from '../../components/PinLock'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { BackupRestoreModal } from '../../components/BackupRestore'
 import { getActivation, isActivated, getTrialDaysRemaining, isBetaTester } from '../../components/Paywall'
 import { useLocalStorage } from '../../hooks/useSettings'
@@ -34,6 +35,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
   // PIN setup
   const [showPinSetup, setShowPinSetup] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   async function addRate() {
     if (!newRateName.trim() || newRateAmount <= 0) return
@@ -76,10 +78,8 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
   }
 
   async function resetAllData() {
-    if (confirm('This will permanently delete ALL your data. Are you sure?')) {
-      await db.delete()
-      window.location.reload()
-    }
+    await db.delete()
+    window.location.reload()
   }
 
   return (
@@ -293,7 +293,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
 
           {/* Danger Zone */}
           <div className="py-4">
-            <button type="button" onClick={resetAllData}
+            <button type="button" onClick={() => setShowResetConfirm(true)}
               className="w-full py-3 rounded-xl text-sm font-semibold text-red-500 border border-red-500/30">
               Reset All Data
             </button>
@@ -317,6 +317,14 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
       )}
 
       <BackupRestoreModal isOpen={showBackup} onClose={() => setShowBackup(false)} />
+      <ConfirmDialog
+        isOpen={showResetConfirm}
+        title="Reset All Data"
+        message="This will permanently delete ALL your data. This cannot be undone."
+        confirmLabel="Erase Everything"
+        onConfirm={resetAllData}
+        onCancel={() => setShowResetConfirm(false)}
+      />
     </>
   )
 }

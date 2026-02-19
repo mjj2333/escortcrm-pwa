@@ -149,3 +149,18 @@ export function formatCurrency(amount: number): string {
     maximumFractionDigits: 0,
   }).format(amount)
 }
+
+// Helper: create income transaction for a completed booking (guards against duplicates)
+export async function createBookingIncomeTransaction(booking: Booking, clientAlias?: string): Promise<void> {
+  const existing = await db.transactions.where('bookingId').equals(booking.id).first()
+  if (existing) return // already recorded
+  await db.transactions.add({
+    id: newId(),
+    bookingId: booking.id,
+    amount: bookingTotal(booking),
+    type: 'income',
+    category: 'booking',
+    date: new Date(),
+    notes: `Booking with ${clientAlias ?? 'client'}`,
+  })
+}

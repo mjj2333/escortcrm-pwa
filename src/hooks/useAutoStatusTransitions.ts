@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { addWeeks, addMonths } from 'date-fns'
-import { db, createBooking } from '../db'
+import { db, createBooking, createBookingIncomeTransaction } from '../db'
 
 /**
  * Auto-advance booking statuses based on time:
@@ -29,6 +29,13 @@ export function useAutoStatusTransitions() {
             status: 'Completed',
             completedAt: new Date(),
           })
+          // Create income transaction (guards against duplicates)
+          const client = b.clientId ? await db.clients.get(b.clientId) : undefined
+          await createBookingIncomeTransaction(b, client?.alias)
+          // Update lastSeen
+          if (b.clientId) {
+            await db.clients.update(b.clientId, { lastSeen: new Date() })
+          }
         }
 
         // Spawn next recurring booking if this one completed

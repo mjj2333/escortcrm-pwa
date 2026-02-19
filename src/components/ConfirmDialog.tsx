@@ -1,16 +1,26 @@
+import { useState, useEffect } from 'react'
+
 interface ConfirmDialogProps {
   isOpen: boolean
   title: string
   message: string
   confirmLabel?: string
   confirmColor?: string
-  onConfirm: () => void
+  onConfirm: (inputValue?: string) => void
   onCancel: () => void
+  /** If set, shows a text input field in the dialog */
+  inputPlaceholder?: string
 }
 
 export function ConfirmDialog({
-  isOpen, title, message, confirmLabel = 'Confirm', confirmColor = '#ef4444', onConfirm, onCancel
+  isOpen, title, message, confirmLabel = 'Confirm', confirmColor = '#ef4444', onConfirm, onCancel, inputPlaceholder
 }: ConfirmDialogProps) {
+  const [inputValue, setInputValue] = useState('')
+
+  useEffect(() => {
+    if (isOpen) setInputValue('')
+  }, [isOpen])
+
   if (!isOpen) return null
 
   return (
@@ -21,7 +31,22 @@ export function ConfirmDialog({
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
         <h3 className="font-bold text-base mb-2" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-        <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>{message}</p>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>{message}</p>
+        {inputPlaceholder && (
+          <input
+            type="text"
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            placeholder={inputPlaceholder}
+            className="w-full text-sm p-2.5 rounded-lg outline-none mb-4"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border)',
+            }}
+            autoFocus
+          />
+        )}
         <div className="flex gap-3">
           <button
             onClick={onCancel}
@@ -31,7 +56,7 @@ export function ConfirmDialog({
             Cancel
           </button>
           <button
-            onClick={onConfirm}
+            onClick={() => onConfirm(inputPlaceholder ? inputValue : undefined)}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
             style={{ backgroundColor: confirmColor }}
           >

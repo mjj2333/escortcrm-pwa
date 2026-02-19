@@ -3,6 +3,7 @@ import {
   Download, Upload, X, CheckCircle, AlertCircle, Lock, Unlock, Database
 } from 'lucide-react'
 import { db } from '../db'
+import { ConfirmDialog } from './ConfirmDialog'
 
 interface BackupRestoreProps {
   isOpen: boolean
@@ -131,6 +132,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
   const [useEncryption, setUseEncryption] = useState(true)
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
   const [working, setWorking] = useState(false)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   if (!isOpen) return null
@@ -164,17 +166,18 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
   async function handleRestore(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    setPendingFile(file)
+    if (fileRef.current) fileRef.current.value = ''
+  }
 
-    if (!confirm('This will REPLACE all current data with the backup. Continue?')) {
-      if (fileRef.current) fileRef.current.value = ''
-      return
-    }
-
+  async function confirmRestore() {
+    if (!pendingFile) return
     setWorking(true)
     setStatus(null)
+    setPendingFile(null)
 
     try {
-      const text = await file.text()
+      const text = await pendingFile.text()
       let parsed = JSON.parse(text)
 
       // Check if encrypted
@@ -211,6 +214,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
   }
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div
@@ -340,5 +344,15 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
         </div>
       </div>
     </div>
+    <ConfirmDialog
+      isOpen={!!pendingFile}
+      title="Restore Backup"
+      message="This will REPLACE all current data with the backup. This cannot be undone."
+      confirmLabel="Replace All Data"
+      confirmColor="#f97316"
+      onConfirm={confirmRestore}
+      onCancel={() => setPendingFile(null)}
+    />
+    </>
   )
 }

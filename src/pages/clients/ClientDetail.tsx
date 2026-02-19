@@ -11,6 +11,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { Card } from '../../components/Card'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ClientEditor } from './ClientEditor'
 import { screeningStatusColors, riskLevelColors } from '../../types'
 
@@ -27,6 +28,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
   ) ?? []
   const [showEditor, setShowEditor] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false)
 
   if (!client) return null
 
@@ -52,18 +54,25 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
   }
 
   async function toggleBlock() {
-    if (!client!.isBlocked && !confirm('Block this client? They will be hidden from your main list.')) return
-    await db.clients.update(clientId, { isBlocked: !client!.isBlocked })
-    if (!client!.isBlocked) onBack()
+    if (!client!.isBlocked) {
+      setShowBlockConfirm(true)
+      return
+    }
+    await db.clients.update(clientId, { isBlocked: false })
+  }
+
+  async function confirmBlock() {
+    await db.clients.update(clientId, { isBlocked: true })
+    setShowBlockConfirm(false)
+    onBack()
   }
 
   return (
     <div className="pb-20">
       {/* Header */}
       <header
-        className="sticky top-0 z-30 border-b backdrop-blur-xl"
+        className="sticky top-0 z-30 border-b backdrop-blur-xl header-frosted"
         style={{
-          backgroundColor: 'color-mix(in srgb, var(--bg-primary) 85%, transparent)',
           borderColor: 'var(--border)',
         }}
       >
@@ -441,6 +450,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
         </Card>
       </div>
 
+      <ConfirmDialog
+        isOpen={showBlockConfirm}
+        title="Block Client"
+        message="Block this client? They will be hidden from your main list."
+        confirmLabel="Block"
+        onConfirm={confirmBlock}
+        onCancel={() => setShowBlockConfirm(false)}
+      />
       <ClientEditor isOpen={showEditor} onClose={() => setShowEditor(false)} client={client} />
     </div>
   )

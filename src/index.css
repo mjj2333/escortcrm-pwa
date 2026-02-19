@@ -52,9 +52,9 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Smooth transitions */
-* {
-  transition-property: background-color, border-color, color;
+/* Smooth transitions — scoped to interactive elements only */
+button, a, [role="button"], input, select, textarea {
+  transition-property: background-color, border-color, color, opacity;
   transition-duration: 150ms;
 }
 
@@ -67,4 +67,14 @@ svg, svg * {
 /* Prevent pull-to-refresh */
 html {
   overscroll-behavior: none;
+}
+
+/* Frosted header with fallback for older browsers */
+.header-frosted {
+  background-color: var(--bg-primary);
+}
+@supports (background-color: color-mix(in srgb, red, blue)) {
+  .header-frosted {
+    background-color: color-mix(in srgb, var(--bg-primary) 85%, transparent);
+  }
 }
