@@ -1,10 +1,29 @@
 import { useRef, useState, useCallback } from 'react'
-import { format } from 'date-fns'
+import { format, isToday, isTomorrow, differenceInDays, startOfDay } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted, createBookingIncomeTransaction } from '../db'
 import { StatusBadge } from './StatusBadge'
 import { MiniTags } from './TagPicker'
 import { bookingStatusColors, screeningStatusColors } from '../types'
-import type { Booking, BookingStatus, Client, ScreeningStatus } from '../types'
+import type { Booking, BookingStatus, Client, ScreeningStatus, AvailabilityStatus } from '../types'
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HELPERS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function formatRelativeDate(dt: Date): string {
+  if (isToday(dt)) return `Today · ${format(dt, 'h:mm a')}`
+  if (isTomorrow(dt)) return `Tomorrow · ${format(dt, 'h:mm a')}`
+  const daysAway = differenceInDays(startOfDay(dt), startOfDay(new Date()))
+  if (daysAway > 1 && daysAway <= 6) return `${format(dt, 'EEEE')} · ${format(dt, 'h:mm a')}`
+  return format(dt, 'EEE, MMM d · h:mm a')
+}
+
+const availDotColors: Record<AvailabilityStatus, string> = {
+  'Available': '#22c55e',
+  'Limited': '#f97316',
+  'Busy': '#ef4444',
+  'Off': '#6b7280',
+}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // STATUS FLOW
@@ -56,9 +75,10 @@ interface Props {
   booking: Booking
   client?: Client
   onOpen: () => void
+  availabilityStatus?: AvailabilityStatus
 }
 
-export function SwipeableBookingRow({ booking, client, onOpen }: Props) {
+export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatus }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const startX = useRef(0)
   const currentX = useRef(0)
@@ -259,9 +279,18 @@ export function SwipeableBookingRow({ booking, client, onOpen }: Props) {
           <p className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
             {client?.alias ?? 'Unknown'}
           </p>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {format(new Date(booking.dateTime), 'EEE, MMM d · h:mm a')} · {bookingDurationFormatted(booking.duration)}
-          </p>
+          <div className="flex items-center gap-1.5">
+            {availabilityStatus && (
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                title={availabilityStatus}
+                style={{ backgroundColor: availDotColors[availabilityStatus] }}
+              />
+            )}
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {formatRelativeDate(new Date(booking.dateTime))} · {bookingDurationFormatted(booking.duration)}
+            </p>
+          </div>
           <div className="flex items-center gap-1.5 mt-0.5">
             {client?.tags && <MiniTags tags={client.tags} />}
             {booking.recurrence && booking.recurrence !== 'none' && (

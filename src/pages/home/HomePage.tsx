@@ -1,17 +1,20 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Settings, Clock, CalendarDays, DollarSign, Users,
-  ChevronRight, ShieldAlert, TrendingUp, Cake
+  ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Minus
 } from 'lucide-react'
-import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears } from 'date-fns'
+import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
+import { useState } from 'react'
 import { db, formatCurrency, isUpcoming } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card, CardHeader } from '../../components/Card'
 import { EmptyState } from '../../components/EmptyState'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
 import { SampleDataBanner } from '../../components/SampleDataBanner'
+import { TransactionEditor } from '../finances/TransactionEditor'
 import { formatTime12 } from '../../utils/availability'
 import { availabilityStatusColors } from '../../types'
+import { useLocalStorage } from '../../hooks/useSettings'
 
 interface HomePageProps {
   onNavigateTab: (tab: number) => void
@@ -27,13 +30,22 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const weekStart = startOfWeek(now)
   const monthStart = startOfMonth(now)
 
+  const [showExpenseEditor, setShowExpenseEditor] = useState(false)
+  const [remindersEnabled] = useLocalStorage('remindersEnabled', false)
+
   const allBookings = useLiveQuery(() => db.bookings.toArray()) ?? []
   const clients = useLiveQuery(() => db.clients.toArray()) ?? []
   const transactions = useLiveQuery(() => db.transactions.toArray()) ?? []
   const safetyChecks = useLiveQuery(() => db.safetyChecks.where('status').equals('pending').toArray()) ?? []
+  const availability = useLiveQuery(() => db.availability.toArray()) ?? []
   const todayAvailability = useLiveQuery(() =>
     db.availability.where('date').between(todayStart, todayEnd, true, true).first()
   )
+
+  const availForDay = (day: Date) =>
+    availability.find(a => isSameDay(new Date(a.date), day))
+
+  const showNotificationPrompt = !remindersEnabled && 'Notification' in window && Notification.permission === 'default'
 
   const todaysBookings = allBookings.filter(b => {
     const d = new Date(b.dateTime)
@@ -196,6 +208,44 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           </Card>
         </div>
 
+        {/* Quick Expense Button — Item 16 */}
+        <button
+          onClick={() => setShowExpenseEditor(true)}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+        >
+          <Minus size={16} className="text-red-500" />
+          Quick Expense
+        </button>
+
+        {/* Notification Prompt — Item 17 */}
+        {showNotificationPrompt && (
+          <div
+            className="rounded-xl p-4 flex items-start gap-3"
+            style={{ backgroundColor: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.15)' }}
+          >
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+              style={{ backgroundColor: 'rgba(168,85,247,0.15)' }}>
+              <Bell size={18} className="text-purple-500" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+                Never miss a booking
+              </p>
+              <p className="text-xs mt-0.5 mb-2" style={{ color: 'var(--text-secondary)' }}>
+                Get reminders 1 hour and 15 minutes before appointments, plus birthday alerts.
+              </p>
+              <button
+                onClick={() => onOpenSettings()}
+                className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{ backgroundColor: '#a855f7', color: '#fff' }}
+              >
+                Enable Reminders
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Birthday Reminders */}
         {upcomingBirthdays.length > 0 && (
           <Card>
@@ -264,6 +314,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                     booking={booking}
                     client={client}
                     onOpen={() => onOpenBooking(booking.id)}
+                    availabilityStatus={availForDay(new Date(booking.dateTime))?.status}
                   />
                 )
               })}
@@ -271,6 +322,8 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           )}
         </Card>
       </div>
+
+      <TransactionEditor isOpen={showExpenseEditor} onClose={() => setShowExpenseEditor(false)} initialType="expense" />
     </div>
   )
 }

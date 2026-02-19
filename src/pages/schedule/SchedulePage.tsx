@@ -175,11 +175,15 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                     )}
                     {format(day, 'd')}
                     {dayBookings.length > 0 && (
-                      <div className="flex gap-0.5 mt-0.5">
-                        {dayBookings.slice(0, 3).map((_, j) => (
-                          <div key={j} className="w-1 h-1 rounded-full bg-purple-500" />
-                        ))}
-                      </div>
+                      <span
+                        className="text-[8px] font-bold leading-none mt-0.5 rounded-full min-w-[14px] text-center py-px"
+                        style={{
+                          backgroundColor: 'rgba(168,85,247,0.2)',
+                          color: '#a855f7',
+                        }}
+                      >
+                        {dayBookings.length}
+                      </span>
                     )}
                   </button>
                 )
@@ -220,6 +224,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                           booking={b}
                           client={client}
                           onOpen={() => onOpenBooking(b.id)}
+                          availabilityStatus={availForDay(selectedDate!)?.status}
                         />
                       )
                     })}
@@ -252,6 +257,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                           booking={b}
                           client={clientFor(b.clientId)}
                           onOpen={() => onOpenBooking(b.id)}
+                          availabilityStatus={availForDay(new Date(b.dateTime))?.status}
                         />
                       ))}
                     </div>
@@ -270,6 +276,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                           booking={b}
                           client={clientFor(b.clientId)}
                           onOpen={() => onOpenBooking(b.id)}
+                          availabilityStatus={availForDay(new Date(b.dateTime))?.status}
                         />
                       ))}
                     </div>

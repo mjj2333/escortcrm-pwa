@@ -16,6 +16,7 @@ import { useLocalStorage } from './hooks/useSettings'
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
 import { Paywall, TrialBanner, needsPaywall } from './components/Paywall'
+import { ToastContainer } from './components/Toast'
 import { seedSampleData, hasSampleDataBeenOffered } from './data/sampleData'
 import { db } from './db'
 
@@ -199,6 +200,7 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
       <TrialBanner onUpgrade={() => setShowPaywall(true)} />
+      <ToastContainer />
       {renderContent()}
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
       <SettingsPage isOpen={showSettings} onClose={() => setShowSettings(false)} onRestartTour={restartTour} />

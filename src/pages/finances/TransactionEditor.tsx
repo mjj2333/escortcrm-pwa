@@ -3,6 +3,7 @@ import { Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, createTransaction } from '../../db'
 import { Modal } from '../../components/Modal'
+import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldCurrency, FieldSelect, FieldDate, FieldTextArea } from '../../components/FormFields'
 import type { TransactionType, TransactionCategory, PaymentMethod } from '../../types'
 
@@ -13,10 +14,11 @@ const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 interface TransactionEditorProps {
   isOpen: boolean
   onClose: () => void
+  initialType?: TransactionType
 }
 
-export function TransactionEditor({ isOpen, onClose }: TransactionEditorProps) {
-  const [type, setType] = useState<TransactionType>('income')
+export function TransactionEditor({ isOpen, onClose, initialType }: TransactionEditorProps) {
+  const [type, setType] = useState<TransactionType>(initialType ?? 'income')
   const [amount, setAmount] = useState(0)
   const [category, setCategory] = useState<TransactionCategory>('booking')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash')
@@ -26,14 +28,14 @@ export function TransactionEditor({ isOpen, onClose }: TransactionEditorProps) {
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      setType('income')
+      setType(initialType ?? 'income')
       setAmount(0)
-      setCategory('booking')
+      setCategory(initialType === 'expense' ? 'supplies' : 'booking')
       setPaymentMethod('Cash')
       setDate(format(new Date(), 'yyyy-MM-dd'))
       setNotes('')
     }
-  }, [isOpen])
+  }, [isOpen, initialType])
 
   const isValid = amount > 0
 
@@ -45,6 +47,7 @@ export function TransactionEditor({ isOpen, onClose }: TransactionEditorProps) {
       notes: notes.trim(),
     })
     await db.transactions.add(txn)
+    showToast(type === 'expense' ? 'Expense recorded' : 'Income recorded')
     onClose()
   }
 

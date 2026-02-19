@@ -4,6 +4,7 @@ import { Check, ChevronRight, User, UserPlus, Search, ChevronDown, ChevronUp, Al
 import { format } from 'date-fns'
 import { db, createBooking, createClient, bookingDurationFormatted, formatCurrency } from '../../db'
 import { Modal } from '../../components/Modal'
+import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
 import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { useLocalStorage } from '../../hooks/useSettings'
@@ -196,6 +197,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
     }
 
     setConflictWarning(null)
+    showToast(isEditing ? 'Booking updated' : 'Booking created')
     onClose()
   }
 

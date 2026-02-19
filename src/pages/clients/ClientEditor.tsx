@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Check, Plus, ChevronLeft, User, Phone as PhoneIcon, MessageSquare, UserCheck, Mail, Cake, CalendarDays, Share2, ShieldCheck, Heart, ShieldAlert, FileText } from 'lucide-react'
 import { db, createClient } from '../../db'
 import { Modal } from '../../components/Modal'
+import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldHint, FieldTextInput, FieldTextArea, FieldSelect, FieldDate } from '../../components/FormFields'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
@@ -81,6 +82,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         birthday: birthday ? new Date(birthday) : undefined,
         clientSince: clientSince ? new Date(clientSince) : undefined,
       })
+      showToast('Client updated')
       onClose()
     } else {
       const newClient = createClient({
@@ -101,6 +103,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         clientSince: clientSince ? new Date(clientSince) : undefined,
       })
       await db.clients.add(newClient)
+      showToast('Client added')
       onClose(newClient.id)
     }
   }
