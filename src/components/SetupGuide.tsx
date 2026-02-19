@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronLeft, Check, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, Check, Plus, Trash2, User, Phone as PhoneIcon, MessageSquare, UserCheck, Mail, Cake, CalendarDays, Share2, ShieldCheck, Heart, ShieldAlert, FileText } from 'lucide-react'
 import { format, startOfDay } from 'date-fns'
 import { db, newId, createClient, createBooking, bookingDurationFormatted } from '../db'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../utils/availability'
@@ -14,7 +14,7 @@ import { ScreeningStatusBar } from '../components/ScreeningStatusBar'
 import { TagPicker } from '../components/TagPicker'
 import {
   SectionLabel, FieldHint, FieldTextInput, FieldTextArea,
-  FieldCurrency, FieldSelect, FieldToggle, FieldDateTime, fieldInputStyle
+  FieldCurrency, FieldSelect, FieldToggle, FieldDateTime, FieldDate, fieldInputStyle
 } from '../components/FormFields'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -177,11 +177,11 @@ function ClientStep({ onNext, setCreatedClientId }: { onNext: () => void; setCre
 
       <SectionLabel label="Basic Info" />
       <FieldTextInput label="Alias" value={alias} onChange={setAlias} placeholder="e.g. James W." required
-        hint="A name or nickname you use to identify this client. This is the only required field." />
+        hint="A name or nickname you use to identify this client. This is the only required field." icon={<User size={12} />} />
       <FieldTextInput label="Phone" value={phone} onChange={setPhone} placeholder="Phone number" type="tel"
-        hint="Enables one-tap calling and texting from their profile." />
+        hint="Enables one-tap calling and texting from their profile." icon={<PhoneIcon size={12} />} />
       <FieldSelect label="Preferred Contact" value={preferredContact} options={contactMethods} onChange={setPreferredContact}
-        hint="How this client prefers to be reached. Shows on their profile for quick reference." />
+        hint="How this client prefers to be reached. Shows on their profile for quick reference." icon={<MessageSquare size={12} />} />
       {/* Screening Status */}
       <SectionLabel label="Screening" />
       <div className="mb-3">
@@ -211,34 +211,26 @@ function ClientStep({ onNext, setCreatedClientId }: { onNext: () => void; setCre
         <>
           <SectionLabel label="Identity" optional />
           <FieldTextInput label="Real Name" value={realName} onChange={setRealName} placeholder="Legal name"
-            hint="Their legal name, if verified. Only visible to you." />
+            hint="Their legal name, if verified. Only visible to you." icon={<UserCheck size={12} />} />
           <FieldTextInput label="Email" value={email} onChange={setEmail} placeholder="Email" type="email"
-            hint="Enables one-tap email from their profile." />
+            hint="Enables one-tap email from their profile." icon={<Mail size={12} />} />
           <SectionLabel label="Dates" optional />
-          <div className="mb-3">
-            <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>Birthday</label>
-            <input type="date" value={birthday} onChange={e => setBirthday(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={fieldInputStyle} />
-            <FieldHint text="Get a reminder on the home page when their birthday is coming up." />
-          </div>
-          <div className="mb-3">
-            <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>Client Since</label>
-            <input type="date" value={clientSince} onChange={e => setClientSince(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={fieldInputStyle} />
-            <FieldHint text="When you first started seeing this client." />
-          </div>
+          <FieldDate label="Birthday" value={birthday} onChange={setBirthday}
+            hint="Get a reminder on the home page when their birthday is coming up." icon={<Cake size={12} />} />
+          <FieldDate label="Client Since" value={clientSince} onChange={setClientSince}
+            hint="When you first started seeing this client." icon={<CalendarDays size={12} />} />
           <SectionLabel label="Screening Details" optional />
           <FieldTextInput label="Referral Source" value={referenceSource} onChange={setReferenceSource}
-            placeholder="e.g. Website, friend, Twitter" hint="How you found this client or how they found you." />
+            placeholder="e.g. Website, friend, Twitter" hint="How you found this client or how they found you." icon={<Share2 size={12} />} />
           <FieldTextArea label="Verification Notes" value={verificationNotes} onChange={setVerificationNotes}
-            placeholder="e.g. Verified via references, ID checked" hint="Notes about their screening or verification process." />
+            placeholder="e.g. Verified via references, ID checked" hint="Notes about their screening or verification process." icon={<ShieldCheck size={12} />} />
           <SectionLabel label="Preferences & Boundaries" optional />
           <FieldTextArea label="Preferences" value={preferences} onChange={setPreferences}
-            placeholder="Things they like, special requests..." hint="Shows on booking details for reference." />
+            placeholder="Things they like, special requests..." hint="Shows on booking details for reference." icon={<Heart size={12} />} />
           <FieldTextArea label="Boundaries" value={boundaries} onChange={setBoundaries}
-            placeholder="Limits, things to avoid..." hint="Shows prominently on booking details." />
+            placeholder="Limits, things to avoid..." hint="Shows prominently on booking details." icon={<ShieldAlert size={12} />} />
           <SectionLabel label="Notes" optional />
-          <FieldTextArea label="Notes" value={notes} onChange={setNotes} placeholder="Any other details..." />
+          <FieldTextArea label="Notes" value={notes} onChange={setNotes} placeholder="Any other details..." icon={<FileText size={12} />} />
         </>
       )}
 
