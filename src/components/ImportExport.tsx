@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { Upload, X, FileSpreadsheet, FileText, CheckCircle, AlertCircle } from 'lucide-react'
 import { db, newId } from '../db'
-import type { Client, Transaction, ClientTag } from '../types'
+import type { Client, Transaction, ClientTag, ContactMethod, ScreeningStatus, RiskLevel, TransactionType, TransactionCategory, PaymentMethod } from '../types'
 
 // Lazy-load exceljs to avoid bloating initial bundle
 let ExcelJS: typeof import('exceljs') | null = null
@@ -186,6 +186,21 @@ function yesNo(val: unknown): boolean {
   return String(val).toLowerCase().trim() === 'yes'
 }
 
+// ─── Enum validation for imported data ──────────────────────────────────────
+// Ensures imported values match the allowed union types. Falls back to defaults
+// for invalid values rather than storing garbage that breaks badge colors, etc.
+
+const VALID_CONTACT_METHODS: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp', 'Other']
+const VALID_SCREENING_STATUSES: ScreeningStatus[] = ['Pending', 'In Progress', 'Verified', 'Declined']
+const VALID_RISK_LEVELS: RiskLevel[] = ['Unknown', 'Low Risk', 'Medium Risk', 'High Risk']
+const VALID_TRANSACTION_TYPES: TransactionType[] = ['income', 'expense']
+const VALID_TRANSACTION_CATEGORIES: TransactionCategory[] = ['booking', 'tip', 'gift', 'supplies', 'travel', 'advertising', 'clothing', 'health', 'rent', 'phone', 'other']
+const VALID_PAYMENT_METHODS: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
+
+function validateEnum<T extends string>(value: string, allowed: T[], fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback
+}
+
 async function importClients(rows: Record<string, unknown>[]): Promise<number> {
   let count = 0
   for (const row of rows) {
@@ -198,9 +213,9 @@ async function importClients(rows: Record<string, unknown>[]): Promise<number> {
       realName: String(row['Real Name'] ?? row['realName'] ?? '').trim() || undefined,
       phone: String(row['Phone'] ?? row['phone'] ?? '').trim() || undefined,
       email: String(row['Email'] ?? row['email'] ?? '').trim() || undefined,
-      preferredContact: (String(row['Preferred Contact'] ?? row['preferredContact'] ?? 'Text')) as Client['preferredContact'],
-      screeningStatus: (String(row['Screening Status'] ?? row['screeningStatus'] ?? 'Pending')) as Client['screeningStatus'],
-      riskLevel: (String(row['Risk Level'] ?? row['riskLevel'] ?? 'Unknown')) as Client['riskLevel'],
+      preferredContact: validateEnum(String(row['Preferred Contact'] ?? row['preferredContact'] ?? 'Text'), VALID_CONTACT_METHODS, 'Text'),
+      screeningStatus: validateEnum(String(row['Screening Status'] ?? row['screeningStatus'] ?? 'Pending'), VALID_SCREENING_STATUSES, 'Pending'),
+      riskLevel: validateEnum(String(row['Risk Level'] ?? row['riskLevel'] ?? 'Unknown'), VALID_RISK_LEVELS, 'Unknown'),
       isBlocked: yesNo(row['Blocked'] ?? row['isBlocked']),
       preferences: String(row['Preferences'] ?? row['preferences'] ?? ''),
       boundaries: String(row['Boundaries'] ?? row['boundaries'] ?? ''),
@@ -230,9 +245,12 @@ async function importTransactions(rows: Record<string, unknown>[]): Promise<numb
     const t: Transaction = {
       id: newId(),
       amount,
-      type: (String(row['Type'] ?? row['type'] ?? 'income')) as Transaction['type'],
-      category: (String(row['Category'] ?? row['category'] ?? 'other')) as Transaction['category'],
-      paymentMethod: String(row['Payment Method'] ?? row['paymentMethod'] ?? '').trim() as Transaction['paymentMethod'] || undefined,
+      type: validateEnum(String(row['Type'] ?? row['type'] ?? 'income'), VALID_TRANSACTION_TYPES, 'income'),
+      category: validateEnum(String(row['Category'] ?? row['category'] ?? 'other'), VALID_TRANSACTION_CATEGORIES, 'other'),
+      paymentMethod: (() => {
+        const raw = String(row['Payment Method'] ?? row['paymentMethod'] ?? '').trim()
+        return raw ? validateEnum(raw, VALID_PAYMENT_METHODS, 'Other') : undefined
+      })(),
       date: parseDate(row['Date'] ?? row['date']) ?? new Date(),
       notes: String(row['Notes'] ?? row['notes'] ?? ''),
       bookingId: undefined,
