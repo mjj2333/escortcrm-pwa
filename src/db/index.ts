@@ -15,7 +15,7 @@ class EscortCRMDatabase extends Dexie {
   incidents!: EntityTable<IncidentLog, 'id'>
   serviceRates!: EntityTable<ServiceRate, 'id'>
   payments!: EntityTable<BookingPayment, 'id'>
-  meta!: Dexie.Table<{ key: string; value: unknown }, 'key'>
+  meta!: Dexie.Table<{ key: string; value: unknown }, string>
 
   constructor() {
     super('EscortCRM')
