@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import {
-  Download, Upload, X, CheckCircle, AlertCircle, Lock, Unlock, Database
+  Download, Upload, X, CheckCircle, AlertCircle, Lock, Unlock, Database, FileSpreadsheet
 } from 'lucide-react'
 import { db } from '../db'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -178,6 +178,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
   const [useEncryption, setUseEncryption] = useState(true)
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
   const [working, setWorking] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -357,6 +358,34 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
             </button>
             <p className="text-[10px] text-center mt-2" style={{ color: 'var(--text-secondary)' }}>
               Includes all clients, bookings, finances, availability, safety data, and settings
+            </p>
+          </div>
+
+          {/* Export to Excel */}
+          <div>
+            <p className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Export to Excel</p>
+            <button
+              onClick={async () => {
+                setExporting(true)
+                setStatus(null)
+                try {
+                  const { exportAllToExcel } = await import('../utils/exportExcel')
+                  await exportAllToExcel()
+                  setStatus({ type: 'success', msg: 'Excel workbook exported' })
+                } catch (err) {
+                  setStatus({ type: 'error', msg: `Export failed: ${(err as Error).message}` })
+                }
+                setExporting(false)
+              }}
+              disabled={exporting || working}
+              className="w-full flex items-center justify-center gap-2 p-4 rounded-xl font-medium text-sm border active:scale-[0.98] disabled:opacity-40"
+              style={{ borderColor: '#22c55e', color: '#22c55e' }}
+            >
+              <FileSpreadsheet size={18} />
+              {exporting ? 'Exporting...' : 'Download .xlsx Workbook'}
+            </button>
+            <p className="text-[10px] text-center mt-2" style={{ color: 'var(--text-secondary)' }}>
+              Multi-sheet Excel file with Clients, Bookings, Income, Expenses, Payments &amp; Incidents
             </p>
           </div>
 
