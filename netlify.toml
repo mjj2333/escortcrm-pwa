@@ -15,3 +15,10 @@
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://buy.stripe.com"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
