@@ -151,7 +151,7 @@ async function derivePinKey(pin: string, salt: Uint8Array): Promise<CryptoKey> {
     'raw', encoder.encode(pin), 'PBKDF2', false, ['deriveKey'],
   )
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: salt.buffer as ArrayBuffer, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
     base,
     { name: 'AES-KW', length: 256 },
     false,
@@ -172,7 +172,7 @@ async function wrapAndStore(pin: string, rawKey: Uint8Array): Promise<void> {
 
   // Import raw key as extractable CryptoKey for AES-KW wrapping
   const extractable = await crypto.subtle.importKey(
-    'raw', rawKey, 'AES-GCM', true, ['encrypt', 'decrypt'],
+    'raw', rawKey.buffer as ArrayBuffer, 'AES-GCM', true, ['encrypt', 'decrypt'],
   )
   const wrapped = await crypto.subtle.wrapKey('raw', extractable, pinKey, 'AES-KW')
 
@@ -195,7 +195,7 @@ async function unwrapFromStore(pin: string): Promise<Uint8Array> {
 
   const extractable = await crypto.subtle.unwrapKey(
     'raw',
-    fromBase64(record.value.wrappedKey),
+    fromBase64(record.value.wrappedKey).buffer as ArrayBuffer,
     pinKey,
     'AES-KW',
     'AES-GCM',

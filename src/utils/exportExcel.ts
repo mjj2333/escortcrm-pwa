@@ -2,7 +2,7 @@
 // Exports all app data as a styled multi-sheet Excel workbook.
 
 import ExcelJS from 'exceljs'
-import { db, bookingTotal, formatCurrency } from '../db'
+import { db, bookingTotal } from '../db'
 import type { Client, Booking, Transaction, BookingPayment, IncidentLog } from '../types'
 
 // ── Helpers ──────────────────────────────────────────────────────────────

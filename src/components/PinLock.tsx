@@ -59,10 +59,10 @@ function formatCountdown(ms: number): string {
 }
 
 interface PinLockProps {
-  onUnlock: () => void
+  onUnlock: (plaintextPin: string) => void
   correctPin: string
   isSetup?: boolean
-  onSetPin?: (pin: string) => void
+  onSetPin?: (pinHash: string, plaintextPin: string) => void
 }
 
 export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProps) {
@@ -118,7 +118,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
       hashPin(pin).then(hash => {
         if (hash === correctPin) {
           clearAttempts()
-          onUnlock()
+          onUnlock(pin)
         } else {
           const attempts = recordFailedAttempt()
 
@@ -157,8 +157,8 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
         // Store the hash, never the plaintext
         hashPin(pin).then(hash => {
           clearAttempts() // reset any prior failed attempts
-          onSetPin?.(hash)
-          onUnlock()
+          onSetPin?.(hash, pin)
+          onUnlock(pin)
         })
       } else {
         setError('PINs don\'t match')

@@ -125,8 +125,9 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
       if (!record || typeof record !== 'object') {
         throw new Error(`Invalid record in "${tableName}": not an object`)
       }
+      const rec = record as Record<string, unknown>
       for (const field of fields) {
-        if (!(field in record) || record[field] === undefined || record[field] === null) {
+        if (!(field in rec) || rec[field] === undefined || rec[field] === null) {
           throw new Error(`Invalid record in "${tableName}": missing required field "${field}"`)
         }
       }

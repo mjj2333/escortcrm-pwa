@@ -11,15 +11,12 @@ export function useServiceWorker() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
 
-    let reg: ServiceWorkerRegistration | undefined
-
     function trackWaiting(sw: ServiceWorker) {
       setWaitingWorker(sw)
       setUpdateAvailable(true)
     }
 
     navigator.serviceWorker.register('/sw.js').then((registration) => {
-      reg = registration
 
       // If a worker is already waiting (e.g. user ignored the prompt last time)
       if (registration.waiting) {
