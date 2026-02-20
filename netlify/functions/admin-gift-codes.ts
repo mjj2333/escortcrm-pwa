@@ -79,9 +79,9 @@ export const handler: Handler = async (event) => {
 
     // ── LIST ─────────────────────────────────────────────────────────────────
     if (action === 'list') {
-      const { keys } = await store.list()
+      const { blobs } = await store.list()
       const codes: GiftCodeRecord[] = []
-      for (const { name } of keys) {
+      for (const { key: name } of blobs) {
         try {
           const raw = await store.get(name, { type: 'json' })
           if (raw) codes.push(raw as GiftCodeRecord)

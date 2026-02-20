@@ -68,8 +68,8 @@ export const handler: Handler = async (event) => {
     // Check Blobs store first (codes generated via admin panel)
     try {
       const store = codeStore()
-      const { keys } = await store.list()
-      for (const { name } of keys) {
+      const { blobs } = await store.list()
+      for (const { key: name } of blobs) {
         const record = await store.get(name, { type: 'json' }) as GiftCodeRecord | null
         if (!record || record.revoked) continue
         if (record.hash !== hash) continue
