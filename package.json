@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.7.0",
     "@netlify/functions": "^2.8.0",
     "date-fns": "^4.1.0",
     "dexie": "^4.3.0",
