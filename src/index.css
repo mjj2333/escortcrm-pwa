@@ -51,6 +51,7 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
   user-select: none;
   -webkit-user-select: none;
   overscroll-behavior: none;
