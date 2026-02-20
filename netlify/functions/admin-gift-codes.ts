@@ -14,6 +14,7 @@
 import type { Handler } from '@netlify/functions'
 import { getStore } from '@netlify/blobs'
 import { createHash, randomBytes, timingSafeEqual } from 'crypto'
+import { checkRateLimit } from './rate-limit'
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://companion1.netlify.app',
@@ -60,6 +61,10 @@ export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
   }
+
+  // Rate limit: 5 requests per minute per IP (prevents admin password brute-force)
+  const limited = await checkRateLimit(event, 'admin-gift-codes', { maxRequests: 5, windowMs: 60_000 })
+  if (limited) return limited
 
   const adminPassword = process.env.ADMIN_PASSWORD
   if (!adminPassword) {

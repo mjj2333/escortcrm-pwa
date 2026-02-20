@@ -22,6 +22,7 @@ import { getStore } from '@netlify/blobs'
 import { createHmac, timingSafeEqual } from 'crypto'
 import type { Handler } from '@netlify/functions'
 import type { LicenseRecord } from './stripe-webhook'
+import { checkRateLimit } from './rate-limit'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '')
 
@@ -108,6 +109,10 @@ export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
   }
+
+  // Rate limit: 20 requests per minute per IP (generous to allow revalidation on launch)
+  const limited = await checkRateLimit(event, 'verify-purchase', { maxRequests: 20, windowMs: 60_000 })
+  if (limited) return limited
 
   try {
     const body = JSON.parse(event.body || '{}')
