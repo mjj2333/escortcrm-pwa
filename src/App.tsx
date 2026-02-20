@@ -15,7 +15,7 @@ import { SettingsPage } from './pages/home/SettingsPage'
 import { useLocalStorage } from './hooks/useSettings'
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
-import { Paywall, TrialBanner, needsPaywall } from './components/Paywall'
+import { Paywall, TrialBanner, needsPaywall, revalidateActivation } from './components/Paywall'
 import { ToastContainer } from './components/Toast'
 import { seedSampleData, hasSampleDataBeenOffered } from './data/sampleData'
 import { db, migrateToPaymentLedger } from './db'
@@ -48,6 +48,18 @@ export default function App() {
   const [paywallDismissed, setPaywallDismissed] = useState(false)
   const [deepLinkCode, setDeepLinkCode] = useState<string | undefined>()
 
+  // Revalidate activation with server on each app launch
+  useEffect(() => {
+    // Capture current state before async check
+    const wasActivated = !needsPaywall()
+    revalidateActivation().then(valid => {
+      if (wasActivated && !valid) {
+        // Subscription was revoked server-side — force paywall
+        setShowPaywall(true)
+        setPaywallDismissed(false)
+      }
+    })
+  }, [])
   // Check for ?code= URL param (deep link from share)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)

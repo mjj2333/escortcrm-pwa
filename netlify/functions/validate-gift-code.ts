@@ -10,6 +10,7 @@ import type { Handler } from '@netlify/functions'
 import { getStore } from '@netlify/blobs'
 import { createHash } from 'crypto'
 import type { GiftCodeRecord } from './admin-gift-codes'
+import { signActivation } from './verify-purchase'
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -78,7 +79,11 @@ export const handler: Handler = async (event) => {
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ valid: true, expiresAt: record.expiresAt ?? null }),
+          body: JSON.stringify({
+            valid: true,
+            expiresAt: record.expiresAt ?? null,
+            token: signActivation(`gift:${hash}`, 'lifetime'),
+          }),
         }
       }
     } catch (blobErr) {
@@ -90,7 +95,11 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ valid: true, expiresAt: null }),
+        body: JSON.stringify({
+          valid: true,
+          expiresAt: null,
+          token: signActivation(`gift:${hash}`, 'lifetime'),
+        }),
       }
     }
 

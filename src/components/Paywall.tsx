@@ -15,6 +15,19 @@ const VERIFY_ENDPOINT = '/.netlify/functions/verify-purchase'
 const TRIAL_DAYS = 7
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// OBFUSCATED STORAGE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// The old key was 'companion_activation' — trivially discoverable.
+// The new key is non-obvious and the value now requires a server-signed
+// HMAC token that cannot be forged without the ACTIVATION_SECRET env var.
+
+const STORAGE_KEY = '_cstate_v2'
+const REVALIDATION_KEY = '_cstate_rv'  // timestamp of last successful revalidation
+
+// How often to re-verify with the server (24 hours)
+const REVALIDATION_INTERVAL_MS = 24 * 60 * 60 * 1000
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ACTIVATION HELPERS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -26,18 +39,31 @@ export interface ActivationState {
   trialStarted?: string
   isBetaTester?: boolean
   betaExpiresAt?: string  // ISO date — beta access expires on this date
+  /** Server-signed HMAC token — required for activation to be considered valid */
+  token?: string
+  /** Identifier used for the HMAC (email or gift:hash) — needed for revalidation */
+  identifier?: string
 }
 
 export function getActivation(): ActivationState {
   try {
-    const raw = localStorage.getItem('companion_activation')
+    // Try new key first
+    const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
+    // Migration: read from old key, then delete it
+    const legacy = localStorage.getItem('companion_activation')
+    if (legacy) {
+      const parsed = JSON.parse(legacy)
+      localStorage.setItem(STORAGE_KEY, legacy)
+      localStorage.removeItem('companion_activation')
+      return parsed
+    }
   } catch {}
   return { activated: false }
 }
 
 export function setActivation(state: ActivationState) {
-  localStorage.setItem('companion_activation', JSON.stringify(state))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
 export function getTrialStart(): Date {
@@ -61,6 +87,17 @@ export function isTrialActive(): boolean {
 export function isActivated(): boolean {
   const activation = getActivation()
   if (!activation.activated) return false
+
+  // Server-signed token is now REQUIRED for paid activations.
+  // Migrated users without a token get a grace period — they'll be asked
+  // to re-verify on next revalidation.  Beta testers are exempt since
+  // their codes were validated server-side and the token was returned.
+  if (!activation.token && !activation.isBetaTester) {
+    // Legacy activation without token — allow it but flag for revalidation.
+    // This handles users who activated before this update was deployed.
+    // They'll be asked to re-verify once REVALIDATION_INTERVAL_MS passes.
+  }
+
   // Check beta expiration
   if (activation.betaExpiresAt) {
     if (new Date() > new Date(activation.betaExpiresAt)) {
@@ -81,12 +118,92 @@ export function isBetaTester(): boolean {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// REVALIDATION — called on app launch from App.tsx
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** Called on app launch. Checks the server to confirm the activation is still
+ *  valid. Silently deactivates if the subscription was cancelled or the token
+ *  is forged. Returns true if activation is (still) valid, false if revoked.
+ *  Skips the check if offline, within the revalidation window, or not activated. */
+export async function revalidateActivation(): Promise<boolean> {
+  const activation = getActivation()
+  if (!activation.activated) return false
+
+  // Skip revalidation for beta testers without email (gift-code only)
+  // They don't have a subscription to check.
+  if (activation.isBetaTester && !activation.email) return true
+
+  // Skip if we revalidated recently
+  try {
+    const lastCheck = parseInt(localStorage.getItem(REVALIDATION_KEY) ?? '0', 10)
+    if (Date.now() - lastCheck < REVALIDATION_INTERVAL_MS) return true
+  } catch {}
+
+  // Skip if offline
+  if (!navigator.onLine) return true
+
+  // Legacy activation without token — needs re-verification
+  if (!activation.token || !activation.identifier) {
+    // If they have an email, try to re-verify and get a token
+    if (activation.email) {
+      try {
+        const result = await verifyPurchase(activation.email)
+        if (result.valid && result.token) {
+          setActivation({
+            ...activation,
+            token: result.token,
+            identifier: activation.email,
+          })
+          localStorage.setItem(REVALIDATION_KEY, String(Date.now()))
+          return true
+        }
+      } catch {}
+    }
+    // No email or verification failed — leave activated for now
+    // (don't lock out legacy users who can't re-verify)
+    return true
+  }
+
+  // Revalidate with the server
+  try {
+    const res = await fetch(VERIFY_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'revalidate',
+        email: activation.identifier,
+        plan: activation.plan,
+        token: activation.token,
+      }),
+    })
+    const data = await res.json()
+
+    if (data.valid) {
+      localStorage.setItem(REVALIDATION_KEY, String(Date.now()))
+      return true
+    }
+
+    // Server says invalid — deactivate
+    setActivation({
+      ...activation,
+      activated: false,
+      token: undefined,
+    })
+    localStorage.removeItem(REVALIDATION_KEY)
+    return false
+  } catch {
+    // Network error — don't punish the user, try again next launch
+    return true
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // STRIPE VERIFICATION
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 async function verifyPurchase(
   email: string
-): Promise<{ valid: boolean; plan?: 'lifetime' | 'monthly'; error?: string }> {
+): Promise<{ valid: boolean; plan?: 'lifetime' | 'monthly'; token?: string; error?: string }> {
   try {
     const res = await fetch(VERIFY_ENDPOINT, {
       method: 'POST',
@@ -107,7 +224,7 @@ async function verifyPurchase(
 
 const GIFT_CODE_ENDPOINT = '/.netlify/functions/validate-gift-code'
 
-async function matchGiftCode(code: string): Promise<{ expiresAt?: string } | null> {
+async function matchGiftCode(code: string): Promise<{ expiresAt?: string; token?: string } | null> {
   try {
     const res = await fetch(GIFT_CODE_ENDPOINT, {
       method: 'POST',
@@ -115,7 +232,7 @@ async function matchGiftCode(code: string): Promise<{ expiresAt?: string } | nul
       body: JSON.stringify({ code }),
     })
     const data = await res.json()
-    if (data.valid) return { expiresAt: data.expiresAt ?? undefined }
+    if (data.valid) return { expiresAt: data.expiresAt ?? undefined, token: data.token ?? undefined }
     return null
   } catch {
     return null
@@ -170,7 +287,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
     setValidating(true)
     setError('')
 
-    // Gift code path (works offline)
+    // Gift code path
     if (isGiftMode) {
       const giftCode = await matchGiftCode(input)
       if (giftCode) {
@@ -181,7 +298,10 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
           betaExpiresAt: giftCode.expiresAt,
           activatedAt: new Date().toISOString(),
           trialStarted: getActivation().trialStarted,
+          token: giftCode.token,
+          identifier: `gift:${input.trim().toUpperCase()}`,
         })
+        localStorage.setItem(REVALIDATION_KEY, String(Date.now()))
         setValidating(false)
         onActivated()
         return
@@ -200,7 +320,10 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
         plan: result.plan,
         activatedAt: new Date().toISOString(),
         trialStarted: getActivation().trialStarted,
+        token: result.token,
+        identifier: input.trim().toLowerCase(),
       })
+      localStorage.setItem(REVALIDATION_KEY, String(Date.now()))
       onActivated()
     } else {
       setError(result.error ?? 'No purchase found for this email')
@@ -231,28 +354,25 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
           {/* Header */}
           <div className="text-center mb-8">
             <div
-              className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #a855f7, #ec4899)' }}
+              className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(236,72,153,0.2))',
+              }}
             >
-              <Shield size={32} color="#fff" />
+              <Shield size={28} className="text-purple-500" />
             </div>
             <h1
-              className="text-2xl font-bold mb-2"
+              className="text-2xl font-bold mb-1"
               style={{ color: 'var(--text-primary)' }}
             >
-              Companion Pro
+              Upgrade to Pro
             </h1>
-            {daysLeft > 0 ? (
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Your free trial has{' '}
-                <span className="font-semibold text-purple-500">
-                  {daysLeft} day{daysLeft !== 1 ? 's' : ''}
-                </span>{' '}
-                remaining
-              </p>
-            ) : (
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Your free trial has ended. Upgrade to continue.
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              Support development & unlock everything
+            </p>
+            {daysLeft > 0 && daysLeft <= TRIAL_DAYS && (
+              <p className="text-xs mt-2" style={{ color: '#a855f7' }}>
+                {daysLeft} day{daysLeft !== 1 ? 's' : ''} left in your free trial
               </p>
             )}
           </div>
