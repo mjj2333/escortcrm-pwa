@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { TabBar } from './components/TabBar'
-import { PinLock } from './components/PinLock'
+import { PinLock, hashPin } from './components/PinLock'
 import { WelcomeSplash } from './components/WelcomeSplash'
 import { SetupGuide } from './components/SetupGuide'
 import { HomePage } from './pages/home/HomePage'
@@ -33,8 +33,15 @@ export default function App() {
 
   // PIN lock
   const [pinEnabled] = useLocalStorage('pinEnabled', false)
-  const [pinCode] = useLocalStorage('pinCode', '')
+  const [pinCode, setPinCode] = useLocalStorage('pinCode', '')
   const [isLocked, setIsLocked] = useState(true)
+
+  // One-time migration: hash any existing plaintext PIN (4-digit numeric string)
+  useEffect(() => {
+    if (pinEnabled && pinCode && pinCode.length <= 6 && /^\d+$/.test(pinCode)) {
+      hashPin(pinCode).then(hash => setPinCode(hash))
+    }
+  }, [])
 
   // Paywall
   const [showPaywall, setShowPaywall] = useState(false)

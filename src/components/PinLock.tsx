@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Shield, Delete } from 'lucide-react'
 
+/** SHA-256 hash a PIN string → hex. Used for storage and comparison so
+ *  the plaintext PIN never lives in localStorage. */
+export async function hashPin(pin: string): Promise<string> {
+  const encoded = new TextEncoder().encode(pin)
+  const buf = await crypto.subtle.digest('SHA-256', encoded)
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
 interface PinLockProps {
   onUnlock: () => void
   correctPin: string
@@ -20,28 +30,33 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
 
   useEffect(() => {
     if (!isSetup && pin.length === maxLength) {
-      if (pin === correctPin) {
-        onUnlock()
-      } else {
-        setError('Incorrect PIN')
-        setShake(true)
-        setTimeout(() => { setShake(false); setPin(''); setError('') }, 600)
-      }
+      hashPin(pin).then(hash => {
+        if (hash === correctPin) {
+          onUnlock()
+        } else {
+          setError('Incorrect PIN')
+          setShake(true)
+          setTimeout(() => { setShake(false); setPin(''); setError('') }, 600)
+        }
+      })
     }
     if (isSetup && phase === 'enter' && pin.length === maxLength) {
       setPhase('confirm')
     }
     if (isSetup && phase === 'confirm' && confirmPin.length === maxLength) {
       if (confirmPin === pin) {
-        onSetPin?.(pin)
-        onUnlock()
+        // Store the hash, never the plaintext
+        hashPin(pin).then(hash => {
+          onSetPin?.(hash)
+          onUnlock()
+        })
       } else {
         setError('PINs don\'t match')
         setShake(true)
         setTimeout(() => { setShake(false); setConfirmPin(''); setError(''); setPhase('enter'); setPin('') }, 600)
       }
     }
-  }, [pin, confirmPin, phase])
+  }, [pin, confirmPin, phase, isSetup, correctPin, onUnlock, onSetPin])
 
   function handleKey(digit: string) {
     if (phase === 'confirm') {
