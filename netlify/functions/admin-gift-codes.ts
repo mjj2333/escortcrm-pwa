@@ -13,7 +13,7 @@
 
 import type { Handler } from '@netlify/functions'
 import { getStore } from '@netlify/blobs'
-import { createHash, randomBytes } from 'crypto'
+import { createHash, randomBytes, timingSafeEqual } from 'crypto'
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://companion1.netlify.app',
@@ -71,7 +71,10 @@ export const handler: Handler = async (event) => {
     const { action, password } = body
 
     // Validate admin password
-    if (!password || password !== adminPassword) {
+    const isValid = password &&
+      Buffer.byteLength(password) === Buffer.byteLength(adminPassword) &&
+      timingSafeEqual(Buffer.from(password), Buffer.from(adminPassword))
+    if (!isValid) {
       return { statusCode: 401, headers, body: JSON.stringify({ error: 'Invalid password' }) }
     }
 
