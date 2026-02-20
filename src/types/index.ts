@@ -73,7 +73,8 @@ export interface Booking {
   safetyCheckMinutesAfter: number
   safetyContactId?: string
   recurrence: RecurrencePattern
-  parentBookingId?: string // links to the original recurring booking
+  parentBookingId?: string // links to the previous booking in the chain
+  recurrenceRootId?: string // links to the very first booking in the chain (enables fast chain queries)
 }
 
 export interface Transaction {

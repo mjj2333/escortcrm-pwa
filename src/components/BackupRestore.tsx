@@ -36,7 +36,12 @@ async function encryptData(data: string, password: string): Promise<string> {
   combined.set(salt, 0)
   combined.set(iv, salt.length)
   combined.set(new Uint8Array(encrypted), salt.length + iv.length)
-  return btoa(String.fromCharCode(...combined))
+  // NOTE: Do NOT use btoa(String.fromCharCode(...combined)) — spreading a large
+  // Uint8Array as function arguments will exceed the JS call stack limit on any
+  // backup with substantial data (typically > ~50k records).
+  let binary = ''
+  combined.forEach(byte => { binary += String.fromCharCode(byte) })
+  return btoa(binary)
 }
 
 async function decryptData(encoded: string, password: string): Promise<string> {
@@ -208,6 +213,9 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
       }
 
       const result = await restoreBackup(parsed as BackupPayload)
+      // Reset migration flag in Dexie so migrateToPaymentLedger() re-runs in case
+      // this backup pre-dates the payments ledger (has no payments table).
+      await db.meta.delete('paymentsLedgerMigrated')
       setStatus({ type: 'success', msg: `Restored ${result.total} records from backup` })
     } catch (err) {
       setStatus({ type: 'error', msg: `Restore failed: ${(err as Error).message}` })

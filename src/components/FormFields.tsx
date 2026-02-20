@@ -97,7 +97,8 @@ export function FieldCurrency({ label, value, onChange, hint }:
             const raw = e.target.value.replace(/[^0-9.]/g, '')
             if (raw === '' || raw === '.') { onChange(0); return }
             const v = parseFloat(raw)
-            if (!isNaN(v)) onChange(v)
+            // Clamp to 0 — negative rates/fees/deposits corrupt payment totals
+            if (!isNaN(v)) onChange(Math.max(0, v))
           }}
           placeholder="0"
           className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent"

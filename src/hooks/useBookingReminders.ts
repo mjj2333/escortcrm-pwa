@@ -10,10 +10,30 @@ import { db, bookingDurationFormatted } from '../db'
  * 
  * Also shows birthday reminders once per day (at first check).
  * 
- * Keeps a Set of already-notified IDs (in memory) to avoid duplicates.
+ * Keeps a Set of already-notified IDs, persisted to sessionStorage so a page
+ * refresh doesn't re-fire notifications that already fired this session.
  */
 export function useBookingReminders(enabled: boolean) {
-  const notifiedRef = useRef<Set<string>>(new Set())
+  const STORAGE_KEY = 'bookingReminders_notified'
+
+  // Seed from sessionStorage so a page refresh doesn't re-fire today's notifications
+  const notifiedRef = useRef<Set<string>>((() => {
+    try {
+      const stored = sessionStorage.getItem(STORAGE_KEY)
+      return stored ? new Set<string>(JSON.parse(stored)) : new Set<string>()
+    } catch {
+      return new Set<string>()
+    }
+  })())
+
+  function addNotified(key: string) {
+    notifiedRef.current.add(key)
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...notifiedRef.current]))
+    } catch {
+      // sessionStorage full or unavailable — in-memory Set still prevents duplicates this session
+    }
+  }
   const birthdayCheckedRef = useRef(false)
 
   useEffect(() => {
@@ -42,10 +62,11 @@ export function useBookingReminders(enabled: boolean) {
         const client = b.clientId ? clientMap[b.clientId] : undefined
         const name = client?.alias ?? 'Client'
 
-        // 1 hour reminder (between 60 and 59 min before)
+        // 1 hour reminder (fire within a 90-second window around 60 min before to survive
+        // browser timer jitter — tabs in the background may defer setInterval by 30s+)
         const key1h = `${b.id}-1h`
-        if (msBefore > 0 && msBefore <= 60 * 60_000 && msBefore > 59 * 60_000 && !notifiedRef.current.has(key1h)) {
-          notifiedRef.current.add(key1h)
+        if (msBefore > 0 && msBefore <= 60 * 60_000 && msBefore > 58.5 * 60_000 && !notifiedRef.current.has(key1h)) {
+          addNotified(key1h)
           new Notification('Booking in 1 hour', {
             body: `${name} — ${bookingDurationFormatted(b.duration)} ${b.locationType}`,
             icon: '/icon-192.png',
@@ -53,10 +74,10 @@ export function useBookingReminders(enabled: boolean) {
           })
         }
 
-        // 15 minute reminder (between 15 and 14 min before)
+        // 15 minute reminder (fire within a 90-second window around 15 min before)
         const key15 = `${b.id}-15m`
-        if (msBefore > 0 && msBefore <= 15 * 60_000 && msBefore > 14 * 60_000 && !notifiedRef.current.has(key15)) {
-          notifiedRef.current.add(key15)
+        if (msBefore > 0 && msBefore <= 15 * 60_000 && msBefore > 13.5 * 60_000 && !notifiedRef.current.has(key15)) {
+          addNotified(key15)
           new Notification('Booking in 15 minutes', {
             body: `${name} — ${bookingDurationFormatted(b.duration)} ${b.locationType}`,
             icon: '/icon-192.png',

@@ -15,13 +15,14 @@ class EscortCRMDatabase extends Dexie {
   incidents!: EntityTable<IncidentLog, 'id'>
   serviceRates!: EntityTable<ServiceRate, 'id'>
   payments!: EntityTable<BookingPayment, 'id'>
+  meta!: Dexie.Table<{ key: string; value: unknown }, 'key'>
 
   constructor() {
     super('EscortCRM')
 
     this.version(1).stores({
       clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
-      bookings: 'id, clientId, dateTime, status, createdAt',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId',
       transactions: 'id, bookingId, type, category, date',
       availability: 'id, date',
       safetyContacts: 'id, isPrimary, isActive',
@@ -33,7 +34,7 @@ class EscortCRMDatabase extends Dexie {
     // v2: add payments ledger table
     this.version(2).stores({
       clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
-      bookings: 'id, clientId, dateTime, status, createdAt',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId',
       transactions: 'id, bookingId, type, category, date',
       availability: 'id, date',
       safetyContacts: 'id, isPrimary, isActive',
@@ -41,6 +42,22 @@ class EscortCRMDatabase extends Dexie {
       incidents: 'id, clientId, bookingId, date, severity',
       serviceRates: 'id, sortOrder, isActive',
       payments: 'id, bookingId, label, date',
+    })
+
+    // v3: add meta table for migration flags and app state.
+    // Replaces localStorage so flags survive across devices and aren't lost
+    // when users clear browser storage (which would re-run migrations on their data).
+    this.version(3).stores({
+      clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId',
+      transactions: 'id, bookingId, type, category, date',
+      availability: 'id, date',
+      safetyContacts: 'id, isPrimary, isActive',
+      safetyChecks: 'id, bookingId, status, scheduledTime',
+      incidents: 'id, clientId, bookingId, date, severity',
+      serviceRates: 'id, sortOrder, isActive',
+      payments: 'id, bookingId, label, date',
+      meta: 'key',
     })
   }
 }
@@ -118,6 +135,7 @@ export function createBooking(data: Partial<Booking>): Booking {
     safetyContactId: data.safetyContactId,
     recurrence: data.recurrence ?? 'none',
     parentBookingId: data.parentBookingId,
+    recurrenceRootId: data.recurrenceRootId ?? data.parentBookingId,
   }
 }
 
@@ -280,7 +298,8 @@ export async function completeBookingPayment(booking: Booking, clientAlias?: str
  * so existing completed/deposited bookings show correct balances.
  */
 export async function migrateToPaymentLedger(): Promise<void> {
-  if (localStorage.getItem('paymentsLedgerMigrated')) return
+  const migrated = await db.meta.get('paymentsLedgerMigrated')
+  if (migrated) return
   const bookings = await db.bookings.toArray()
   for (const b of bookings) {
     const existing = await db.payments.where('bookingId').equals(b.id).count()
@@ -312,5 +331,5 @@ export async function migrateToPaymentLedger(): Promise<void> {
       }
     }
   }
-  localStorage.setItem('paymentsLedgerMigrated', '1')
+  await db.meta.put({ key: 'paymentsLedgerMigrated', value: '1' })
 }
