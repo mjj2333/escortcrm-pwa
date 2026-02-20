@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Shield, Check, Sparkles, Mail, X, Loader, ChevronLeft } from 'lucide-react'
+import { db } from '../db'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONFIG — Update these after creating products in Stripe Dashboard
@@ -36,13 +37,14 @@ export interface ActivationState {
   email?: string
   plan?: 'lifetime' | 'monthly'
   activatedAt?: string
-  trialStarted?: string
   isBetaTester?: boolean
   betaExpiresAt?: string  // ISO date — beta access expires on this date
   /** Server-signed HMAC token — required for activation to be considered valid */
   token?: string
   /** Identifier used for the HMAC (email or gift:hash) — needed for revalidation */
   identifier?: string
+  // NOTE: trialStarted has been moved to the Dexie meta table ('trial_start')
+  // to prevent easy reset via localStorage. Legacy values are migrated on init.
 }
 
 export function getActivation(): ActivationState {
@@ -66,12 +68,54 @@ export function setActivation(state: ActivationState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TRIAL STATE — stored in Dexie meta table, not localStorage
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// IndexedDB is much less obvious to find and edit than localStorage.
+// A module-level cache keeps the sync API surface intact.
+
+const TRIAL_META_KEY = 'trial_start'
+let _trialStartCache: Date | null = null
+
+/** Call on app boot (from App.tsx). Loads the trial start date from the
+ *  Dexie meta table into a module-level cache. Also handles one-time
+ *  migration from the old localStorage-based trialStarted field. */
+export async function initTrialState(): Promise<void> {
+  try {
+    // 1. Check Dexie meta table first
+    const existing = await db.meta.get(TRIAL_META_KEY)
+    if (existing?.value) {
+      _trialStartCache = new Date(existing.value as string)
+      return
+    }
+
+    // 2. Migrate from localStorage activation state (old format)
+    const activation = getActivation()
+    const legacyTrial = (activation as any).trialStarted
+    if (legacyTrial) {
+      _trialStartCache = new Date(legacyTrial)
+      await db.meta.put({ key: TRIAL_META_KEY, value: legacyTrial })
+      // Clean up the old field from localStorage
+      const { trialStarted: _, ...cleaned } = activation as any
+      setActivation(cleaned)
+      return
+    }
+
+    // 3. First launch — record trial start
+    const now = new Date()
+    _trialStartCache = now
+    await db.meta.put({ key: TRIAL_META_KEY, value: now.toISOString() })
+  } catch (err) {
+    console.warn('[Paywall] Failed to init trial state from Dexie:', err)
+    // Fallback: start trial now (conservative — user gets full trial)
+    _trialStartCache = new Date()
+  }
+}
+
 export function getTrialStart(): Date {
-  const activation = getActivation()
-  if (activation.trialStarted) return new Date(activation.trialStarted)
-  const now = new Date()
-  setActivation({ ...activation, trialStarted: now.toISOString() })
-  return now
+  // Cache is populated by initTrialState() on boot.
+  // If not yet initialized (very early render), return now as a safe fallback.
+  return _trialStartCache ?? new Date()
 }
 
 export function getTrialDaysRemaining(): number {
@@ -297,7 +341,6 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
           isBetaTester: true,
           betaExpiresAt: giftCode.expiresAt,
           activatedAt: new Date().toISOString(),
-          trialStarted: getActivation().trialStarted,
           token: giftCode.token,
           identifier: `gift:${input.trim().toUpperCase()}`,
         })
@@ -319,7 +362,6 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
         email: input.toLowerCase(),
         plan: result.plan,
         activatedAt: new Date().toISOString(),
-        trialStarted: getActivation().trialStarted,
         token: result.token,
         identifier: input.trim().toLowerCase(),
       })
