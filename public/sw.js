@@ -27,6 +27,9 @@ self.addEventListener('fetch', (event) => {
   // Only cache GET requests
   if (event.request.method !== 'GET') return
 
+  // Don't cache API calls — stale responses could bypass server-side checks
+  if (event.request.url.includes('/.netlify/functions/')) return
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       // Network first, fall back to cache
