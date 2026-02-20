@@ -11,6 +11,53 @@ export async function hashPin(pin: string): Promise<string> {
     .join('')
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RATE LIMITING — exponential backoff on failed attempts
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const ATTEMPTS_KEY = 'pin_attempts'
+const LOCKOUT_KEY = 'pin_lockout_until'
+const MAX_ATTEMPTS_BEFORE_WIPE = 10
+
+/** Returns the lockout duration in ms for a given attempt count, or 0 if none. */
+function getLockoutMs(attempts: number): number {
+  if (attempts >= MAX_ATTEMPTS_BEFORE_WIPE) return 0 // wipe path, no lockout
+  if (attempts >= 5) return 5 * 60 * 1000   // 5 minutes
+  if (attempts >= 3) return 30 * 1000        // 30 seconds
+  return 0
+}
+
+function getAttempts(): number {
+  return parseInt(localStorage.getItem(ATTEMPTS_KEY) ?? '0', 10) || 0
+}
+
+function getLockoutUntil(): number {
+  return parseInt(localStorage.getItem(LOCKOUT_KEY) ?? '0', 10) || 0
+}
+
+function recordFailedAttempt(): number {
+  const attempts = getAttempts() + 1
+  localStorage.setItem(ATTEMPTS_KEY, String(attempts))
+  const lockoutMs = getLockoutMs(attempts)
+  if (lockoutMs > 0) {
+    localStorage.setItem(LOCKOUT_KEY, String(Date.now() + lockoutMs))
+  }
+  return attempts
+}
+
+function clearAttempts() {
+  localStorage.removeItem(ATTEMPTS_KEY)
+  localStorage.removeItem(LOCKOUT_KEY)
+}
+
+function formatCountdown(ms: number): string {
+  const totalSec = Math.ceil(ms / 1000)
+  const min = Math.floor(totalSec / 60)
+  const sec = totalSec % 60
+  if (min > 0) return `${min}:${sec.toString().padStart(2, '0')}`
+  return `${sec}s`
+}
+
 interface PinLockProps {
   onUnlock: () => void
   correctPin: string
@@ -25,18 +72,80 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
   const [error, setError] = useState('')
   const [shake, setShake] = useState(false)
 
+  // Rate limiting state
+  const [lockedOut, setLockedOut] = useState(false)
+  const [countdown, setCountdown] = useState('')
+  const [wiping, setWiping] = useState(false)
+
   const maxLength = 4
   const currentPin = phase === 'confirm' ? confirmPin : pin
 
+  // Check lockout on mount + tick countdown every second
+  useEffect(() => {
+    if (isSetup) return // no lockout during PIN setup
+
+    function checkLockout() {
+      const until = getLockoutUntil()
+      const remaining = until - Date.now()
+      if (remaining > 0) {
+        setLockedOut(true)
+        setCountdown(formatCountdown(remaining))
+        const attempts = getAttempts()
+        setError(`Too many attempts (${attempts}). Try again in ${formatCountdown(remaining)}`)
+      } else {
+        setLockedOut(false)
+        setCountdown('')
+        // Keep the attempt-count error visible but clear the lockout text
+        const attempts = getAttempts()
+        if (attempts >= 3) {
+          setError(`${attempts} failed attempt${attempts !== 1 ? 's' : ''}`)
+        }
+      }
+    }
+
+    checkLockout()
+    const interval = setInterval(checkLockout, 1000)
+    return () => clearInterval(interval)
+  }, [isSetup])
+
   useEffect(() => {
     if (!isSetup && pin.length === maxLength) {
+      // Block verification during lockout
+      if (lockedOut) {
+        setPin('')
+        return
+      }
       hashPin(pin).then(hash => {
         if (hash === correctPin) {
+          clearAttempts()
           onUnlock()
         } else {
-          setError('Incorrect PIN')
+          const attempts = recordFailedAttempt()
+
+          // Wipe all data at 10 failed attempts
+          if (attempts >= MAX_ATTEMPTS_BEFORE_WIPE) {
+            setWiping(true)
+            setError('Too many failed attempts — erasing all data for safety')
+            // Dynamic import to avoid circular dependency
+            import('../db').then(({ db }) => {
+              db.delete().then(() => {
+                localStorage.clear()
+                window.location.reload()
+              })
+            })
+            return
+          }
+
+          const lockoutMs = getLockoutMs(attempts)
+          if (lockoutMs > 0) {
+            setError(`Too many attempts (${attempts}). Locked for ${formatCountdown(lockoutMs)}`)
+            setLockedOut(true)
+          } else {
+            setError('Incorrect PIN')
+          }
+
           setShake(true)
-          setTimeout(() => { setShake(false); setPin(''); setError('') }, 600)
+          setTimeout(() => { setShake(false); setPin('') }, 600)
         }
       })
     }
@@ -47,6 +156,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
       if (confirmPin === pin) {
         // Store the hash, never the plaintext
         hashPin(pin).then(hash => {
+          clearAttempts() // reset any prior failed attempts
           onSetPin?.(hash)
           onUnlock()
         })
@@ -56,9 +166,12 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
         setTimeout(() => { setShake(false); setConfirmPin(''); setError(''); setPhase('enter'); setPin('') }, 600)
       }
     }
-  }, [pin, confirmPin, phase, isSetup, correctPin, onUnlock, onSetPin])
+  }, [pin, confirmPin, phase, isSetup, correctPin, onUnlock, onSetPin, lockedOut])
+
+  const isDisabled = lockedOut || wiping
 
   function handleKey(digit: string) {
+    if (isDisabled) return
     if (phase === 'confirm') {
       if (confirmPin.length < maxLength) setConfirmPin(prev => prev + digit)
     } else {
@@ -67,6 +180,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
   }
 
   function handleDelete() {
+    if (isDisabled) return
     if (phase === 'confirm') {
       setConfirmPin(prev => prev.slice(0, -1))
     } else {
@@ -78,8 +192,12 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
     ? phase === 'confirm' ? 'Confirm PIN' : 'Create PIN'
     : 'Enter PIN'
 
-  const subtitle = isSetup
+  const subtitle = wiping
+    ? 'Erasing data...'
+    : isSetup
     ? phase === 'confirm' ? 'Enter your PIN again' : 'Choose a 4-digit PIN'
+    : lockedOut
+    ? `Locked — try again in ${countdown}`
     : 'Enter your PIN to unlock'
 
   return (
@@ -91,9 +209,9 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
         {/* Icon */}
         <div
           className="w-16 h-16 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: 'rgba(168,85,247,0.15)' }}
+          style={{ backgroundColor: isDisabled ? 'rgba(239,68,68,0.15)' : 'rgba(168,85,247,0.15)' }}
         >
-          <Shield size={28} className="text-purple-500" />
+          <Shield size={28} className={isDisabled ? 'text-red-500' : 'text-purple-500'} />
         </div>
 
         {/* Title */}
@@ -121,7 +239,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
         {/* Keypad */}
-        <div className="grid grid-cols-3 gap-3 w-full">
+        <div className="grid grid-cols-3 gap-3 w-full" style={{ opacity: isDisabled ? 0.3 : 1, pointerEvents: isDisabled ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((key, i) => {
             if (key === '') return <div key={i} />
             if (key === 'del') {
