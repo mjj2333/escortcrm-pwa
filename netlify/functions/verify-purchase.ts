@@ -1,18 +1,25 @@
 // netlify/functions/verify-purchase.ts
 // Verifies whether an email has an active Stripe subscription or completed one-time payment.
 //
+// Fast path: checks the Netlify Blobs license cache written by stripe-webhook.ts.
+// Slow path: falls back to live Stripe API calls if no cached record exists (e.g. for
+//            users who purchased before the webhook was set up), then writes to cache.
+//
 // ENV VARS REQUIRED (set in Netlify dashboard → Site settings → Environment variables):
 //   STRIPE_SECRET_KEY          — sk_live_... or sk_test_...
 //   STRIPE_LIFETIME_PRICE_ID   — price_... for the lifetime product
 //   STRIPE_MONTHLY_PRICE_ID    — price_... for the monthly subscription
+//   STRIPE_WEBHOOK_SECRET      — whsec_... (used by stripe-webhook.ts, not here)
 
 import Stripe from 'stripe'
+import { getStore } from '@netlify/blobs'
 import type { Handler } from '@netlify/functions'
+import type { LicenseRecord } from './stripe-webhook'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '')
 
 const LIFETIME_PRICE = process.env.STRIPE_LIFETIME_PRICE_ID || 'price_1T1VsvPW55YHq7QNqO3E9Rav'
-const MONTHLY_PRICE = process.env.STRIPE_MONTHLY_PRICE_ID || 'price_1T1VpdPW55YHq7QNt5DNxBXr'
+const MONTHLY_PRICE  = process.env.STRIPE_MONTHLY_PRICE_ID  || 'price_1T1VpdPW55YHq7QNt5DNxBXr'
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -21,8 +28,28 @@ const headers = {
   'Content-Type': 'application/json',
 }
 
+function licenseStore() {
+  return getStore({ name: 'licenses', consistency: 'strong' })
+}
+
+async function writeLicenseCache(email: string, plan: 'monthly' | 'lifetime') {
+  try {
+    const store = licenseStore()
+    const existing = await store.get(email, { type: 'json' }).catch(() => null) as LicenseRecord | null
+    // Never downgrade a lifetime licence that was already cached
+    if (existing?.plan === 'lifetime') return
+    const record: LicenseRecord = {
+      plan,
+      activatedAt: existing?.activatedAt ?? new Date().toISOString(),
+    }
+    await store.set(email, JSON.stringify(record))
+  } catch (err) {
+    // Cache write failure is non-fatal — verification already succeeded
+    console.warn('[verify] failed to write license cache:', err)
+  }
+}
+
 export const handler: Handler = async (event) => {
-  // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers, body: '' }
   }
@@ -44,74 +71,37 @@ export const handler: Handler = async (event) => {
 
     const normalizedEmail = email.trim().toLowerCase()
 
-    // 1) Check for active subscriptions (monthly plan)
-    const subscriptions = await stripe.subscriptions.list({
-      limit: 10,
-      status: 'active',
-    })
+    // ─── Fast path: check the Blobs cache written by stripe-webhook.ts ───────
+    // This avoids multiple Stripe API round-trips on every verification attempt.
+    try {
+      const store = licenseStore()
+      const cached = await store.get(normalizedEmail, { type: 'json' }).catch(() => null) as LicenseRecord | null
 
-    for (const sub of subscriptions.data) {
-      const customer =
-        typeof sub.customer === 'string'
-          ? await stripe.customers.retrieve(sub.customer)
-          : sub.customer
-
-      if (
-        customer &&
-        !customer.deleted &&
-        (customer as Stripe.Customer).email?.toLowerCase() === normalizedEmail
-      ) {
-        const hasMonthlyPrice = sub.items.data.some(
-          (item) => item.price.id === MONTHLY_PRICE
-        )
-        if (hasMonthlyPrice) {
+      if (cached) {
+        if (cached.revokedAt) {
+          // Subscription was cancelled — no longer valid
           return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ valid: true, plan: 'monthly' }),
+            body: JSON.stringify({ valid: false, error: 'Subscription is no longer active' }),
           }
         }
-      }
-    }
-
-    // 2) Check for completed checkout sessions (lifetime one-time purchase)
-    //    Search recent completed sessions by customer email
-    const sessions = await stripe.checkout.sessions.list({
-      limit: 50,
-      status: 'complete',
-      customer_details: { email: normalizedEmail } as any,
-    })
-
-    // If the list filter doesn't work (depends on API version), fall back to manual filter
-    const matchingSessions = sessions.data.filter(
-      (s) => s.customer_details?.email?.toLowerCase() === normalizedEmail
-    )
-
-    for (const session of matchingSessions) {
-      // Check line items for the lifetime price
-      const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10 })
-      const hasLifetime = lineItems.data.some((item) => item.price?.id === LIFETIME_PRICE)
-
-      if (hasLifetime) {
+        // Valid cached licence — return immediately, no Stripe call needed
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ valid: true, plan: 'lifetime' }),
+          body: JSON.stringify({ valid: true, plan: cached.plan }),
         }
       }
-
-      // Also check for monthly in checkout (in case they bought via payment link)
-      const hasMonthly = lineItems.data.some((item) => item.price?.id === MONTHLY_PRICE)
-      if (hasMonthly) {
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ valid: true, plan: 'monthly' }),
-        }
-      }
+    } catch (err) {
+      // Blob read failure is non-fatal — fall through to live Stripe lookup
+      console.warn('[verify] blob cache read failed, falling back to Stripe:', err)
     }
 
-    // 3) Also check by searching for the customer directly and their payment intents
+    // ─── Slow path: live Stripe lookup ────────────────────────────────────────
+    // Used for users who purchased before the webhook was configured, or when
+    // the Blob store is temporarily unavailable.
+
     const customers = await stripe.customers.list({
       email: normalizedEmail,
       limit: 1,
@@ -120,7 +110,7 @@ export const handler: Handler = async (event) => {
     if (customers.data.length > 0) {
       const customer = customers.data[0]
 
-      // Check their active subscriptions
+      // Check active subscriptions
       const customerSubs = await stripe.subscriptions.list({
         customer: customer.id,
         status: 'active',
@@ -128,17 +118,19 @@ export const handler: Handler = async (event) => {
       })
 
       for (const sub of customerSubs.data) {
-        const hasMonthlyPrice = sub.items.data.some((item) => item.price.id === MONTHLY_PRICE)
-        const hasLifetimePrice = sub.items.data.some((item) => item.price.id === LIFETIME_PRICE)
-        if (hasMonthlyPrice) {
-          return { statusCode: 200, headers, body: JSON.stringify({ valid: true, plan: 'monthly' }) }
-        }
+        const hasMonthlyPrice  = sub.items.data.some(item => item.price.id === MONTHLY_PRICE)
+        const hasLifetimePrice = sub.items.data.some(item => item.price.id === LIFETIME_PRICE)
         if (hasLifetimePrice) {
+          await writeLicenseCache(normalizedEmail, 'lifetime')
           return { statusCode: 200, headers, body: JSON.stringify({ valid: true, plan: 'lifetime' }) }
+        }
+        if (hasMonthlyPrice) {
+          await writeLicenseCache(normalizedEmail, 'monthly')
+          return { statusCode: 200, headers, body: JSON.stringify({ valid: true, plan: 'monthly' }) }
         }
       }
 
-      // Check successful one-time payments
+      // Check PaymentIntents with lifetime metadata
       const paymentIntents = await stripe.paymentIntents.list({
         customer: customer.id,
         limit: 20,
@@ -146,7 +138,29 @@ export const handler: Handler = async (event) => {
 
       for (const pi of paymentIntents.data) {
         if (pi.status === 'succeeded' && pi.metadata?.plan === 'lifetime') {
+          await writeLicenseCache(normalizedEmail, 'lifetime')
           return { statusCode: 200, headers, body: JSON.stringify({ valid: true, plan: 'lifetime' }) }
+        }
+      }
+
+      // Check completed checkout sessions (covers Payment Link purchases)
+      const sessions = await stripe.checkout.sessions.list({
+        customer: customer.id,
+        limit: 20,
+        status: 'complete',
+      })
+
+      for (const session of sessions.data) {
+        const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10 })
+        const hasLifetime = lineItems.data.some(item => item.price?.id === LIFETIME_PRICE)
+        if (hasLifetime) {
+          await writeLicenseCache(normalizedEmail, 'lifetime')
+          return { statusCode: 200, headers, body: JSON.stringify({ valid: true, plan: 'lifetime' }) }
+        }
+        const hasMonthly = lineItems.data.some(item => item.price?.id === MONTHLY_PRICE)
+        if (hasMonthly) {
+          await writeLicenseCache(normalizedEmail, 'monthly')
+          return { statusCode: 200, headers, body: JSON.stringify({ valid: true, plan: 'monthly' }) }
         }
       }
     }
