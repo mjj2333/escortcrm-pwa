@@ -1,6 +1,6 @@
 {
-  "name": "EscortCRM",
-  "short_name": "EscortCRM",
+  "name": "Companion",
+  "short_name": "Companion",
   "description": "Private booking & client management",
   "start_url": "/",
   "display": "standalone",
