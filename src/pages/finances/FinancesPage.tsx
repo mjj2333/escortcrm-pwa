@@ -46,6 +46,7 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
   const allTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray()) ?? []
   const allBookings = useLiveQuery(() => db.bookings.toArray()) ?? []
   const clients = useLiveQuery(() => db.clients.toArray()) ?? []
+  const allPayments = useLiveQuery(() => db.payments.toArray()) ?? []
 
   // Settings
   const [taxRate] = useLocalStorage('taxRate', 25)
@@ -87,11 +88,18 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
   const goalRemaining = Math.max(0, goalTarget - goalIncome)
   const goalDaysLeft = Math.max(0, differenceInDays(goalEnd, new Date()))
 
-  // Outstanding balances
-  const outstanding = allBookings.filter(b =>
-    !['Cancelled', 'Completed', 'No Show'].includes(b.status) && !b.paymentReceived
-  )
-  const totalOutstanding = outstanding.reduce((s, b) => s + bookingTotal(b), 0)
+  // Outstanding balances — use payment ledger for accurate amounts
+  const bookingsWithBalance = allBookings
+    .filter(b => b.status !== 'Cancelled' && b.status !== 'No Show')
+    .map(b => {
+      const total = bookingTotal(b)
+      const paid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
+      const owing = total - paid
+      return { booking: b, owing, client: clients.find(c => c.id === b.clientId) }
+    })
+    .filter(x => x.owing > 0)
+    .sort((a, b) => b.owing - a.owing)
+  const totalOutstanding = bookingsWithBalance.reduce((s, x) => s + x.owing, 0)
 
   // Chart data
   const chartData = useMemo(() => {
@@ -379,7 +387,7 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
         )}
 
         {/* Outstanding Balances */}
-        {outstanding.length > 0 && (
+        {bookingsWithBalance.length > 0 && (
           <Card>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -389,20 +397,22 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
               <span className="text-sm font-bold text-orange-500">{formatCurrency(totalOutstanding)}</span>
             </div>
             <div className="space-y-2">
-              {outstanding.slice(0, 5).map(b => {
-                const client = clients.find(c => c.id === b.clientId)
-                return (
-                  <div key={b.id} className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                      {client?.alias ?? 'Unknown'}
-                    </span>
-                    <span className="text-sm text-orange-500">{formatCurrency(bookingTotal(b))}</span>
+              {bookingsWithBalance.slice(0, 5).map(({ booking, owing, client }) => (
+                  <div key={booking.id} className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                        {client?.alias ?? 'Unknown'}
+                      </span>
+                      <span className="text-xs ml-1.5" style={{ color: 'var(--text-secondary)' }}>
+                        {booking.status}
+                      </span>
+                    </div>
+                    <span className="text-sm text-orange-500">{formatCurrency(owing)}</span>
                   </div>
-                )
-              })}
-              {outstanding.length > 5 && (
+              ))}
+              {bookingsWithBalance.length > 5 && (
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  + {outstanding.length - 5} more
+                  + {bookingsWithBalance.length - 5} more
                 </p>
               )}
             </div>
