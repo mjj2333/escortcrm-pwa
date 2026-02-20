@@ -64,6 +64,55 @@ class EscortCRMDatabase extends Dexie {
 
 export const db = new EscortCRMDatabase()
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// FIELD ENCRYPTION HOOKS
+// Transparently encrypt on write and decrypt on read.
+// Only active when the master key is in memory (after PIN unlock).
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+import {
+  SENSITIVE_FIELDS,
+  isFieldEncryptionReady,
+  shouldBypassHooks,
+  encryptFieldSync,
+  decryptRecordSync,
+} from './fieldCrypto'
+
+for (const [tableName, fields] of Object.entries(SENSITIVE_FIELDS)) {
+  const table = (db as any)[tableName] as Dexie.Table | undefined
+  if (!table) continue
+
+  // Decrypt after reading
+  table.hook('reading', (obj: any) => {
+    if (!isFieldEncryptionReady() || shouldBypassHooks()) return obj
+    return decryptRecordSync(tableName, obj)
+  })
+
+  // Encrypt before creating
+  table.hook('creating', function (_primKey: unknown, obj: any) {
+    if (!isFieldEncryptionReady() || shouldBypassHooks()) return
+    for (const f of fields) {
+      if (typeof obj[f] === 'string') {
+        obj[f] = encryptFieldSync(obj[f])
+      }
+    }
+  })
+
+  // Encrypt modified fields before updating
+  table.hook('updating', function (mods: any) {
+    if (!isFieldEncryptionReady() || shouldBypassHooks()) return
+    const extra: Record<string, unknown> = {}
+    let has = false
+    for (const f of fields) {
+      if (f in mods && typeof mods[f] === 'string' && mods[f] !== '') {
+        extra[f] = encryptFieldSync(mods[f] as string)
+        has = true
+      }
+    }
+    return has ? extra : undefined
+  })
+}
+
 // Helper: generate UUID
 export function newId(): string {
   // crypto.randomUUID() not available in all browsers (e.g. older Samsung Internet)

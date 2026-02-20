@@ -5,6 +5,12 @@ import { db, newId, bookingDurationFormatted } from '../../db'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldToggle, fieldInputStyle } from '../../components/FormFields'
 import { PinLock } from '../../components/PinLock'
+import {
+  initFieldEncryption,
+  reWrapMasterKey,
+  disableFieldEncryption,
+  isFieldEncryptionReady,
+} from '../../db/fieldCrypto'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { BackupRestoreModal } from '../../components/BackupRestore'
 import { AdminPanel } from '../../components/AdminPanel'
@@ -82,10 +88,12 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
     document.documentElement.classList.toggle('oled-black', value)
   }
 
-  function handlePinToggle(value: boolean) {
+  async function handlePinToggle(value: boolean) {
     if (value) {
       setShowPinSetup(true)
     } else {
+      // Decrypt all data before disabling PIN
+      await disableFieldEncryption()
       setPinEnabled(false)
       setPinCode('')
     }
@@ -336,9 +344,16 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
           correctPin=""
           isSetup
           onUnlock={() => setShowPinSetup(false)}
-          onSetPin={(pin) => {
-            setPinCode(pin)
+          onSetPin={async (hash, plaintextPin) => {
+            setPinCode(hash)
             setPinEnabled(true)
+            if (isFieldEncryptionReady()) {
+              // PIN change — just re-wrap the master key
+              await reWrapMasterKey(plaintextPin)
+            } else {
+              // First-time setup or re-enable — generate key + encrypt data
+              await initFieldEncryption(plaintextPin)
+            }
           }}
         />
       )}

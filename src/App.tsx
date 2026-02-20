@@ -21,6 +21,7 @@ import { Paywall, TrialBanner, needsPaywall, revalidateActivation, initTrialStat
 import { ToastContainer } from './components/Toast'
 import { seedSampleData, hasSampleDataBeenOffered } from './data/sampleData'
 import { db, migrateToPaymentLedger } from './db'
+import { initFieldEncryption } from './db/fieldCrypto'
 
 type Screen =
   | { type: 'tab' }
@@ -166,7 +167,10 @@ export default function App() {
   if (pinEnabled && isLocked) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
-        <PinLock correctPin={pinCode} onUnlock={() => setIsLocked(false)} />
+        <PinLock correctPin={pinCode} onUnlock={async (plaintextPin) => {
+          await initFieldEncryption(plaintextPin)
+          setIsLocked(false)
+        }} />
       </div>
     )
   }
