@@ -22,6 +22,7 @@ import { ToastContainer } from './components/Toast'
 import { seedSampleData, hasSampleDataBeenOffered } from './data/sampleData'
 import { db, migrateToPaymentLedger } from './db'
 import { initFieldEncryption } from './db/fieldCrypto'
+import { useServiceWorker } from './hooks/useServiceWorker'
 
 type Screen =
   | { type: 'tab' }
@@ -38,6 +39,9 @@ export default function App() {
   const [pinEnabled] = useLocalStorage('pinEnabled', false)
   const [pinCode, setPinCode] = useLocalStorage('pinCode', '')
   const [isLocked, setIsLocked] = useState(true)
+
+  // Service worker update detection
+  const { updateAvailable, applyUpdate } = useServiceWorker()
 
   // One-time migration: hash any existing plaintext PIN (4-digit numeric string)
   useEffect(() => {
@@ -238,6 +242,19 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
+      {updateAvailable && (
+        <div
+          style={{ backgroundColor: '#7c3aed', color: '#fff', padding: '10px 16px', textAlign: 'center', fontSize: '13px', fontWeight: 500 }}
+        >
+          A new version is available.{' '}
+          <button
+            onClick={applyUpdate}
+            style={{ background: 'none', border: 'none', color: '#fff', textDecoration: 'underline', fontWeight: 700, fontSize: '13px', cursor: 'pointer', padding: 0 }}
+          >
+            Refresh to update
+          </button>
+        </div>
+      )}
       <TrialBanner onUpgrade={() => setShowPaywall(true)} />
       <ToastContainer />
       <Suspense fallback={<div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }} />}>

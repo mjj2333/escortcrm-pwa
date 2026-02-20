@@ -9,7 +9,14 @@ self.addEventListener('install', (event) => {
       ])
     })
   )
-  self.skipWaiting()
+  // Do NOT call self.skipWaiting() — wait for the user to accept the update
+})
+
+// Listen for the app to signal that the user accepted the update
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 self.addEventListener('activate', (event) => {
