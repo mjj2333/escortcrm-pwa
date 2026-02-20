@@ -58,6 +58,12 @@ async function decryptData(encoded: string, password: string): Promise<string> {
 // BACKUP / RESTORE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+// Bump this when adding new tables or making breaking schema changes.
+// Backups from a NEWER version than this will be rejected to prevent
+// silent data loss (future tables/fields would be silently dropped).
+// Backups from OLDER versions are fine — missing tables are just empty.
+const CURRENT_BACKUP_VERSION = 2
+
 interface BackupPayload {
   version: number
   created: string
@@ -76,7 +82,7 @@ interface BackupPayload {
 
 async function createBackup(): Promise<BackupPayload> {
   return {
-    version: 1,
+    version: CURRENT_BACKUP_VERSION,
     created: new Date().toISOString(),
     tables: {
       clients: await db.clients.toArray(),
@@ -239,6 +245,17 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
 
       if (!parsed.version || !parsed.tables) {
         setStatus({ type: 'error', msg: 'Invalid backup file format' })
+        setWorking(false)
+        return
+      }
+
+      // Reject backups from a newer version — they may contain tables or
+      // fields this version doesn't know about, causing silent data loss.
+      if (parsed.version > CURRENT_BACKUP_VERSION) {
+        setStatus({
+          type: 'error',
+          msg: `This backup is from a newer version of Companion (v${parsed.version}). Please update the app before restoring (current: v${CURRENT_BACKUP_VERSION}).`,
+        })
         setWorking(false)
         return
       }
