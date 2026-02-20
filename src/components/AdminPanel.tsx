@@ -29,11 +29,11 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
   // Copy feedback
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  async function callAdmin(body: object) {
+  async function callAdmin(body: object, pwd: string) {
     const res = await fetch(ADMIN_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...body, password }),
+      body: JSON.stringify({ ...body, password: pwd }),
     })
     return res.json()
   }
@@ -43,7 +43,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
     setAuthLoading(true)
     setAuthError('')
     try {
-      const data = await callAdmin({ action: 'list' })
+      const data = await callAdmin({ action: 'list' }, password)
       if (data.error === 'Invalid password') {
         setAuthError('Incorrect password')
       } else if (data.codes) {
@@ -62,7 +62,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
     setLoading(true)
     setError('')
     try {
-      const data = await callAdmin({ action: 'list' })
+      const data = await callAdmin({ action: 'list' }, password)
       if (data.codes) setCodes(data.codes)
       else setError(data.error ?? 'Failed to load')
     } catch {
@@ -79,7 +79,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
         action: 'generate',
         label: genLabel || 'Gift code',
         ...(genExpiry ? { expiresAt: new Date(genExpiry).toISOString() } : {}),
-      })
+      }, password)
       if (data.code) {
         setNewCode({ plaintext: data.code, record: data.record })
         setCodes(prev => [data.record, ...prev])
@@ -97,7 +97,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
 
   async function handleRevoke(id: string) {
     try {
-      const data = await callAdmin({ action: 'revoke', id })
+      const data = await callAdmin({ action: 'revoke', id }, password)
       if (data.success) {
         setCodes(prev => prev.map(c => c.id === id ? { ...c, revoked: true } : c))
       } else {
