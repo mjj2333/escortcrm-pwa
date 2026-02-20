@@ -39,7 +39,7 @@ export interface LicenseRecord {
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 function licenseStore() {
-  return getStore({ name: 'licenses', consistency: 'strong' })
+  return getStore({ name: 'licenses', consistency: 'strong', siteID: process.env.NETLIFY_SITE_ID, token: process.env.BLOBS_TOKEN })
 }
 
 async function activateLicense(email: string, plan: 'monthly' | 'lifetime') {
