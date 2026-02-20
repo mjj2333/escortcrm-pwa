@@ -95,6 +95,38 @@ async function createBackup(): Promise<BackupPayload> {
 async function restoreBackup(payload: BackupPayload): Promise<{ total: number }> {
   let total = 0
 
+  // ─── Validate record shapes before touching the database ────────────
+  // Every record in every table must have an 'id' field at minimum.
+  // Key tables also check for their most critical required fields so a
+  // malformed or crafted backup can't inject broken records.
+  const requiredFields: Record<string, string[]> = {
+    clients:        ['id', 'alias'],
+    bookings:       ['id', 'clientId'],
+    transactions:   ['id', 'amount'],
+    availability:   ['id', 'date'],
+    safetyContacts: ['id', 'name'],
+    safetyChecks:   ['id'],
+    incidents:      ['id'],
+    serviceRates:   ['id'],
+    payments:       ['id', 'bookingId'],
+  }
+
+  const t = payload.tables
+  for (const [tableName, records] of Object.entries(t)) {
+    if (!Array.isArray(records) || records.length === 0) continue
+    const fields = requiredFields[tableName] ?? ['id']
+    for (const record of records) {
+      if (!record || typeof record !== 'object') {
+        throw new Error(`Invalid record in "${tableName}": not an object`)
+      }
+      for (const field of fields) {
+        if (!(field in record) || record[field] === undefined || record[field] === null) {
+          throw new Error(`Invalid record in "${tableName}": missing required field "${field}"`)
+        }
+      }
+    }
+  }
+
   // Clear all tables first
   await db.clients.clear()
   await db.bookings.clear()
@@ -106,7 +138,6 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   await db.serviceRates.clear()
   await db.payments.clear()
 
-  const t = payload.tables
   if (t.clients?.length) { await db.clients.bulkAdd(t.clients as any); total += t.clients.length }
   if (t.bookings?.length) { await db.bookings.bulkAdd(t.bookings as any); total += t.bookings.length }
   if (t.transactions?.length) { await db.transactions.bulkAdd(t.transactions as any); total += t.transactions.length }
