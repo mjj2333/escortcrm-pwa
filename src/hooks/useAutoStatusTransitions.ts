@@ -12,7 +12,8 @@ import { db, createBooking, completeBookingPayment, newId } from '../db'
  * - Creates safety check-ins when bookings go In Progress (if requiresSafetyCheck)
  * - Auto-transitions pending safety checks → overdue when scheduledTime + buffer has passed
  *
- * Runs every 60 seconds.
+ * Runs every 60 seconds AND immediately whenever the user returns to the app
+ * (via the visibilitychange event), so statuses catch up instantly after a long absence.
  */
 export function useAutoStatusTransitions() {
   useEffect(() => {
@@ -106,6 +107,19 @@ export function useAutoStatusTransitions() {
 
     checkAndUpdate()
     const interval = setInterval(checkAndUpdate, 60_000)
-    return () => clearInterval(interval)
+
+    // Also run immediately when the user returns to the app (tab/window becomes visible).
+    // Without this, statuses only catch up on the next 60s tick, so a booking that
+    // ended while the app was in the background would stay "In Progress" until the
+    // next interval fires — which could be nearly a minute after the user opens it.
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') checkAndUpdate()
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 }
