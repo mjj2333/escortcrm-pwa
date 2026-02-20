@@ -25,8 +25,11 @@ import type { LicenseRecord } from './stripe-webhook'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '')
 
-const LIFETIME_PRICE = process.env.STRIPE_LIFETIME_PRICE_ID || 'price_1T1VsvPW55YHq7QNqO3E9Rav'
-const MONTHLY_PRICE  = process.env.STRIPE_MONTHLY_PRICE_ID  || 'price_1T1VpdPW55YHq7QNt5DNxBXr'
+const LIFETIME_PRICE = process.env.STRIPE_LIFETIME_PRICE_ID
+const MONTHLY_PRICE  = process.env.STRIPE_MONTHLY_PRICE_ID
+if (!LIFETIME_PRICE || !MONTHLY_PRICE) {
+  throw new Error('Missing STRIPE_LIFETIME_PRICE_ID or STRIPE_MONTHLY_PRICE_ID env vars')
+}
 
 const headers = {
   'Access-Control-Allow-Origin': 'https://companion1.netlify.app',
