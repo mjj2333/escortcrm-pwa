@@ -261,7 +261,14 @@ export async function removeBookingPayment(paymentId: string): Promise<void> {
   if (matching) await db.transactions.delete(matching.id)
   // Sync convenience booleans
   if (payment.label === 'Deposit') {
-    await db.bookings.update(payment.bookingId, { depositReceived: false })
+    // Only reset depositReceived if no other deposit payments remain
+    const remaining = await db.payments
+      .where('bookingId').equals(payment.bookingId)
+      .filter(p => p.label === 'Deposit')
+      .count()
+    if (remaining === 0) {
+      await db.bookings.update(payment.bookingId, { depositReceived: false })
+    }
   }
   const booking = await db.bookings.get(payment.bookingId)
   if (booking) {
