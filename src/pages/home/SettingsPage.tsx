@@ -1,16 +1,15 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, Trash2, RotateCcw, Database, MessageSquare, Sparkles } from 'lucide-react'
+import { Plus, Trash2, RotateCcw, Database, MessageSquare } from 'lucide-react'
 import { db, newId, bookingDurationFormatted } from '../../db'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldToggle, fieldInputStyle } from '../../components/FormFields'
 import { PinLock } from '../../components/PinLock'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { BackupRestoreModal } from '../../components/BackupRestore'
-import { showToast } from '../../components/Toast'
+import { AdminPanel } from '../../components/AdminPanel'
 import { getActivation, isActivated, getTrialDaysRemaining, isBetaTester } from '../../components/Paywall'
 import { useLocalStorage } from '../../hooks/useSettings'
-import { seedSampleData, isSampleDataActive } from '../../data/sampleData'
 
 interface SettingsPageProps {
   isOpen: boolean
@@ -38,16 +37,8 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
   const [showPinSetup, setShowPinSetup] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
-  const [showSampleConfirm, setShowSampleConfirm] = useState(false)
-
-  async function loadSampleData() {
-    // Clear the flag so seedSampleData will run
-    localStorage.removeItem('companion_sample_data')
-    localStorage.removeItem('paymentsLedgerMigrated')
-    await seedSampleData()
-    setShowSampleConfirm(false)
-    showToast('Sample data loaded')
-  }
+  const [showAdmin, setShowAdmin] = useState(false)
+  const [versionTaps, setVersionTaps] = useState(0)
 
   async function addRate() {
     if (!newRateName.trim() || newRateAmount <= 0) return
@@ -237,17 +228,10 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
           {/* Data */}
           <SectionLabel label="Data" />
           <button type="button" onClick={() => setShowBackup(true)}
-            className="flex items-center gap-3 w-full py-2.5 mb-1 active:opacity-70">
+            className="flex items-center gap-3 w-full py-2.5 mb-3 active:opacity-70">
             <Database size={16} style={{ color: '#a855f7' }} />
             <span className="text-sm font-medium text-purple-500">Backup & Restore</span>
           </button>
-          {!isSampleDataActive() && (
-            <button type="button" onClick={() => setShowSampleConfirm(true)}
-              className="flex items-center gap-3 w-full py-2.5 mb-3 active:opacity-70">
-              <Sparkles size={16} style={{ color: '#a855f7' }} />
-              <span className="text-sm font-medium text-purple-500">Load Sample Data</span>
-            </button>
-          )}
 
           {/* Help */}
           <SectionLabel label="Help" />
@@ -317,7 +301,20 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
           <div className="mb-3 rounded-lg px-3 py-2.5" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
             <div className="flex items-center justify-between py-1">
               <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Version</span>
-              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>1.0.0</span>
+              <button
+                onClick={() => {
+                  const next = versionTaps + 1
+                  setVersionTaps(next)
+                  if (next >= 7) {
+                    setVersionTaps(0)
+                    setShowAdmin(true)
+                  }
+                }}
+                className="text-sm select-none"
+                style={{ color: 'var(--text-secondary)', WebkitUserSelect: 'none' }}
+              >
+                1.0.0
+              </button>
             </div>
           </div>
 
@@ -347,6 +344,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
       )}
 
       <BackupRestoreModal isOpen={showBackup} onClose={() => setShowBackup(false)} />
+      <AdminPanel isOpen={showAdmin} onClose={() => setShowAdmin(false)} />
       <ConfirmDialog
         isOpen={showResetConfirm}
         title="Reset All Data"
@@ -354,14 +352,6 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
         confirmLabel="Erase Everything"
         onConfirm={resetAllData}
         onCancel={() => setShowResetConfirm(false)}
-      />
-      <ConfirmDialog
-        isOpen={showSampleConfirm}
-        title="Load Sample Data"
-        message="This will add demo clients, bookings, and transactions so you can explore the app. Only works if the database is empty."
-        confirmLabel="Load Samples"
-        onConfirm={loadSampleData}
-        onCancel={() => setShowSampleConfirm(false)}
       />
     </>
   )
