@@ -1,18 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { TabBar } from './components/TabBar'
 import { PinLock, hashPin } from './components/PinLock'
 import { WelcomeSplash } from './components/WelcomeSplash'
 import { SetupGuide } from './components/SetupGuide'
 import { HomePage } from './pages/home/HomePage'
 import { ClientsPage } from './pages/clients/ClientsPage'
-import { ClientDetail } from './pages/clients/ClientDetail'
 import { SchedulePage } from './pages/schedule/SchedulePage'
-import { BookingDetail } from './pages/schedule/BookingDetail'
 import { FinancesPage } from './pages/finances/FinancesPage'
-import { AnalyticsPage } from './pages/finances/AnalyticsPage'
 import { SafetyPage } from './pages/safety/SafetyPage'
-import { SettingsPage } from './pages/home/SettingsPage'
 import { useLocalStorage } from './hooks/useSettings'
+
+// Lazy-load secondary screens — only fetched when the user navigates to them
+const ClientDetail = lazy(() => import('./pages/clients/ClientDetail').then(m => ({ default: m.ClientDetail })))
+const BookingDetail = lazy(() => import('./pages/schedule/BookingDetail').then(m => ({ default: m.BookingDetail })))
+const AnalyticsPage = lazy(() => import('./pages/finances/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
+const SettingsPage = lazy(() => import('./pages/home/SettingsPage').then(m => ({ default: m.SettingsPage })))
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
 import { Paywall, TrialBanner, needsPaywall, revalidateActivation, initTrialState } from './components/Paywall'
@@ -234,9 +236,11 @@ export default function App() {
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
       <TrialBanner onUpgrade={() => setShowPaywall(true)} />
       <ToastContainer />
-      {renderContent()}
+      <Suspense fallback={<div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }} />}>
+        {renderContent()}
+        <SettingsPage isOpen={showSettings} onClose={() => setShowSettings(false)} onRestartTour={restartTour} />
+      </Suspense>
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
-      <SettingsPage isOpen={showSettings} onClose={() => setShowSettings(false)} onRestartTour={restartTour} />
       {showSplash && <WelcomeSplash onComplete={finishOnboarding} onStartSetup={startSetupGuide} />}
       {showSetup && <SetupGuide onComplete={finishOnboarding} onTabChange={setActiveTab} />}
     </div>
