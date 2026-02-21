@@ -26,7 +26,11 @@ interface ImportExportProps {
 function fmtDate(d?: Date | null): string {
   if (!d) return ''
   const dt = d instanceof Date ? d : new Date(d)
-  return isNaN(dt.getTime()) ? '' : dt.toISOString().split('T')[0]
+  if (isNaN(dt.getTime())) return ''
+  const yyyy = dt.getFullYear()
+  const mm = String(dt.getMonth() + 1).padStart(2, '0')
+  const dd = String(dt.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
 }
 
 function fmtDateTime(d?: Date | null): string {

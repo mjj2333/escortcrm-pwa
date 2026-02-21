@@ -11,6 +11,14 @@ import type { Client, ClientTag, ContactMethod, ScreeningStatus, RiskLevel } fro
 
 const contactMethods: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp', 'Other']
 
+/** Convert a Date to 'yyyy-MM-dd' using local timezone (not UTC like toISOString). */
+function toLocalDateStr(d: Date): string {
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
 interface ClientEditorProps {
   isOpen: boolean
   onClose: (createdClientId?: string) => void
@@ -53,8 +61,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       setReferenceSource(client?.referenceSource ?? '')
       setVerificationNotes(client?.verificationNotes ?? '')
       setTags(client?.tags ?? [])
-      setBirthday(client?.birthday ? new Date(client.birthday).toISOString().split('T')[0] : '')
-      setClientSince(client?.clientSince ? new Date(client.clientSince).toISOString().split('T')[0] : '')
+      setBirthday(client?.birthday ? toLocalDateStr(new Date(client.birthday)) : '')
+      setClientSince(client?.clientSince ? toLocalDateStr(new Date(client.clientSince)) : '')
       setShowAllDetails(!!client)
     }
   }, [isOpen, client])
