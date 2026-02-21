@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ChevronRight, User, UserPlus, Search, ChevronDown, ChevronUp, AlertTriangle, Plus, ChevronLeft } from 'lucide-react'
 import { format } from 'date-fns'
-import { db, createBooking, createClient, bookingDurationFormatted, formatCurrency } from '../../db'
+import { db, createBooking, createClient, bookingDurationFormatted, formatCurrency, recordBookingPayment } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
@@ -160,7 +160,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         extras,
         travelFee: finalTravelFee,
         depositAmount,
-        depositReceived,
         paymentMethod: paymentMethod || undefined,
         notes: notes.trim(),
         requiresSafetyCheck,
@@ -183,13 +182,23 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         extras,
         travelFee: finalTravelFee,
         depositAmount,
-        depositReceived,
         paymentMethod: paymentMethod || undefined,
         notes: notes.trim(),
         requiresSafetyCheck,
         recurrence,
       })
       await db.bookings.add(newBooking)
+
+      // If deposit marked as received at creation, record it through the payment ledger
+      if (depositReceived && depositAmount > 0) {
+        await recordBookingPayment({
+          bookingId: newBooking.id,
+          amount: depositAmount,
+          method: paymentMethod || undefined,
+          label: 'Deposit',
+          clientAlias: selectedClient?.alias,
+        })
+      }
 
       if (overrideAvailability) {
         await adjustAvailabilityForBooking(dt, duration, newBooking.id)
@@ -447,8 +456,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         <FieldCurrency label="Deposit Amount" value={depositAmount}
           onChange={v => { setDepositAmount(v); setUserEditedDeposit(true) }}
           hint={`Auto-calculated at ${defaultDepositPct}% of base rate.`} />
-        {depositAmount > 0 && (
-          <FieldToggle label="Deposit Received" value={depositReceived} onChange={setDepositReceived} />
+        {depositAmount > 0 && !isEditing && (
+          <FieldToggle label="Deposit Received" value={depositReceived} onChange={setDepositReceived}
+            hint="Manage deposit payments from the booking detail page after creation." />
         )}
 
         {/* ━━━ Status ━━━ */}
