@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, Check, Plus, Trash2, User, Phone as PhoneIcon, MessageSquare, UserCheck, Mail, Cake, CalendarDays, Share2, ShieldCheck, Heart, ShieldAlert, FileText } from 'lucide-react'
 import { format, startOfDay } from 'date-fns'
-import { db, newId, createClient, createBooking, bookingDurationFormatted, recordBookingPayment } from '../db'
+import { db, newId, createClient, createBooking, bookingDurationFormatted, recordBookingPayment, formatCurrency } from '../db'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../utils/availability'
 import type {
   ContactMethod, ScreeningStatus, RiskLevel, LocationType,
@@ -76,7 +76,7 @@ function RatesStep({ onNext }: { onNext: () => void }) {
               style={{ backgroundColor: 'var(--bg-secondary)' }}>
               <div>
                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{r.name}</p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{bookingDurationFormatted(r.duration)} — ${r.rate}</p>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{bookingDurationFormatted(r.duration)} — {formatCurrency(r.rate)}</p>
               </div>
               <button type="button" onClick={() => db.serviceRates.delete(r.id)} className="text-red-500 p-1.5"><Trash2 size={14} /></button>
             </div>
@@ -351,7 +351,7 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
               className={`px-3 py-2 rounded-lg text-sm font-medium ${duration === r.duration && baseRate === r.rate && !customDuration ? 'bg-purple-500/20 text-purple-500' : ''}`}
               style={duration !== r.duration || baseRate !== r.rate || customDuration ? { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' } : {}}>
               <div className="font-bold">{durationUnit === 'hr' ? (r.duration >= 60 ? `${Math.round((r.duration / 60) * 10) / 10}h` : `${r.duration}m`) : durationFmt(r.duration)}</div>
-              <div className="text-xs opacity-70">${r.rate}</div>
+              <div className="text-xs opacity-70">{formatCurrency(r.rate)}</div>
             </button>
           ))}
           <button type="button" onClick={() => setCustomDuration(true)}
@@ -390,7 +390,7 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
       {total > 0 && (
         <div className="flex items-center justify-between mb-3 px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Total</span>
-          <span className="text-lg font-bold text-green-500">${total}</span>
+          <span className="text-lg font-bold text-green-500">{formatCurrency(total)}</span>
         </div>
       )}
 
