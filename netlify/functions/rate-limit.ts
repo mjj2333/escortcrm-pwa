@@ -19,6 +19,14 @@ interface RateLimitOptions {
   maxRequests?: number
   /** Sliding window duration in milliseconds (default: 60 seconds) */
   windowMs?: number
+  /**
+   * When true, a Blobs outage returns 503 instead of allowing the request.
+   * Use for security-sensitive endpoints (gift codes, admin panel) where
+   * fail-open would expose the endpoint to brute force.
+   * Leave false (default) for user-facing endpoints like verify-purchase
+   * where blocking legitimate users on a storage outage is worse than the risk.
+   */
+  failClosed?: boolean
 }
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://companion1.netlify.app'
@@ -62,7 +70,7 @@ export async function checkRateLimit(
   endpoint: string,
   options: RateLimitOptions = {}
 ): Promise<HandlerResponse | null> {
-  const { maxRequests = 10, windowMs = 60_000 } = options
+  const { maxRequests = 10, windowMs = 60_000, failClosed = false } = options
   const ip = getClientIp(event)
   // Sanitize the key — Blobs keys can't contain certain characters
   const key = `${endpoint}:${ip.replace(/[^a-zA-Z0-9.:_-]/g, '_')}`
@@ -95,8 +103,16 @@ export async function checkRateLimit(
     await store.set(key, JSON.stringify({ hits }))
     return null // allowed
   } catch (err) {
-    // If Blobs is unavailable, allow the request rather than blocking legitimate users
-    console.warn('[rate-limit] Blobs unavailable, allowing request:', err)
+    console.warn('[rate-limit] Blobs unavailable:', err)
+    if (failClosed) {
+      // Security-sensitive endpoint — return 503 rather than expose it to brute force
+      return {
+        statusCode: 503,
+        headers: CORS_HEADERS,
+        body: JSON.stringify({ error: 'Service temporarily unavailable — please try again shortly' }),
+      }
+    }
+    // User-facing endpoint — fail open so legitimate users aren't locked out
     return null
   }
 }

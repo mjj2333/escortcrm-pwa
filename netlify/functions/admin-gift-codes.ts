@@ -65,7 +65,7 @@ export const handler: Handler = async (event) => {
   }
 
   // Rate limit: 5 requests per minute per IP (prevents admin password brute-force)
-  const limited = await checkRateLimit(event, 'admin-gift-codes', { maxRequests: 5, windowMs: 60_000 })
+  const limited = await checkRateLimit(event, 'admin-gift-codes', { maxRequests: 5, windowMs: 60_000, failClosed: true })
   if (limited) return limited
 
   const adminPassword = process.env.ADMIN_PASSWORD
