@@ -286,11 +286,19 @@ export async function recordBookingPayment(opts: {
     })
   }
   // Sync convenience booleans
-  if (opts.label === 'Deposit') {
-    await db.bookings.update(opts.bookingId, { depositReceived: true })
-  }
   const booking = await db.bookings.get(opts.bookingId)
   if (booking) {
+    if (opts.label === 'Deposit') {
+      // Only mark deposit as received when total deposit payments cover the full deposit amount
+      const depositPayments = await db.payments
+        .where('bookingId').equals(opts.bookingId)
+        .filter(p => p.label === 'Deposit')
+        .toArray()
+      const totalDeposits = depositPayments.reduce((sum, p) => sum + p.amount, 0)
+      await db.bookings.update(opts.bookingId, {
+        depositReceived: totalDeposits >= booking.depositAmount,
+      })
+    }
     const paid = await getBookingTotalPaid(opts.bookingId)
     if (paid >= bookingTotal(booking)) {
       await db.bookings.update(opts.bookingId, { paymentReceived: true })
@@ -310,13 +318,17 @@ export async function removeBookingPayment(paymentId: string): Promise<void> {
   if (matching) await db.transactions.delete(matching.id)
   // Sync convenience booleans
   if (payment.label === 'Deposit') {
-    // Only reset depositReceived if no other deposit payments remain
-    const remaining = await db.payments
+    // Recalculate whether total deposit payments still cover the full deposit amount
+    const remainingDeposits = await db.payments
       .where('bookingId').equals(payment.bookingId)
       .filter(p => p.label === 'Deposit')
-      .count()
-    if (remaining === 0) {
-      await db.bookings.update(payment.bookingId, { depositReceived: false })
+      .toArray()
+    const totalDeposits = remainingDeposits.reduce((sum, p) => sum + p.amount, 0)
+    const booking = await db.bookings.get(payment.bookingId)
+    if (booking) {
+      await db.bookings.update(payment.bookingId, {
+        depositReceived: totalDeposits >= booking.depositAmount,
+      })
     }
   }
   const booking = await db.bookings.get(payment.bookingId)

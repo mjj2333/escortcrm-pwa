@@ -64,6 +64,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
   const totalPaid = (payments ?? []).reduce((sum, p) => sum + p.amount, 0)
   const balance = total - totalPaid
   const isFullyPaid = balance <= 0
+  const totalDeposits = (payments ?? []).filter(p => p.label === 'Deposit').reduce((sum, p) => sum + p.amount, 0)
+  const depositRemaining = booking.depositAmount - totalDeposits
 
   async function updateStatus(status: BookingStatus) {
     const updates: Partial<Booking> = { status }
@@ -360,13 +362,13 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
 
           {/* Quick actions */}
           <div className="flex gap-2">
-            {booking.depositAmount > 0 && !booking.depositReceived && (
+            {booking.depositAmount > 0 && depositRemaining > 0 && (
               <button
-                onClick={() => openPaymentForm('Deposit', booking.depositAmount)}
+                onClick={() => openPaymentForm('Deposit', depositRemaining)}
                 className="flex-1 text-xs font-medium py-2 rounded-lg"
                 style={{ backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' }}
               >
-                Record Deposit ({formatCurrency(booking.depositAmount)})
+                Record Deposit ({formatCurrency(depositRemaining)})
               </button>
             )}
             {!isFullyPaid && balance > 0 && (
