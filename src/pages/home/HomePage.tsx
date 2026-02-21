@@ -28,7 +28,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const now = new Date()
   const todayStart = startOfDay(now)
   const todayEnd = endOfDay(now)
-  const weekStart = startOfWeek(now)
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 })
   const monthStart = startOfMonth(now)
 
   const [showExpenseEditor, setShowExpenseEditor] = useState(false)
