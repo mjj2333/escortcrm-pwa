@@ -189,6 +189,10 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
       updates.completedAt = new Date()
       // Record remaining payment via ledger
       await completeBookingPayment(booking, client?.alias)
+      // Update client lastSeen
+      if (booking.clientId) {
+        await db.clients.update(booking.clientId, { lastSeen: new Date() })
+      }
     }
 
     if (newStatus === 'Cancelled') {
