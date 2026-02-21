@@ -93,6 +93,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
   }
 
   async function confirmDelete() {
+    // Get all booking IDs for this client
+    const clientBookings = await db.bookings.where('clientId').equals(clientId).toArray()
+    const bookingIds = clientBookings.map(b => b.id)
+    // Delete all payments and transactions associated with those bookings
+    for (const bid of bookingIds) {
+      await db.payments.where('bookingId').equals(bid).delete()
+      await db.transactions.where('bookingId').equals(bid).delete()
+    }
     // Delete all bookings for this client
     await db.bookings.where('clientId').equals(clientId).delete()
     // Delete the client
