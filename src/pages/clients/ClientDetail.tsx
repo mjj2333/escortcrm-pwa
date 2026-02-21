@@ -14,7 +14,7 @@ import { Card } from '../../components/Card'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ClientEditor } from './ClientEditor'
 import { BookingEditor } from '../schedule/BookingEditor'
-import { screeningStatusColors, riskLevelColors } from '../../types'
+import { screeningStatusColors, riskLevelColors, bookingStatusColors } from '../../types'
 
 interface ClientDetailProps {
   clientId: string
@@ -432,6 +432,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <StatusBadge text={b.status} color={bookingStatusColors[b.status]} />
                   <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     {formatCurrency(bookingTotal(b))}
                   </span>
