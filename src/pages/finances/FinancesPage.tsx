@@ -91,9 +91,9 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
   const goalRemaining = Math.max(0, goalTarget - goalIncome)
   const goalDaysLeft = Math.max(0, differenceInDays(goalEnd, new Date()))
 
-  // Outstanding balances — use payment ledger for accurate amounts
+  // Outstanding balances — use payment ledger for accurate amounts (only Pending Deposit+ stages)
   const bookingsWithBalance = allBookings
-    .filter(b => b.status !== 'Cancelled' && b.status !== 'No Show')
+    .filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed')
     .map(b => {
       const total = bookingTotal(b)
       const paid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)

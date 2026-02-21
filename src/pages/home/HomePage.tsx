@@ -88,9 +88,9 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const clientForBooking = (clientId?: string) =>
     clients.find(c => c.id === clientId)
 
-  // Outstanding balances — bookings with unpaid amounts
+  // Outstanding balances — bookings with unpaid amounts (only Pending Deposit+ stages)
   const bookingsWithBalance = allBookings
-    .filter(b => b.status !== 'Cancelled' && b.status !== 'No Show')
+    .filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed')
     .map(b => {
       const total = bookingTotal(b)
       const paid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
