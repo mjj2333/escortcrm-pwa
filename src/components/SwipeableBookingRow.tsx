@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { format, isToday, isTomorrow, differenceInDays, startOfDay } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment, removeBookingPayment as removePayment } from '../db'
 import { StatusBadge } from './StatusBadge'
@@ -86,6 +87,16 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
   const [swiping, setSwiping] = useState(false)
   const isDragging = useRef(false)
 
+  // Live deposit payment tracking
+  const depositPayments = useLiveQuery(
+    () => db.payments.where('bookingId').equals(booking.id).filter(p => p.label === 'Deposit').toArray(),
+    [booking.id]
+  ) ?? []
+  const totalDeposits = depositPayments.reduce((sum, p) => sum + p.amount, 0)
+  const depositRemaining = booking.depositAmount - totalDeposits
+  const depositFullyPaid = booking.depositAmount > 0 && depositRemaining <= 0
+  const depositPartial = totalDeposits > 0 && depositRemaining > 0
+
   const isTerminal = booking.status === 'Completed' || booking.status === 'Cancelled' || booking.status === 'No Show'
   const hasActions = !isTerminal
 
@@ -136,22 +147,27 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
   }
 
   // ━━━ Actions ━━━
-  async function toggleDeposit() {
-    if (booking.depositReceived) {
-      // Remove deposit payment
-      const payments = await db.payments.where('bookingId').equals(booking.id).toArray()
-      const depositPayment = payments.find(p => p.label === 'Deposit')
-      if (depositPayment) await removePayment(depositPayment.id)
-      else await db.bookings.update(booking.id, { depositReceived: false })
-    } else if (booking.depositAmount > 0) {
-      // Record deposit payment
-      await recordBookingPayment({
-        bookingId: booking.id,
-        amount: booking.depositAmount,
-        method: booking.depositMethod,
-        label: 'Deposit',
-        clientAlias: client?.alias,
-      })
+  async function recordRemainingDeposit() {
+    if (depositRemaining <= 0 || booking.depositAmount === 0) return
+    await recordBookingPayment({
+      bookingId: booking.id,
+      amount: depositRemaining,
+      method: booking.depositMethod,
+      label: 'Deposit',
+      clientAlias: client?.alias,
+    })
+    if (navigator.vibrate) navigator.vibrate(15)
+  }
+
+  async function removeAllDeposits() {
+    if (totalDeposits === 0) return
+    // Remove all deposit payments for this booking
+    const allDeposits = await db.payments
+      .where('bookingId').equals(booking.id)
+      .filter(p => p.label === 'Deposit')
+      .toArray()
+    for (const dep of allDeposits) {
+      await removePayment(dep.id)
     }
     if (navigator.vibrate) navigator.vibrate(15)
   }
@@ -212,15 +228,23 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
         <ActionRow label="Deposit">
           <ActionPill
             label="Pending"
-            active={!booking.depositReceived}
+            active={booking.depositAmount > 0 && totalDeposits === 0}
             color="#f59e0b"
-            onTap={booking.depositReceived ? toggleDeposit : () => {}}
+            onTap={totalDeposits > 0 ? removeAllDeposits : () => {}}
           />
+          {depositPartial && (
+            <ActionPill
+              label="Partial"
+              active={true}
+              color="#f97316"
+              onTap={() => {}}
+            />
+          )}
           <ActionPill
             label="Received"
-            active={booking.depositReceived}
+            active={depositFullyPaid}
             color="#22c55e"
-            onTap={!booking.depositReceived ? toggleDeposit : () => {}}
+            onTap={!depositFullyPaid ? recordRemainingDeposit : () => {}}
           />
         </ActionRow>
 
@@ -322,8 +346,8 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
           {/* Mini indicators row */}
           <div className="flex items-center justify-end gap-1 mt-0.5">
             {booking.depositAmount > 0 && (
-              <span className="text-[9px]" title={booking.depositReceived ? 'Deposit received' : 'Deposit pending'}>
-                {booking.depositReceived ? '💰' : '⏳'}
+              <span className="text-[9px]" title={depositFullyPaid ? 'Deposit received' : depositPartial ? 'Deposit partial' : 'Deposit pending'}>
+                {depositFullyPaid ? '💰' : depositPartial ? '💸' : '⏳'}
               </span>
             )}
             {client && (
