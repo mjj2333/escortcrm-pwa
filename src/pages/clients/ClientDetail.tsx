@@ -47,6 +47,11 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
 
   const lastCompletedBooking = completedBookings[0] ?? undefined
 
+  // All terminal bookings for history display (Completed + Cancelled + No Show)
+  const pastBookings = bookings
+    .filter(b => b.status === 'Completed' || b.status === 'Cancelled' || b.status === 'No Show')
+    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+
   const upcomingBookings = bookings
     .filter(b => new Date(b.dateTime) > new Date() && b.status !== 'Cancelled' && b.status !== 'Completed')
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
@@ -444,12 +449,12 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
         )}
 
         {/* Booking History */}
-        {completedBookings.length > 0 && (
+        {pastBookings.length > 0 && (
           <Card>
             <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
-              History ({completedBookings.length})
+              History ({pastBookings.length})
             </p>
-            {completedBookings.slice(0, 10).map(b => (
+            {pastBookings.slice(0, 10).map(b => (
               <button
                 key={b.id}
                 onClick={() => onOpenBooking(b.id)}
@@ -459,9 +464,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
                   <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
                     {format(new Date(b.dateTime), 'MMM d, yyyy')}
                   </p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {bookingDurationFormatted(b.duration)} · {b.locationType}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      {bookingDurationFormatted(b.duration)} · {b.locationType}
+                    </p>
+                    {b.status !== 'Completed' && (
+                      <StatusBadge text={b.status} color={bookingStatusColors[b.status]} />
+                    )}
+                  </div>
                 </div>
                 <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                   {formatCurrency(bookingTotal(b))}
