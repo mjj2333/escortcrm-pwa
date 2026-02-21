@@ -80,6 +80,7 @@ export interface Booking {
 export interface Transaction {
   id: string
   bookingId?: string
+  paymentId?: string
   amount: number
   type: TransactionType
   category: TransactionCategory

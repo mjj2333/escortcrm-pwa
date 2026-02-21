@@ -277,6 +277,7 @@ export async function recordBookingPayment(opts: {
     await db.transactions.add({
       id: newId(),
       bookingId: opts.bookingId,
+      paymentId,
       amount: opts.amount,
       type: 'income',
       category: opts.label === 'Tip' ? 'tip' : 'booking',
@@ -312,9 +313,10 @@ export async function removeBookingPayment(paymentId: string): Promise<void> {
   const payment = await db.payments.get(paymentId)
   if (!payment) return
   await db.payments.delete(paymentId)
-  // Find and remove the matching income transaction (closest match by amount + bookingId)
+  // Find and remove the matching income transaction — prefer direct paymentId link, fall back to amount match for legacy data
   const txns = await db.transactions.where('bookingId').equals(payment.bookingId).toArray()
-  const matching = txns.find(t => t.type === 'income' && Math.abs(t.amount - payment.amount) < 0.01)
+  const matching = txns.find(t => t.paymentId === paymentId)
+    ?? txns.find(t => t.type === 'income' && Math.abs(t.amount - payment.amount) < 0.01)
   if (matching) await db.transactions.delete(matching.id)
   // Sync convenience booleans
   if (payment.label === 'Deposit') {
