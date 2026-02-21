@@ -9,7 +9,7 @@ import {
   eachDayOfInterval, eachMonthOfInterval, isSameDay, isSameMonth,
   differenceInDays, endOfMonth, endOfWeek, endOfQuarter
 } from 'date-fns'
-import { db, formatCurrency, bookingTotal } from '../../db'
+import { db, formatCurrency, bookingTotal, removeBookingPayment } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card } from '../../components/Card'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -772,7 +772,19 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       title="Delete Transaction"
       message="Delete this transaction? This cannot be undone."
       confirmLabel="Delete"
-      onConfirm={() => { if (deleteTxnId) db.transactions.delete(deleteTxnId); setDeleteTxnId(null) }}
+      onConfirm={async () => {
+        if (deleteTxnId) {
+          const txn = await db.transactions.get(deleteTxnId)
+          if (txn?.paymentId) {
+            // Transaction was created by payment ledger — use removeBookingPayment
+            // which deletes both the payment and its transaction, and syncs booleans
+            await removeBookingPayment(txn.paymentId)
+          } else {
+            await db.transactions.delete(deleteTxnId)
+          }
+        }
+        setDeleteTxnId(null)
+      }}
       onCancel={() => setDeleteTxnId(null)}
     />
     </>
