@@ -69,8 +69,9 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
   const totalExpenses = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const netIncome = totalIncome - totalExpenses
   const bookingTxns = filtered.filter(t => t.category === 'booking')
-  const avgBooking = bookingTxns.length > 0
-    ? Math.round(bookingTxns.reduce((s, t) => s + t.amount, 0) / bookingTxns.length)
+  const uniqueBookingIds = new Set(bookingTxns.map(t => t.bookingId).filter(Boolean))
+  const avgBooking = uniqueBookingIds.size > 0
+    ? Math.round(bookingTxns.reduce((s, t) => s + t.amount, 0) / uniqueBookingIds.size)
     : 0
   const estimatedTax = netIncome > 0 ? Math.round(netIncome * taxRate / 100) : 0
   const suggestedSetAside = totalIncome > 0 ? Math.round(totalIncome * setAsideRate / 100) : 0
