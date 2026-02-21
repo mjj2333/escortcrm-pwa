@@ -51,7 +51,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 
   const todaysBookings = allBookings.filter(b => {
     const d = new Date(b.dateTime)
-    return isToday(d) && b.status !== 'Cancelled'
+    return isToday(d) && b.status !== 'Cancelled' && b.status !== 'No Show'
   })
 
   const upcoming = allBookings
