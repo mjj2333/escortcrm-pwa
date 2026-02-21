@@ -113,9 +113,10 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
   }
 
   async function deleteBooking() {
-    // Delete associated payments and transactions
+    // Delete associated payments, transactions, and safety checks
     await db.payments.where('bookingId').equals(bookingId).delete()
     await db.transactions.where('bookingId').equals(bookingId).delete()
+    await db.safetyChecks.where('bookingId').equals(bookingId).delete()
     await db.bookings.delete(bookingId)
     setConfirmAction(null)
     onBack()
