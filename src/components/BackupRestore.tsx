@@ -145,6 +145,34 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   await db.serviceRates.clear()
   await db.payments.clear()
 
+  // ─── Reconstitute Date objects from ISO strings ──────────────────────
+  // JSON.stringify converts Dates to ISO strings; JSON.parse leaves them
+  // as strings. IndexedDB indexes distinguish types, so string dates break
+  // every .where() and .orderBy() on date-indexed fields.
+  const dateFields: Record<string, string[]> = {
+    clients:      ['dateAdded', 'lastSeen', 'birthday', 'clientSince'],
+    bookings:     ['dateTime', 'createdAt', 'confirmedAt', 'completedAt', 'cancelledAt'],
+    transactions: ['date'],
+    availability: ['date'],
+    safetyChecks: ['scheduledTime', 'checkedInAt'],
+    incidents:    ['date'],
+    payments:     ['date'],
+  }
+
+  for (const [tableName, fields] of Object.entries(dateFields)) {
+    const records = (t as Record<string, unknown[]>)[tableName]
+    if (!Array.isArray(records)) continue
+    for (const record of records) {
+      const rec = record as Record<string, unknown>
+      for (const f of fields) {
+        if (typeof rec[f] === 'string') {
+          const d = new Date(rec[f] as string)
+          if (!isNaN(d.getTime())) rec[f] = d
+        }
+      }
+    }
+  }
+
   if (t.clients?.length) { await db.clients.bulkAdd(t.clients as any); total += t.clients.length }
   if (t.bookings?.length) { await db.bookings.bulkAdd(t.bookings as any); total += t.bookings.length }
   if (t.transactions?.length) { await db.transactions.bulkAdd(t.transactions as any); total += t.transactions.length }
