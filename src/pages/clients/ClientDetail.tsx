@@ -53,7 +53,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
     .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
 
   const upcomingBookings = bookings
-    .filter(b => new Date(b.dateTime) > new Date() && b.status !== 'Cancelled' && b.status !== 'Completed')
+    .filter(b => new Date(b.dateTime) > new Date() && b.status !== 'Cancelled' && b.status !== 'Completed' && b.status !== 'No Show')
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
 
   const noShowCount = bookings.filter(b => b.status === 'No Show').length
