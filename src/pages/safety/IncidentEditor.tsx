@@ -40,7 +40,7 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
     await db.incidents.add({
       id: newId(),
       clientId: clientId || undefined,
-      date: new Date(date),
+      date: new Date(date + 'T00:00:00'),
       severity,
       description: description.trim(),
       actionTaken: actionTaken.trim(),

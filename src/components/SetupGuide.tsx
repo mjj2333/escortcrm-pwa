@@ -162,8 +162,8 @@ function ClientStep({ onNext, setCreatedClientId }: { onNext: () => void; setCre
       email: email.trim() || undefined, preferredContact, screeningStatus, riskLevel,
       notes: notes.trim(), preferences: preferences.trim(), boundaries: boundaries.trim(),
       referenceSource: referenceSource.trim() || undefined, verificationNotes: verificationNotes.trim() || undefined,
-      tags, requiresSafetyCheck, birthday: birthday ? new Date(birthday) : undefined,
-      clientSince: clientSince ? new Date(clientSince) : undefined,
+      tags, requiresSafetyCheck, birthday: birthday ? new Date(birthday + 'T00:00:00') : undefined,
+      clientSince: clientSince ? new Date(clientSince + 'T00:00:00') : undefined,
     })
     await db.clients.add(newClient)
     setCreatedClientId(newClient.id)

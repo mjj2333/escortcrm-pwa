@@ -79,8 +79,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         referenceSource: referenceSource.trim() || undefined,
         verificationNotes: verificationNotes.trim() || undefined,
         tags,
-        birthday: birthday ? new Date(birthday) : undefined,
-        clientSince: clientSince ? new Date(clientSince) : undefined,
+        birthday: birthday ? new Date(birthday + 'T00:00:00') : undefined,
+        clientSince: clientSince ? new Date(clientSince + 'T00:00:00') : undefined,
       })
       showToast('Client updated')
       onClose()
@@ -99,8 +99,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         referenceSource: referenceSource.trim() || undefined,
         verificationNotes: verificationNotes.trim() || undefined,
         tags,
-        birthday: birthday ? new Date(birthday) : undefined,
-        clientSince: clientSince ? new Date(clientSince) : undefined,
+        birthday: birthday ? new Date(birthday + 'T00:00:00') : undefined,
+        clientSince: clientSince ? new Date(clientSince + 'T00:00:00') : undefined,
       })
       await db.clients.add(newClient)
       showToast('Client added')

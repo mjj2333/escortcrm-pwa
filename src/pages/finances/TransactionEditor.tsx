@@ -43,7 +43,7 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
     if (!isValid) return
     const txn = createTransaction({
       amount, type, category, paymentMethod,
-      date: new Date(date),
+      date: new Date(date + 'T00:00:00'),
       notes: notes.trim(),
     })
     await db.transactions.add(txn)
