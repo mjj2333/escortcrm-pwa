@@ -101,7 +101,7 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
   const hasActions = !isTerminal
 
   // Panel width
-  const PANEL_WIDTH = 260
+  const PANEL_WIDTH = 280
   const SNAP_THRESHOLD = 60
 
   // ━━━ Gesture handling ━━━
@@ -200,12 +200,18 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
     closePanel()
   }
 
-  // Determine which booking statuses to show as pills
-  const statusPills: { status: BookingStatus; label: string; color: string }[] = [
-    { status: 'Inquiry',   label: 'Inquiry', color: '#a855f7' },
-    { status: 'Confirmed', label: 'Confirm', color: '#22c55e' },
-    { status: 'In Progress', label: 'Active', color: '#14b8a6' },
-    { status: 'Completed', label: 'Done',    color: '#6b7280' },
+  // Booking status pills — split into two rows for readability
+  // Row 1: Pre-session progression (matches BookingDetail status flow)
+  const statusFlowPills: { status: BookingStatus; label: string; color: string }[] = [
+    { status: 'Inquiry',         label: 'Inquiry',  color: '#a855f7' },
+    { status: 'Screening',       label: 'Screen',   color: '#3b82f6' },
+    { status: 'Pending Deposit', label: 'P.Dep',    color: '#f97316' },
+    { status: 'Confirmed',       label: 'Confirm',  color: '#22c55e' },
+  ]
+  // Row 2: Session / terminal statuses
+  const statusSessionPills: { status: BookingStatus; label: string; color: string }[] = [
+    { status: 'In Progress', label: 'In Prog',    color: '#14b8a6' },
+    { status: 'Completed',   label: 'Complete',    color: '#6b7280' },
   ]
 
   const screeningPills: { status: ScreeningStatus; label: string; color: string }[] = [
@@ -261,9 +267,24 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
           ))}
         </ActionRow>
 
-        {/* Row 3: Booking Status */}
+        {/* Row 3: Booking Status — pre-session flow */}
         <ActionRow label="Status">
-          {statusPills.map(p => (
+          {statusFlowPills.map(p => (
+            <ActionPill
+              key={p.status}
+              label={p.label}
+              active={booking.status === p.status}
+              color={p.color}
+              onTap={() => {
+                if (p.status !== booking.status) setBookingStatus(p.status)
+              }}
+            />
+          ))}
+        </ActionRow>
+
+        {/* Row 4: Session / terminal statuses + cancel */}
+        <ActionRow label="">
+          {statusSessionPills.map(p => (
             <ActionPill
               key={p.status}
               label={p.label}
