@@ -232,7 +232,7 @@ export default function App() {
       case 2:
         return <SchedulePage onOpenBooking={openBooking} />
       case 3:
-        return <FinancesPage onOpenAnalytics={() => setScreen({ type: 'analytics' })} />
+        return <FinancesPage onOpenAnalytics={() => setScreen({ type: 'analytics' })} onOpenBooking={openBooking} />
       case 4:
         return <SafetyPage />
       default:

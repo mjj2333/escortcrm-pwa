@@ -17,6 +17,8 @@ import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldTextInput, fieldInputStyle } from '../../components/FormFields'
 import { ImportExportModal } from '../../components/ImportExport'
 import { TransactionEditor } from './TransactionEditor'
+import { StatusBadge } from '../../components/StatusBadge'
+import { bookingStatusColors } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
 
 type TimePeriod = 'Week' | 'Month' | 'Quarter' | 'Year' | 'All'
@@ -35,7 +37,7 @@ function periodStart(p: TimePeriod): Date {
 // MAIN FINANCES PAGE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void }) {
+export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalytics?: () => void; onOpenBooking?: (bookingId: string) => void }) {
   const [period, setPeriod] = useState<TimePeriod>('Month')
   const [showEditor, setShowEditor] = useState(false)
   const [showGoalEditor, setShowGoalEditor] = useState(false)
@@ -398,17 +400,19 @@ export function FinancesPage({ onOpenAnalytics }: { onOpenAnalytics?: () => void
             </div>
             <div className="space-y-2">
               {bookingsWithBalance.slice(0, 5).map(({ booking, owing, client }) => (
-                  <div key={booking.id} className="flex items-center justify-between">
-                    <div>
+                  <button
+                    key={booking.id}
+                    className="flex items-center justify-between w-full text-left"
+                    onClick={() => onOpenBooking?.(booking.id)}
+                  >
+                    <div className="flex items-center gap-2">
                       <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
                         {client?.alias ?? 'Unknown'}
                       </span>
-                      <span className="text-xs ml-1.5" style={{ color: 'var(--text-secondary)' }}>
-                        {booking.status}
-                      </span>
+                      <StatusBadge text={booking.status} color={bookingStatusColors[booking.status]} />
                     </div>
                     <span className="text-sm text-orange-500">{formatCurrency(owing)}</span>
-                  </div>
+                  </button>
               ))}
               {bookingsWithBalance.length > 5 && (
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
