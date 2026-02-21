@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ChevronRight, User, UserPlus, Search, ChevronDown, ChevronUp, AlertTriangle, Plus, ChevronLeft } from 'lucide-react'
 import { format } from 'date-fns'
-import { db, createBooking, createClient, bookingDurationFormatted, formatCurrency, recordBookingPayment } from '../../db'
+import { db, createBooking, createClient, bookingDurationFormatted, formatCurrency, recordBookingPayment, completeBookingPayment } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
@@ -164,7 +164,25 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         notes: notes.trim(),
         requiresSafetyCheck,
         recurrence,
+        // Set timestamps when status changes
+        ...(status === 'Confirmed' && booking.status !== 'Confirmed' && !booking.confirmedAt ? { confirmedAt: new Date() } : {}),
+        ...(status === 'Completed' && booking.status !== 'Completed' ? { completedAt: new Date() } : {}),
+        ...(status === 'Cancelled' && booking.status !== 'Cancelled' ? { cancelledAt: new Date() } : {}),
+        ...(status === 'No Show' && booking.status !== 'No Show' ? { cancelledAt: new Date() } : {}),
       })
+
+      // Side effects when status changes via editor
+      if (status !== booking.status) {
+        if (status === 'Completed') {
+          const updatedBooking = await db.bookings.get(booking.id)
+          if (updatedBooking) {
+            await completeBookingPayment(updatedBooking, selectedClient?.alias)
+          }
+          if (clientId) {
+            await db.clients.update(clientId, { lastSeen: new Date() })
+          }
+        }
+      }
 
       if (overrideAvailability) {
         await adjustAvailabilityForBooking(dt, duration, booking.id)
