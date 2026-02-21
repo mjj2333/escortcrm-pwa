@@ -346,6 +346,16 @@ export function SafetyPage() {
                     <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
                       {incident.description}
                     </p>
+                    {incident.clientId && clientFor(incident.clientId) && (
+                      <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        Client: {clientFor(incident.clientId)!.alias}
+                      </p>
+                    )}
+                    {incident.actionTaken && (
+                      <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        Action: {incident.actionTaken}
+                      </p>
+                    )}
                   </Card>
                 ))}
               </div>
