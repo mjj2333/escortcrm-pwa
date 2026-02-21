@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Trash2, RotateCcw, Database, MessageSquare, Users } from 'lucide-react'
-import { db, newId, bookingDurationFormatted } from '../../db'
+import { db, newId, bookingDurationFormatted, formatCurrency } from '../../db'
 import { seedSampleData, clearSampleData } from '../../data/sampleData'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldToggle, fieldInputStyle } from '../../components/FormFields'
@@ -128,7 +128,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
                 <div className="flex-1">
                   <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{rate.name}</p>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {bookingDurationFormatted(rate.duration)} — ${rate.rate}
+                    {bookingDurationFormatted(rate.duration)} — {formatCurrency(rate.rate)}
                   </p>
                 </div>
                 <button type="button" onClick={() => toggleRate(rate.id, !rate.isActive)}
