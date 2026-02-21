@@ -70,8 +70,10 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
   const netIncome = totalIncome - totalExpenses
   const bookingTxns = filtered.filter(t => t.category === 'booking')
   const uniqueBookingIds = new Set(bookingTxns.map(t => t.bookingId).filter(Boolean))
-  const avgBooking = uniqueBookingIds.size > 0
-    ? Math.round(bookingTxns.reduce((s, t) => s + t.amount, 0) / uniqueBookingIds.size)
+  const manualBookingTxns = bookingTxns.filter(t => !t.bookingId).length
+  const bookingCount = uniqueBookingIds.size + manualBookingTxns
+  const avgBooking = bookingCount > 0
+    ? Math.round(bookingTxns.reduce((s, t) => s + t.amount, 0) / bookingCount)
     : 0
   const estimatedTax = netIncome > 0 ? Math.round(netIncome * taxRate / 100) : 0
   const suggestedSetAside = totalIncome > 0 ? Math.round(totalIncome * setAsideRate / 100) : 0
@@ -784,6 +786,10 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
             // Transaction was created by payment ledger — use removeBookingPayment
             // which deletes both the payment and its transaction, and syncs booleans
             await removeBookingPayment(txn.paymentId)
+            // If the payment was already gone, removeBookingPayment is a no-op —
+            // fall through and delete the orphaned transaction directly
+            const stillExists = await db.transactions.get(deleteTxnId)
+            if (stillExists) await db.transactions.delete(deleteTxnId)
           } else {
             await db.transactions.delete(deleteTxnId)
           }
