@@ -8,12 +8,13 @@ import { useState } from 'react'
 import { db, formatCurrency, isUpcoming, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card, CardHeader } from '../../components/Card'
+import { StatusBadge } from '../../components/StatusBadge'
 import { EmptyState } from '../../components/EmptyState'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
 import { SampleDataBanner } from '../../components/SampleDataBanner'
 import { TransactionEditor } from '../finances/TransactionEditor'
 import { formatTime12 } from '../../utils/availability'
-import { availabilityStatusColors } from '../../types'
+import { availabilityStatusColors, bookingStatusColors } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
 
 interface HomePageProps {
@@ -251,9 +252,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                       <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
                         {c?.alias ?? 'Unknown'}
                       </p>
-                      <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
-                        {booking.status}
-                      </p>
+                      <StatusBadge text={booking.status} color={bookingStatusColors[booking.status]} />
                     </div>
                   </div>
                   <span className="text-xs font-semibold text-orange-500">{formatCurrency(owing)}</span>
