@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronLeft, Check, Plus, Trash2, User, Phone as PhoneIcon, MessageSquare, UserCheck, Mail, Cake, CalendarDays, Share2, ShieldCheck, Heart, ShieldAlert, FileText } from 'lucide-react'
 import { format, startOfDay } from 'date-fns'
-import { db, newId, createClient, createBooking, bookingDurationFormatted } from '../db'
+import { db, newId, createClient, createBooking, bookingDurationFormatted, recordBookingPayment } from '../db'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../utils/availability'
 import type {
   ContactMethod, ScreeningStatus, RiskLevel, LocationType,
@@ -305,6 +305,17 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
       depositMethod: depositMethod || undefined, paymentMethod: paymentMethod || undefined,
       notes: notes.trim(), requiresSafetyCheck, recurrence })
     await db.bookings.add(newBooking)
+    // If deposit marked as received, record through payment ledger (matches BookingEditor)
+    if (depositReceived && depositAmount > 0) {
+      const selectedClient = clients.find(c => c.id === clientId)
+      await recordBookingPayment({
+        bookingId: newBooking.id,
+        amount: depositAmount,
+        method: paymentMethod || undefined,
+        label: 'Deposit',
+        clientAlias: selectedClient?.alias,
+      })
+    }
     if (overrideAvailability) await adjustAvailabilityForBooking(dt, duration, newBooking.id)
     setConflictWarning(null); onNext()
   }
