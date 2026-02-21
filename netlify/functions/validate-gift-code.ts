@@ -83,13 +83,15 @@ export const handler: Handler = async (event) => {
         if (record.hash !== hash) continue
         // Check expiry
         if (record.expiresAt && new Date() > new Date(record.expiresAt)) continue
+        const identifier = `gift:${hash}`
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
             valid: true,
             expiresAt: record.expiresAt ?? null,
-            token: signActivation(`gift:${hash}`, 'lifetime'),
+            token: signActivation(identifier, 'lifetime'),
+            identifier,
           }),
         }
       }
@@ -99,13 +101,15 @@ export const handler: Handler = async (event) => {
 
     // Fall back to legacy hardcoded hashes (original 10 beta codes)
     if (FALLBACK_HASHES.includes(hash)) {
+      const identifier = `gift:${hash}`
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           valid: true,
           expiresAt: null,
-          token: signActivation(`gift:${hash}`, 'lifetime'),
+          token: signActivation(identifier, 'lifetime'),
+          identifier,
         }),
       }
     }

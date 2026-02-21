@@ -271,7 +271,7 @@ async function verifyPurchase(
 
 const GIFT_CODE_ENDPOINT = '/.netlify/functions/validate-gift-code'
 
-async function matchGiftCode(code: string): Promise<{ expiresAt?: string; token?: string } | null> {
+async function matchGiftCode(code: string): Promise<{ expiresAt?: string; token?: string; identifier?: string } | null> {
   try {
     const res = await fetch(GIFT_CODE_ENDPOINT, {
       method: 'POST',
@@ -279,7 +279,7 @@ async function matchGiftCode(code: string): Promise<{ expiresAt?: string; token?
       body: JSON.stringify({ code }),
     })
     const data = await res.json()
-    if (data.valid) return { expiresAt: data.expiresAt ?? undefined, token: data.token ?? undefined }
+    if (data.valid) return { expiresAt: data.expiresAt ?? undefined, token: data.token ?? undefined, identifier: data.identifier ?? undefined }
     return null
   } catch {
     return null
@@ -345,7 +345,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
           betaExpiresAt: giftCode.expiresAt,
           activatedAt: new Date().toISOString(),
           token: giftCode.token,
-          identifier: `gift:${input.trim().toUpperCase()}`,
+          identifier: giftCode.identifier ?? `gift:${input.trim().toUpperCase()}`,
         })
         localStorage.setItem(REVALIDATION_KEY, String(Date.now()))
         setValidating(false)
