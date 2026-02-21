@@ -182,6 +182,18 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
             await db.clients.update(clientId, { lastSeen: new Date() })
           }
         }
+        // Escalate client risk level on No Show (matches BookingDetail & SwipeableBookingRow logic)
+        if (status === 'No Show' && clientId) {
+          const clientBookings = await db.bookings.where('clientId').equals(clientId).toArray()
+          const noShows = clientBookings.filter(b => b.status === 'No Show').length
+          const currentClient = await db.clients.get(clientId)
+          if (currentClient) {
+            let riskLevel = currentClient.riskLevel
+            if (noShows >= 2) riskLevel = 'High Risk'
+            else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
+            await db.clients.update(clientId, { riskLevel })
+          }
+        }
       }
 
       if (overrideAvailability) {
