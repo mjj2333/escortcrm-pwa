@@ -62,8 +62,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
     .filter(p => completedIds.has(p.bookingId))
     .reduce((sum, p) => sum + p.amount, 0)
 
-  // Outstanding balance: sum of (total - paid) for non-cancelled bookings
-  const activeBookings = bookings.filter(b => b.status !== 'Cancelled' && b.status !== 'No Show')
+  // Outstanding balance: sum of (total - paid) for Pending Deposit+ bookings
+  const activeBookings = bookings.filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed')
   const outstandingBalance = activeBookings.reduce((sum, b) => {
     const bTotal = bookingTotal(b)
     const bPaid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
