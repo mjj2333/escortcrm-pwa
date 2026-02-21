@@ -57,7 +57,9 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
 
   const noShowCount = bookings.filter(b => b.status === 'No Show').length
-  const totalRevenue = completedBookings.reduce((sum, b) => sum + bookingTotal(b), 0)
+  const totalRevenue = completedBookings.reduce((sum, b) => {
+    return sum + allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
+  }, 0)
 
   // Outstanding balance: sum of (total - paid) for non-cancelled bookings
   const activeBookings = bookings.filter(b => b.status !== 'Cancelled' && b.status !== 'No Show')
