@@ -259,8 +259,12 @@ export default function App() {
       <ToastContainer />
       <Suspense fallback={<div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }} />}>
         {renderContent()}
-        <SettingsPage isOpen={showSettings} onClose={() => setShowSettings(false)} onRestartTour={restartTour} />
       </Suspense>
+      {showSettings && (
+        <Suspense fallback={null}>
+          <SettingsPage isOpen={showSettings} onClose={() => setShowSettings(false)} onRestartTour={restartTour} />
+        </Suspense>
+      )}
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
       {showSplash && <WelcomeSplash onComplete={finishOnboarding} onStartSetup={startSetupGuide} />}
       {showSetup && <SetupGuide onComplete={finishOnboarding} onTabChange={setActiveTab} />}
