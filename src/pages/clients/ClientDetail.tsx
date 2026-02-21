@@ -421,7 +421,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
           {lastCompletedBooking && (
             <button
               onClick={() => setShowRebook(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
               style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
             >
               <RotateCcw size={14} /> Rebook
