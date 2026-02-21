@@ -89,6 +89,7 @@ export function useAutoStatusTransitions() {
               safetyContactId: b.safetyContactId,
               recurrence: b.recurrence,
               parentBookingId: b.id,
+              recurrenceRootId: b.recurrenceRootId ?? b.id,
             })
             await db.bookings.add(nextBooking)
           }
