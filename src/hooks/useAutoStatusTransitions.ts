@@ -79,6 +79,7 @@ export function useAutoStatusTransitions() {
               locationAddress: b.locationAddress,
               locationNotes: b.locationNotes,
               status: 'Confirmed',
+              confirmedAt: new Date(),
               baseRate: b.baseRate,
               extras: b.extras,
               travelFee: b.travelFee,

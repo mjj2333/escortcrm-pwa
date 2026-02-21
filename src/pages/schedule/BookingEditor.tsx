@@ -216,6 +216,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         notes: notes.trim(),
         requiresSafetyCheck,
         recurrence,
+        // Set timestamps when creating with an advanced status
+        ...(status === 'Confirmed' || status === 'In Progress' || status === 'Completed' ? { confirmedAt: new Date() } : {}),
+        ...(status === 'Completed' ? { completedAt: new Date() } : {}),
       })
       await db.bookings.add(newBooking)
 
@@ -228,6 +231,17 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
           label: 'Deposit',
           clientAlias: selectedClient?.alias,
         })
+      }
+
+      // Side effects when creating with an advanced status
+      if (status === 'Completed') {
+        const updatedBooking = await db.bookings.get(newBooking.id)
+        if (updatedBooking) {
+          await completeBookingPayment(updatedBooking, selectedClient?.alias)
+        }
+        if (clientId) {
+          await db.clients.update(clientId, { lastSeen: new Date() })
+        }
       }
 
       if (overrideAvailability) {

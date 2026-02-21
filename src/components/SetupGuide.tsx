@@ -303,7 +303,11 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
       locationAddress: locationAddress.trim() || undefined, locationNotes: locationNotes.trim() || undefined,
       status, baseRate, extras, travelFee: finalTravelFee, depositAmount, depositReceived,
       depositMethod: depositMethod || undefined, paymentMethod: paymentMethod || undefined,
-      notes: notes.trim(), requiresSafetyCheck, recurrence })
+      notes: notes.trim(), requiresSafetyCheck, recurrence,
+      // Set timestamps when creating with an advanced status
+      ...(status === 'Confirmed' || status === 'In Progress' || status === 'Completed' ? { confirmedAt: new Date() } : {}),
+      ...(status === 'Completed' ? { completedAt: new Date() } : {}),
+    })
     await db.bookings.add(newBooking)
     // If deposit marked as received, record through payment ledger (matches BookingEditor)
     if (depositReceived && depositAmount > 0) {
