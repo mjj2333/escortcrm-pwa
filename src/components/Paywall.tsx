@@ -137,9 +137,12 @@ export function isActivated(): boolean {
   // to re-verify on next revalidation.  Beta testers are exempt since
   // their codes were validated server-side and the token was returned.
   if (!activation.token && !activation.isBetaTester) {
-    // Legacy activation without token — allow it but flag for revalidation.
-    // This handles users who activated before this update was deployed.
-    // They'll be asked to re-verify once REVALIDATION_INTERVAL_MS passes.
+    // Legacy activation without token. Clear the revalidation timestamp so
+    // revalidateActivation() isn't skipped on the next launch — it will attempt
+    // a silent token upgrade (if email is available) or leave them activated if not.
+    // Without this, a legacy user with a recent _cstate_rv entry would skip
+    // revalidation for up to 24 hours and never get upgraded to a signed token.
+    try { localStorage.removeItem(REVALIDATION_KEY) } catch {}
   }
 
   // Check beta expiration
