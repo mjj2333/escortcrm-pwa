@@ -40,7 +40,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const isViewingCurrentMonth = isSameMonth(currentMonth, new Date())
 
   const bookingsForDay = (day: Date) =>
-    bookings.filter(b => isSameDay(new Date(b.dateTime), day) && b.status !== 'Cancelled')
+    bookings.filter(b => isSameDay(new Date(b.dateTime), day) && b.status !== 'Cancelled' && b.status !== 'No Show')
 
   const availForDay = (day: Date) =>
     availability.find(a => isSameDay(new Date(a.date), day))
@@ -53,7 +53,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const now = new Date()
   const past30 = subDays(now, 30)
   const listBookings = bookings
-    .filter(b => new Date(b.dateTime) >= past30 && b.status !== 'Cancelled')
+    .filter(b => new Date(b.dateTime) >= past30 && b.status !== 'Cancelled' && b.status !== 'No Show')
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
   const pastBookings = listBookings.filter(b => new Date(b.dateTime) < now)
   const futureBookings = listBookings.filter(b => new Date(b.dateTime) >= now)
