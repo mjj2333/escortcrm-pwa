@@ -5,7 +5,7 @@ import {
   format, subMonths, startOfMonth, getDay, getHours,
   eachMonthOfInterval
 } from 'date-fns'
-import { db, formatCurrency, bookingTotal } from '../../db'
+import { db, formatCurrency } from '../../db'
 import { Card } from '../../components/Card'
 
 const TABS = ['Overview', 'Timing', 'Clients', 'Trends'] as const
@@ -54,8 +54,8 @@ export function AnalyticsPage({ onBack }: AnalyticsPageProps) {
 
       <div className="px-4 py-3 max-w-lg mx-auto space-y-4">
         {tab === 'Overview' && <OverviewTab bookings={bookings} clients={clients} transactions={transactions} />}
-        {tab === 'Timing' && <TimingTab bookings={bookings} />}
-        {tab === 'Clients' && <ClientsTab clients={clients} bookings={bookings} />}
+        {tab === 'Timing' && <TimingTab bookings={bookings} transactions={transactions} />}
+        {tab === 'Clients' && <ClientsTab clients={clients} bookings={bookings} transactions={transactions} />}
         {tab === 'Trends' && <TrendsTab transactions={transactions} bookings={bookings} />}
       </div>
     </div>
@@ -73,7 +73,9 @@ function OverviewTab({ bookings, clients, transactions }: {
   const totalRevenue = transactions.filter(t => t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0)
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s: number, t: any) => s + t.amount, 0)
   const avgBooking = completed.length > 0
-    ? Math.round(completed.reduce((s: number, b: any) => s + bookingTotal(b), 0) / completed.length)
+    ? Math.round(completed.reduce((s: number, b: any) => {
+        return s + transactions.filter((t: any) => t.bookingId === b.id && t.type === 'income').reduce((ts: number, t: any) => ts + t.amount, 0)
+      }, 0) / completed.length)
     : 0
   const avgDuration = completed.length > 0
     ? Math.round(completed.reduce((s: number, b: any) => s + b.duration, 0) / completed.length)
@@ -162,7 +164,7 @@ function OverviewTab({ bookings, clients, transactions }: {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const DISPLAY_HOURS = Array.from({ length: 16 }, (_, i) => i + 8) // 8am - 11pm
 
-function TimingTab({ bookings }: { bookings: any[] }) {
+function TimingTab({ bookings, transactions }: { bookings: any[]; transactions: any[] }) {
   const completed = bookings.filter(b => b.status === 'Completed')
 
   // Build 7x24 heatmap
@@ -205,10 +207,10 @@ function TimingTab({ bookings }: { bookings: any[] }) {
     const data = Array(7).fill(0)
     completed.forEach(b => {
       const day = getDay(new Date(b.dateTime))
-      data[day] += bookingTotal(b)
+      data[day] += transactions.filter((t: any) => t.bookingId === b.id && t.type === 'income').reduce((s: number, t: any) => s + t.amount, 0)
     })
     return data
-  }, [completed])
+  }, [completed, transactions])
   const maxDayRev = Math.max(1, ...dayRevenue)
 
   return (
@@ -319,17 +321,19 @@ function TimingTab({ bookings }: { bookings: any[] }) {
 // CLIENTS TAB
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function ClientsTab({ clients, bookings }: { clients: any[]; bookings: any[] }) {
+function ClientsTab({ clients, bookings, transactions }: { clients: any[]; bookings: any[]; transactions: any[] }) {
   const clientStats = useMemo(() => {
     return clients.map(c => {
       const cb = bookings.filter((b: any) => b.clientId === c.id)
       const completed = cb.filter((b: any) => b.status === 'Completed')
       const cancelled = cb.filter((b: any) => b.status === 'Cancelled' || b.status === 'No Show')
-      const revenue = completed.reduce((s: number, b: any) => s + bookingTotal(b), 0)
+      const revenue = completed.reduce((s: number, b: any) => {
+        return s + transactions.filter((t: any) => t.bookingId === b.id && t.type === 'income').reduce((ts: number, t: any) => ts + t.amount, 0)
+      }, 0)
       const cancelRate = cb.length > 0 ? Math.round((cancelled.length / cb.length) * 100) : 0
       return { client: c, bookingCount: completed.length, revenue, cancelRate, totalBookings: cb.length }
     }).filter(s => s.totalBookings > 0)
-  }, [clients, bookings])
+  }, [clients, bookings, transactions])
 
   const topClients = [...clientStats].sort((a, b) => b.revenue - a.revenue).slice(0, 10)
   const unreliable = clientStats.filter(s => s.cancelRate >= 30 && s.totalBookings >= 2).sort((a, b) => b.cancelRate - a.cancelRate)
