@@ -103,6 +103,13 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
 
   async function resetAllData() {
     await db.delete()
+    // Clear all localStorage EXCEPT activation/trial keys
+    const preserveKeys = ['_cstate_v2', '_cstate_rv']
+    const saved = preserveKeys.map(k => [k, localStorage.getItem(k)] as const)
+    localStorage.clear()
+    for (const [k, v] of saved) {
+      if (v !== null) localStorage.setItem(k, v)
+    }
     window.location.reload()
   }
 
