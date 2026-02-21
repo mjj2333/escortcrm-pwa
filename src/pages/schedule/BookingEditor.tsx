@@ -50,7 +50,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const [depositReceived, setDepositReceived] = useState(booking?.depositReceived ?? false)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(booking?.paymentMethod ?? rebookFrom?.paymentMethod ?? '')
   const [notes, setNotes] = useState(booking?.notes ?? '')
-  const [requiresSafetyCheck, setRequiresSafetyCheck] = useState(booking?.requiresSafetyCheck ?? true)
+  const [requiresSafetyCheck, setRequiresSafetyCheck] = useState(booking?.requiresSafetyCheck ?? rebookFrom?.requiresSafetyCheck ?? true)
   const [recurrence, setRecurrence] = useState<RecurrencePattern>(booking?.recurrence ?? rebookFrom?.recurrence ?? 'none')
 
   // UI state
