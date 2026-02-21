@@ -104,6 +104,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
     }
     // Delete all bookings for this client
     await db.bookings.where('clientId').equals(clientId).delete()
+    // Delete all incidents referencing this client
+    await db.incidents.where('clientId').equals(clientId).delete()
     // Delete the client
     await db.clients.delete(clientId)
     setShowDeleteConfirm(false)
