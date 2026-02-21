@@ -315,7 +315,7 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
       await recordBookingPayment({
         bookingId: newBooking.id,
         amount: depositAmount,
-        method: paymentMethod || undefined,
+        method: depositMethod || paymentMethod || undefined,
         label: 'Deposit',
         clientAlias: selectedClient?.alias,
       })
