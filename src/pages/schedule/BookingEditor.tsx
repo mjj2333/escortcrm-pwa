@@ -426,7 +426,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                     ? (rate.duration >= 60 ? `${Math.round((rate.duration / 60) * 10) / 10}h` : `${rate.duration}m`)
                     : bookingDurationFormatted(rate.duration)}
                 </div>
-                <div className="text-xs opacity-70">${rate.rate}</div>
+                <div className="text-xs opacity-70">{formatCurrency(rate.rate)}</div>
               </button>
             ))}
             <button type="button" onClick={() => setCustomDuration(true)}
