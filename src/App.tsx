@@ -244,7 +244,7 @@ export default function App() {
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
       {updateAvailable && (
         <div
-          style={{ backgroundColor: '#7c3aed', color: '#fff', padding: '10px 16px', textAlign: 'center', fontSize: '13px', fontWeight: 500 }}
+          style={{ backgroundColor: '#7c3aed', color: '#fff', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', textAlign: 'center', fontSize: '13px', fontWeight: 500 }}
         >
           A new version is available.{' '}
           <button

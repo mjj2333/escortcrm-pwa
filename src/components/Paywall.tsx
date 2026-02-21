@@ -636,13 +636,15 @@ export function TrialBanner({ onUpgrade }: { onUpgrade: () => void }) {
   return (
     <button
       onClick={onUpgrade}
-      className="w-full py-2 px-4 text-center text-xs font-semibold flex items-center justify-center gap-1.5"
+      className="w-full px-4 text-center text-xs font-semibold flex items-center justify-center gap-1.5"
       style={{
         background:
           days <= 2
             ? 'linear-gradient(90deg, #ef4444, #f97316)'
             : 'linear-gradient(90deg, #a855f7, #ec4899)',
         color: '#fff',
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
+        paddingBottom: '8px',
       }}
     >
       <Sparkles size={12} />
