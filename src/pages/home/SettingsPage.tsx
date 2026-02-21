@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, Trash2, RotateCcw, Database, MessageSquare } from 'lucide-react'
+import { Plus, Trash2, RotateCcw, Database, MessageSquare, Users } from 'lucide-react'
 import { db, newId, bookingDurationFormatted } from '../../db'
+import { seedSampleData, clearSampleData } from '../../data/sampleData'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldToggle, fieldInputStyle } from '../../components/FormFields'
 import { PinLock } from '../../components/PinLock'
@@ -43,6 +44,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
   const [showPinSetup, setShowPinSetup] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [showSampleConfirm, setShowSampleConfirm] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
   const [versionTaps, setVersionTaps] = useState(0)
 
@@ -102,6 +104,14 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
   async function resetAllData() {
     await db.delete()
     window.location.reload()
+  }
+
+  async function restoreSampleData() {
+    // Clear existing data first, then reset flag so seed function proceeds
+    await clearSampleData()
+    localStorage.removeItem('companion_sample_data')
+    await seedSampleData()
+    setShowSampleConfirm(false)
   }
 
   return (
@@ -240,6 +250,11 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
             <Database size={16} style={{ color: '#a855f7' }} />
             <span className="text-sm font-medium text-purple-500">Backup & Restore</span>
           </button>
+          <button type="button" onClick={() => setShowSampleConfirm(true)}
+            className="flex items-center gap-3 w-full py-2.5 mb-3 active:opacity-70">
+            <Users size={16} style={{ color: '#a855f7' }} />
+            <span className="text-sm font-medium text-purple-500">Load Sample Data</span>
+          </button>
 
           {/* Help */}
           <SectionLabel label="Help" />
@@ -367,6 +382,14 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
         confirmLabel="Erase Everything"
         onConfirm={resetAllData}
         onCancel={() => setShowResetConfirm(false)}
+      />
+      <ConfirmDialog
+        isOpen={showSampleConfirm}
+        title="Load Sample Data"
+        message="This will clear all existing data and load sample clients, bookings, and transactions. This cannot be undone."
+        confirmLabel="Load Samples"
+        onConfirm={restoreSampleData}
+        onCancel={() => setShowSampleConfirm(false)}
       />
     </>
   )
