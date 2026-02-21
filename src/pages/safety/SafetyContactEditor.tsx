@@ -34,6 +34,12 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
     if (!isValid) return
 
     if (isEditing && contact) {
+      if (isPrimary && !contact.isPrimary) {
+        const existing = await db.safetyContacts.filter(c => c.isPrimary).toArray()
+        for (const c of existing) {
+          await db.safetyContacts.update(c.id, { isPrimary: false })
+        }
+      }
       await db.safetyContacts.update(contact.id, {
         name: name.trim(),
         phone: phone.trim(),
