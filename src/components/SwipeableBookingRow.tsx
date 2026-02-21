@@ -204,6 +204,27 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
     closePanel()
   }
 
+  async function markNoShow() {
+    await db.bookings.update(booking.id, {
+      status: 'No Show' as BookingStatus,
+      cancelledAt: new Date(),
+    })
+    // Escalate client risk level based on no-show count
+    if (booking.clientId) {
+      const clientBookings = await db.bookings.where('clientId').equals(booking.clientId).toArray()
+      const noShows = clientBookings.filter(b => b.status === 'No Show').length
+      const currentClient = await db.clients.get(booking.clientId)
+      if (currentClient) {
+        let riskLevel = currentClient.riskLevel
+        if (noShows >= 2) riskLevel = 'High Risk'
+        else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
+        await db.clients.update(booking.clientId, { riskLevel })
+      }
+    }
+    if (navigator.vibrate) navigator.vibrate([20, 50, 20])
+    closePanel()
+  }
+
   // Booking status pills — split into two rows for readability
   // Row 1: Pre-session progression (matches BookingDetail status flow)
   const statusFlowPills: { status: BookingStatus; label: string; color: string }[] = [
@@ -305,6 +326,13 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
             active={false}
             color="#ef4444"
             onTap={() => setBookingStatus('Cancelled')}
+          />
+          {/* No-Show button */}
+          <ActionPill
+            label="N/S"
+            active={booking.status === 'No Show'}
+            color="#ef4444"
+            onTap={() => markNoShow()}
           />
         </ActionRow>
       </div>
