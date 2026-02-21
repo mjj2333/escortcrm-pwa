@@ -217,7 +217,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
           {/* Security */}
           <SectionLabel label="Security" />
           <FieldToggle label="PIN Lock" value={pinEnabled} onChange={handlePinToggle}
-            hint={pinEnabled ? 'PIN required each time you open the app.' : 'Protect the app with a 4-digit PIN.'} />
+            hint={pinEnabled ? 'PIN required each time you open the app. 10 failed attempts will erase all data.' : 'Protect the app with a 4-digit PIN.'} />
           {pinEnabled && (
             <button type="button" onClick={() => setShowPinSetup(true)}
               className="text-sm text-purple-500 font-medium mb-3 active:opacity-70">

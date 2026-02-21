@@ -218,6 +218,11 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
         <div className="text-center">
           <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>{title}</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
+          {isSetup && phase === 'enter' && (
+            <p className="text-xs mt-2" style={{ color: '#f97316' }}>
+              ⚠️ 10 failed attempts will permanently erase all data
+            </p>
+          )}
         </div>
 
         {/* PIN Dots */}
