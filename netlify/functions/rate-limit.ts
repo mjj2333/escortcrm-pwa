@@ -21,8 +21,10 @@ interface RateLimitOptions {
   windowMs?: number
 }
 
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://companion1.netlify.app'
+
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': 'https://companion1.netlify.app',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json',

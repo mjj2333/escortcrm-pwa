@@ -32,8 +32,10 @@ if (!LIFETIME_PRICE || !MONTHLY_PRICE) {
   throw new Error('Missing STRIPE_LIFETIME_PRICE_ID or STRIPE_MONTHLY_PRICE_ID env vars')
 }
 
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://companion1.netlify.app'
+
 const headers = {
-  'Access-Control-Allow-Origin': 'https://companion1.netlify.app',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json',
