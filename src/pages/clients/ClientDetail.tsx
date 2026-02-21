@@ -96,10 +96,11 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
     // Get all booking IDs for this client
     const clientBookings = await db.bookings.where('clientId').equals(clientId).toArray()
     const bookingIds = clientBookings.map(b => b.id)
-    // Delete all payments and transactions associated with those bookings
+    // Delete all payments, transactions, and safety checks associated with those bookings
     for (const bid of bookingIds) {
       await db.payments.where('bookingId').equals(bid).delete()
       await db.transactions.where('bookingId').equals(bid).delete()
+      await db.safetyChecks.where('bookingId').equals(bid).delete()
     }
     // Delete all bookings for this client
     await db.bookings.where('clientId').equals(clientId).delete()
