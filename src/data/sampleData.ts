@@ -222,11 +222,14 @@ export async function seedSampleData(): Promise<void> {
 
   // ═══ TRANSACTIONS ═══
   const transactions: Transaction[] = [
-    // Income from James's completed booking
-    { id: newId(), bookingId: bookingA1, amount: 600, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(5), notes: '' },
+    // Income from James's completed booking (deposit 150 + balance 450 = 600 total)
     { id: newId(), bookingId: bookingA1, amount: 150, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(6), notes: 'Deposit' },
-    // Income from David's outcall
-    { id: newId(), bookingId: bookingD1, amount: 1150, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(8), notes: '' },
+    { id: newId(), bookingId: bookingA1, amount: 450, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(5), notes: 'Balance payment' },
+    // Deposit received for James's upcoming booking
+    { id: newId(), bookingId: bookingA2, amount: 150, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(2), notes: 'Deposit' },
+    // Income from David's outcall (deposit 200 + balance 950 + tip 100 = 1250 total)
+    { id: newId(), bookingId: bookingD1, amount: 200, type: 'income', category: 'booking', paymentMethod: 'Cash App', date: daysAgo(10), notes: 'Deposit' },
+    { id: newId(), bookingId: bookingD1, amount: 950, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(8), notes: 'Balance payment' },
     { id: newId(), bookingId: bookingD1, amount: 100, type: 'income', category: 'tip', paymentMethod: 'Cash', date: daysAgo(8), notes: 'Generous tip' },
     // Expenses
     { id: newId(), amount: 85, type: 'expense', category: 'clothing', date: daysAgo(7), notes: 'New set from La Vie en Rose', paymentMethod: undefined },
