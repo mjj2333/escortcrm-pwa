@@ -489,14 +489,6 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
           </Card>
         )}
 
-        {/* Notes */}
-        {booking.notes && (
-          <Card>
-            <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Notes</p>
-            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{booking.notes}</p>
-          </Card>
-        )}
-
         {/* Session Journal */}
         <Card>
           <div className="flex items-center justify-between mb-2">
@@ -729,10 +721,13 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
                   <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--bg-base)' }}>
                     <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>$</span>
                     <input
-                      type="number"
+                      type="text"
                       inputMode="decimal"
-                      value={cancelFeeAmount}
-                      onChange={e => setCancelFeeAmount(e.target.value)}
+                      value={cancelFeeAmount ? Number(cancelFeeAmount).toLocaleString() : ''}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/[^0-9.]/g, '')
+                        setCancelFeeAmount(raw)
+                      }}
                       placeholder="0"
                       className="flex-1 bg-transparent text-sm font-bold outline-none"
                       style={{ color: 'var(--text-primary)', fontSize: '16px' }}
@@ -827,10 +822,13 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
             <div>
               <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount</label>
               <input
-                type="number"
+                type="text"
                 inputMode="decimal"
-                value={payAmount}
-                onChange={e => setPayAmount(e.target.value)}
+                value={payAmount ? Number(payAmount).toLocaleString() : ''}
+                onChange={e => {
+                  const raw = e.target.value.replace(/[^0-9.]/g, '')
+                  setPayAmount(raw)
+                }}
                 placeholder="0"
                 className="w-full text-2xl font-bold py-2 px-3 rounded-lg border-0 outline-none"
                 style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}

@@ -558,8 +558,8 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
         <div className="mb-3">
           <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>Target ($)</label>
           <input type="text" inputMode="numeric"
-            value={target} onChange={e => setTarget(e.target.value.replace(/[^0-9]/g, ''))}
-            placeholder="5000" className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+            value={target ? Number(target).toLocaleString() : ''} onChange={e => setTarget(e.target.value.replace(/[^0-9]/g, ''))}
+            placeholder="5,000" className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
             style={fieldInputStyle} />
         </div>
         <div className="mb-3">

@@ -363,6 +363,11 @@ export function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
+export function formatNumber(n: number): string {
+  const locale = typeof navigator !== 'undefined' ? navigator.language : 'en-US'
+  return new Intl.NumberFormat(locale).format(n)
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // PAYMENT LEDGER
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

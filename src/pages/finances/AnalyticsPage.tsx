@@ -5,7 +5,7 @@ import {
   format, subMonths, startOfMonth, getDay, getHours,
   eachMonthOfInterval
 } from 'date-fns'
-import { db, formatCurrency } from '../../db'
+import { db, formatCurrency, formatNumber } from '../../db'
 import { Card } from '../../components/Card'
 
 const TABS = ['Overview', 'Timing', 'Clients', 'Trends'] as const
@@ -98,8 +98,8 @@ function OverviewTab({ bookings, clients, transactions }: {
       <div className="grid grid-cols-2 gap-3">
         <MetricCard label="Total Revenue" value={formatCurrency(totalRevenue)} color="#22c55e" />
         <MetricCard label="Net Profit" value={formatCurrency(totalRevenue - totalExpenses)} color="#3b82f6" />
-        <MetricCard label="Completed" value={`${completed.length}`} color="#a855f7" />
-        <MetricCard label="Active Clients" value={`${clients.filter(c => !c.isBlocked).length}`} color="#f97316" />
+        <MetricCard label="Completed" value={formatNumber(completed.length)} color="#a855f7" />
+        <MetricCard label="Active Clients" value={formatNumber(clients.filter(c => !c.isBlocked).length)} color="#f97316" />
       </div>
 
       {/* Averages */}

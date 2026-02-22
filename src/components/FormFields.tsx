@@ -105,14 +105,14 @@ export function FieldCurrency({ label, value, onChange, hint }:
         <input
           type="text"
           inputMode="decimal"
-          value={value > 0 ? String(value) : ''}
+          value={value > 0 ? value.toLocaleString() : ''}
           onChange={e => {
             const raw = e.target.value.replace(/[^0-9.]/g, '')
             if (raw === '' || raw === '.') { onChange(0); return }
             const v = parseFloat(raw)
             // Clamp to 0 — negative rates/fees/deposits corrupt payment totals
             if (!isNaN(v)) onChange(Math.max(0, v))
-          }}
+          }}}
           placeholder="0"
           className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent"
           style={{ color: 'var(--text-primary)', fontSize: '16px' }}
