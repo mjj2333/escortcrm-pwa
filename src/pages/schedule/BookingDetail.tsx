@@ -53,6 +53,10 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
   const [payLabel, setPayLabel] = useState<PaymentLabel>('Payment')
   const [payNotes, setPayNotes] = useState('')
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null)
+  // Cancellation fee sheet state
+  const [cancelFeeAmount, setCancelFeeAmount] = useState('')
+  const [cancelFeeMethod, setCancelFeeMethod] = useState<PaymentMethod | ''>('')
+  const [cancelReason, setCancelReason] = useState('')
 
   if (!booking) return null
 
@@ -83,7 +87,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
     await db.bookings.update(bookingId, updates)
   }
 
-  async function markNoShow() {
+  async function markNoShow(feeAmount?: number, feeMethod?: PaymentMethod) {
     await db.bookings.update(bookingId, {
       status: 'No Show' as BookingStatus,
       cancelledAt: new Date(),
@@ -100,16 +104,48 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
         await db.clients.update(booking!.clientId, { riskLevel })
       }
     }
+    if (feeAmount && feeAmount > 0) {
+      await recordBookingPayment({
+        bookingId,
+        amount: feeAmount,
+        method: feeMethod || undefined,
+        label: 'Cancellation Fee',
+        clientAlias: client?.alias,
+        notes: 'No-show fee',
+      })
+    }
     setConfirmAction(null)
+    setCancelFeeAmount('')
+    setCancelFeeMethod('')
+    setCancelReason('')
+    showToast(feeAmount && feeAmount > 0
+      ? `Marked no-show · ${formatCurrency(feeAmount)} fee recorded`
+      : 'Marked as no-show')
   }
 
-  async function cancelBooking(reason?: string) {
+  async function cancelBooking(reason?: string, feeAmount?: number, feeMethod?: PaymentMethod) {
     await db.bookings.update(bookingId, {
       status: 'Cancelled' as BookingStatus,
       cancelledAt: new Date(),
       cancellationReason: reason?.trim() || undefined,
     })
+    if (feeAmount && feeAmount > 0) {
+      await recordBookingPayment({
+        bookingId,
+        amount: feeAmount,
+        method: feeMethod || undefined,
+        label: 'Cancellation Fee',
+        clientAlias: client?.alias,
+        notes: reason?.trim() ? `Cancellation fee — ${reason.trim()}` : 'Cancellation fee',
+      })
+    }
     setConfirmAction(null)
+    setCancelFeeAmount('')
+    setCancelFeeMethod('')
+    setCancelReason('')
+    showToast(feeAmount && feeAmount > 0
+      ? `Booking cancelled · ${formatCurrency(feeAmount)} fee recorded`
+      : 'Booking cancelled')
   }
 
   async function deleteBooking() {
@@ -441,11 +477,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
         )}
 
         {/* Cancellation info */}
-        {booking.status === 'Cancelled' && (
+        {(booking.status === 'Cancelled' || booking.status === 'No Show') && (
           <Card>
-            <div className="flex items-center gap-2 text-red-500 mb-1">
+            <div className="flex items-center gap-2 mb-1" style={{ color: booking.status === 'No Show' ? '#f97316' : '#ef4444' }}>
               <XCircle size={16} />
-              <span className="text-sm font-medium">Cancelled</span>
+              <span className="text-sm font-medium">{booking.status === 'No Show' ? 'No-Show' : 'Cancelled'}</span>
             </div>
             {booking.cancelledAt && (
               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
@@ -455,6 +491,14 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
             {booking.cancellationReason && (
               <p className="text-sm mt-1" style={{ color: 'var(--text-primary)' }}>{booking.cancellationReason}</p>
             )}
+            {payments?.filter(p => p.label === 'Cancellation Fee').map(p => (
+              <div key={p.id} className="flex items-center justify-between mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+                <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  Cancellation fee{p.method ? ` · ${p.method}` : ''}
+                </span>
+                <span className="text-sm font-bold text-green-500">{formatCurrency(p.amount)}</span>
+              </div>
+            ))}
           </Card>
         )}
 
@@ -552,23 +596,6 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
 
       {/* Confirm Dialogs */}
       <ConfirmDialog
-        isOpen={confirmAction === 'noshow'}
-        title="Mark as No-Show"
-        message="Mark this booking as a no-show? This may increase the client's risk level."
-        confirmLabel="No-Show"
-        onConfirm={markNoShow}
-        onCancel={() => setConfirmAction(null)}
-      />
-      <ConfirmDialog
-        isOpen={confirmAction === 'cancel'}
-        title="Cancel Booking"
-        message="Are you sure you want to cancel this booking?"
-        confirmLabel="Cancel Booking"
-        inputPlaceholder="Cancellation reason (optional)"
-        onConfirm={(reason) => cancelBooking(reason)}
-        onCancel={() => setConfirmAction(null)}
-      />
-      <ConfirmDialog
         isOpen={confirmAction === 'delete'}
         title="Delete Booking"
         message="Permanently delete this booking? This cannot be undone."
@@ -576,6 +603,111 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
         onConfirm={deleteBooking}
         onCancel={() => setConfirmAction(null)}
       />
+
+      {/* Cancellation / No-Show Sheet */}
+      {(confirmAction === 'cancel' || confirmAction === 'noshow') && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setConfirmAction(null)} />
+          <div
+            className="relative w-full max-w-lg rounded-t-2xl p-5 safe-bottom"
+            style={{ backgroundColor: 'var(--bg-card)' }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+                {confirmAction === 'noshow' ? 'Mark as No-Show' : 'Cancel Booking'}
+              </h3>
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="text-sm"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Dismiss
+              </button>
+            </div>
+
+            {/* Reason (cancel only) */}
+            {confirmAction === 'cancel' && (
+              <div className="mb-4">
+                <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                  Cancellation reason (optional)
+                </label>
+                <input
+                  type="text"
+                  value={cancelReason}
+                  onChange={e => setCancelReason(e.target.value)}
+                  placeholder="e.g. Client cancelled last minute"
+                  className="w-full py-2 px-3 rounded-lg text-sm outline-none"
+                  style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '16px' }}
+                />
+              </div>
+            )}
+
+            {/* Fee section */}
+            <div
+              className="rounded-xl p-4 mb-4"
+              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+            >
+              <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
+                Cancellation fee (optional)
+              </p>
+              <div className="flex gap-3 mb-3">
+                <div className="flex-1">
+                  <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount</label>
+                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--bg-base)' }}>
+                    <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>$</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={cancelFeeAmount}
+                      onChange={e => setCancelFeeAmount(e.target.value)}
+                      placeholder="0"
+                      className="flex-1 bg-transparent text-sm font-bold outline-none"
+                      style={{ color: 'var(--text-primary)', fontSize: '16px' }}
+                    />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Method</label>
+                  <select
+                    value={cancelFeeMethod}
+                    onChange={e => setCancelFeeMethod(e.target.value as PaymentMethod | '')}
+                    className="w-full py-2 px-3 rounded-lg text-sm outline-none"
+                    style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '16px' }}
+                  >
+                    <option value="">Any method</option>
+                    {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+              </div>
+              {cancelFeeAmount && parseFloat(cancelFeeAmount) > 0 && (
+                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                  Fee will be recorded as income and appear in your finance ledger.
+                </p>
+              )}
+            </div>
+
+            {/* Confirm button */}
+            <button
+              onClick={() => {
+                const fee = parseFloat(cancelFeeAmount) || 0
+                const method = cancelFeeMethod as PaymentMethod | undefined
+                if (confirmAction === 'noshow') {
+                  markNoShow(fee > 0 ? fee : undefined, fee > 0 ? method : undefined)
+                } else {
+                  cancelBooking(cancelReason, fee > 0 ? fee : undefined, fee > 0 ? method : undefined)
+                }
+              }}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-white"
+              style={{ backgroundColor: confirmAction === 'noshow' ? '#ef4444' : '#6b7280' }}
+            >
+              {confirmAction === 'noshow'
+                ? `Mark No-Show${cancelFeeAmount && parseFloat(cancelFeeAmount) > 0 ? ` · Record ${formatCurrency(parseFloat(cancelFeeAmount))} Fee` : ''}`
+                : `Cancel Booking${cancelFeeAmount && parseFloat(cancelFeeAmount) > 0 ? ` · Record ${formatCurrency(parseFloat(cancelFeeAmount))} Fee` : ''}`
+              }
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Editors */}
       <BookingEditor isOpen={showEditor} onClose={() => setShowEditor(false)} booking={booking} />

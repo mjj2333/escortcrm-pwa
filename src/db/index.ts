@@ -278,7 +278,9 @@ export async function recordBookingPayment(opts: {
       category: opts.label === 'Tip' ? 'tip' : 'booking',
       paymentMethod: opts.method,
       date: new Date(),
-      notes: `${opts.label} — ${opts.clientAlias ?? 'client'}`,
+      notes: opts.label === 'Cancellation Fee'
+        ? `Cancellation fee — ${opts.clientAlias ?? 'client'}`
+        : `${opts.label} — ${opts.clientAlias ?? 'client'}`,
     })
   }
   // Sync convenience booleans

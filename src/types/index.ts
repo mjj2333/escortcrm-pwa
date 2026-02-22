@@ -11,7 +11,7 @@ export type TransactionCategory = 'booking' | 'tip' | 'gift' | 'supplies' | 'tra
 export type AvailabilityStatus = 'Available' | 'Limited' | 'Busy' | 'Off'
 export type SafetyCheckStatus = 'pending' | 'checkedIn' | 'overdue' | 'alert'
 export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical'
-export type PaymentLabel = 'Deposit' | 'Payment' | 'Tip' | 'Adjustment'
+export type PaymentLabel = 'Deposit' | 'Payment' | 'Tip' | 'Adjustment' | 'Cancellation Fee'
 
 export interface ClientTag {
   id: string
