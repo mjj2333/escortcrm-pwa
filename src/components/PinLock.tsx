@@ -64,9 +64,10 @@ interface PinLockProps {
   correctPin: string
   isSetup?: boolean
   onSetPin?: (pinHash: string, plaintextPin: string) => void
+  onCancel?: () => void
 }
 
-export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProps) {
+export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: PinLockProps) {
   const [pin, setPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
   const [phase, setPhase] = useState<'enter' | 'confirm'>(isSetup ? 'enter' : 'enter')
@@ -225,6 +226,16 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center"
       style={{ backgroundColor: 'var(--bg-primary)' }}
     >
+      {/* Cancel button for setup mode */}
+      {isSetup && onCancel && (
+        <button
+          onClick={onCancel}
+          className="absolute top-0 left-0 px-4 text-sm font-medium"
+          style={{ color: 'var(--text-secondary)', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
+        >
+          ← Cancel
+        </button>
+      )}
       <div className="flex flex-col items-center gap-6 w-full max-w-xs px-8">
         {/* Icon */}
         <div

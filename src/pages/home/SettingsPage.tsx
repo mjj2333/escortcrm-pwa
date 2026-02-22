@@ -464,6 +464,7 @@ export function SettingsPage({ onClose, onRestartTour }: SettingsPageProps) {
         <PinLock
           correctPin=""
           isSetup
+          onCancel={() => setShowPinSetup(false)}
           onUnlock={() => setShowPinSetup(false)}
           onSetPin={async (hash, plaintextPin) => {
             setPinCode(hash)
