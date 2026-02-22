@@ -66,8 +66,8 @@ function buildMergeFields(source: Client, target: Client): MergeField[] {
   add('preferredContact', 'Preferred Contact', source.preferredContact, target.preferredContact, 'target')
   add('screeningStatus', 'Screening', source.screeningStatus, target.screeningStatus,
     // prefer more advanced screening
-    (['Verified', 'In Progress', 'Unscreened'] as const).indexOf(source.screeningStatus) <
-    (['Verified', 'In Progress', 'Unscreened'] as const).indexOf(target.screeningStatus)
+    (['Screened', 'In Progress', 'Unscreened'] as const).indexOf(source.screeningStatus) <
+    (['Screened', 'In Progress', 'Unscreened'] as const).indexOf(target.screeningStatus)
       ? 'source' : 'target')
   add('riskLevel', 'Risk Level', source.riskLevel, target.riskLevel,
     // prefer higher risk level (safer to err high)

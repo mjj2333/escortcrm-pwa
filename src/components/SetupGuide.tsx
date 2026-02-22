@@ -174,8 +174,8 @@ function ClientStep({ onNext, setCreatedClientId }: { onNext: () => void; setCre
         hint="How this client prefers to be reached. Shows on their profile for quick reference." icon={<MessageSquare size={12} />} />
       {/* Screening Status */}
       <SectionLabel label="Screening" />
-      <FieldSelect label="Status" value={screeningStatus} options={['Unscreened', 'In Progress', 'Verified'] as ScreeningStatus[]} onChange={v => setScreeningStatus(v as ScreeningStatus)}
-        hint="Set to Verified once screening is complete." icon={<ShieldCheck size={12} />} />
+      <FieldSelect label="Status" value={screeningStatus} options={['Unscreened', 'In Progress', 'Screened'] as ScreeningStatus[]} onChange={v => setScreeningStatus(v as ScreeningStatus)}
+        hint="Set to Screened once screening is complete." icon={<ShieldCheck size={12} />} />
 
       <SectionLabel label="Risk Level" />
       <div className="mb-3">

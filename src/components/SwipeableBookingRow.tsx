@@ -225,22 +225,22 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
 
   // Booking status pills — simplified (Screening and Pending Deposit removed — they have their own rows)
   const statusFlowPills: { status: BookingStatus; label: string; color: string }[] = [
-    { status: 'To Be Confirmed', label: 'TBC',      color: '#a855f7' },
-    { status: 'Confirmed',       label: 'Confirm',  color: '#22c55e' },
+    { status: 'To Be Confirmed', label: 'To Be Confirmed', color: '#a855f7' },
+    { status: 'Confirmed',       label: 'Confirmed',       color: '#22c55e' },
   ]
   // Row 2: Session / terminal statuses
   const statusSessionPills: { status: BookingStatus; label: string; color: string }[] = [
-    { status: 'In Progress', label: 'In Prog',    color: '#14b8a6' },
-    { status: 'Completed',   label: 'Complete',    color: '#6b7280' },
+    { status: 'In Progress', label: 'In Progress', color: '#14b8a6' },
+    { status: 'Completed',   label: 'Completed',   color: '#6b7280' },
   ]
 
   const screeningPills: { status: ScreeningStatus; label: string; color: string }[] = [
-    { status: 'Unscreened',   label: 'Unscreened', color: '#f59e0b' },
-    { status: 'In Progress',  label: 'In Prog',    color: '#3b82f6' },
-    { status: 'Verified',     label: 'Verified',   color: '#22c55e' },
+    { status: 'Unscreened',   label: 'Unscreened',   color: '#f59e0b' },
+    { status: 'In Progress',  label: 'In Progress',  color: '#3b82f6' },
+    { status: 'Screened',     label: 'Screened',      color: '#22c55e' },
   ]
 
-  const isVerified = client?.screeningStatus === 'Verified'
+  const isVerified = client?.screeningStatus === 'Screened'
 
   return (
     <div className="relative overflow-hidden rounded-xl" style={{ touchAction: 'pan-y' }}>
@@ -323,13 +323,13 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
                 />
               ))}
               <ActionPill
-                label="✕"
-                active={false}
+                label="Cancel"
+                active={booking.status === 'Cancelled'}
                 color="#ef4444"
                 onTap={() => setBookingStatus('Cancelled')}
               />
               <ActionPill
-                label="N/S"
+                label="No Show"
                 active={booking.status === 'No Show'}
                 color="#ef4444"
                 onTap={() => markNoShow()}

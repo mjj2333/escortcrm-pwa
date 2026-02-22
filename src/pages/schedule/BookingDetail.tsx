@@ -256,7 +256,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
                   {client.realName ?? client.alias}<VerifiedBadge client={client} size={13} />
                 </p>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  {client.preferredContact}{client.screeningStatus !== 'Verified' ? ` · ${client.screeningStatus}` : ''}
+                  {client.preferredContact}{client.screeningStatus !== 'Screened' ? ` · ${client.screeningStatus}` : ''}
                 </p>
               </div>
               <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
@@ -439,7 +439,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
         </Card>
 
         {/* Client Screening — quick toggle */}
-        {client && client.screeningStatus !== 'Verified' && (
+        {client && client.screeningStatus !== 'Screened' && (
           <Card>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Client Screening</span>
@@ -457,7 +457,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
               >
                 <option value="Unscreened">Unscreened</option>
                 <option value="In Progress">In Progress</option>
-                <option value="Verified">Verified</option>
+                <option value="Screened">Screened</option>
               </select>
             </div>
           </Card>

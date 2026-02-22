@@ -363,13 +363,13 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
                 style={{
                   backgroundColor: 'var(--bg-secondary)',
-                  color: client.screeningStatus === 'Verified' ? '#22c55e' : client.screeningStatus === 'In Progress' ? '#3b82f6' : '#f59e0b',
+                  color: client.screeningStatus === 'Screened' ? '#22c55e' : client.screeningStatus === 'In Progress' ? '#3b82f6' : '#f59e0b',
                   border: 'none',
                 }}
               >
                 <option value="Unscreened">Unscreened</option>
                 <option value="In Progress">In Progress</option>
-                <option value="Verified">Verified</option>
+                <option value="Screened">Screened</option>
               </select>
             </div>
           </div>

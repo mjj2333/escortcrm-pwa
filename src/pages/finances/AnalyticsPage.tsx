@@ -142,7 +142,7 @@ function OverviewTab({ bookings, clients, transactions }: {
         <div className="grid grid-cols-4 gap-1">
           {[
             { label: 'Total', count: clients.length, color: '#3b82f6' },
-            { label: 'Verified', count: clients.filter((c: any) => c.screeningStatus === 'Verified').length, color: '#22c55e' },
+            { label: 'Screened', count: clients.filter((c: any) => c.screeningStatus === 'Screened').length, color: '#22c55e' },
             { label: 'Repeat', count: clients.filter((c: any) => bookings.filter((b: any) => b.clientId === c.id && b.status === 'Completed').length >= 2).length, color: '#a855f7' },
             { label: 'Blocked', count: clients.filter((c: any) => c.isBlocked).length, color: '#ef4444' },
           ].map(s => (

@@ -1,7 +1,7 @@
 // Types ported from Swift data models
 
 export type ContactMethod = 'Phone' | 'Text' | 'Email' | 'Telegram' | 'Signal' | 'WhatsApp' | 'Other'
-export type ScreeningStatus = 'Unscreened' | 'In Progress' | 'Verified'
+export type ScreeningStatus = 'Unscreened' | 'In Progress' | 'Screened'
 export type ScreeningMethod = 'ID' | 'LinkedIn' | 'Provider Reference' | 'Employment' | 'Phone' | 'Deposit' | 'Other'
 export type RiskLevel = 'Unknown' | 'Low Risk' | 'Medium Risk' | 'High Risk'
 export type BookingStatus = 'To Be Confirmed' | 'Screening' | 'Pending Deposit' | 'Confirmed' | 'In Progress' | 'Completed' | 'Cancelled' | 'No Show'
@@ -158,7 +158,7 @@ export interface ServiceRate {
 // Display helpers
 
 export const screeningStatusColors: Record<ScreeningStatus, string> = {
-  'Unscreened': 'orange', 'In Progress': 'blue', 'Verified': 'green'
+  'Unscreened': 'orange', 'In Progress': 'blue', 'Screened': 'green'
 }
 
 export const riskLevelColors: Record<RiskLevel, string> = {

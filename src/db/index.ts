@@ -99,6 +99,26 @@ class EscortCRMDatabase extends Dexie {
         }
       })
     })
+
+    // v6: rename screening status: Verified → Screened
+    this.version(6).stores({
+      clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId',
+      transactions: 'id, bookingId, type, category, date',
+      availability: 'id, date',
+      safetyContacts: 'id, isPrimary, isActive',
+      safetyChecks: 'id, bookingId, status, scheduledTime',
+      incidents: 'id, clientId, bookingId, date, severity',
+      serviceRates: 'id, sortOrder, isActive',
+      payments: 'id, bookingId, label, date',
+      meta: 'key',
+    }).upgrade(tx => {
+      return tx.table('clients').toCollection().modify(client => {
+        if (client.screeningStatus === 'Verified') {
+          client.screeningStatus = 'Screened'
+        }
+      })
+    })
   }
 }
 

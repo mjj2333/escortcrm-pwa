@@ -9,7 +9,7 @@ import { TagPicker } from '../../components/TagPicker'
 import type { Client, ClientTag, ContactMethod, ScreeningStatus, ScreeningMethod, RiskLevel } from '../../types'
 
 const contactMethods: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp', 'Other']
-const screeningStatuses: ScreeningStatus[] = ['Unscreened', 'In Progress', 'Verified']
+const screeningStatuses: ScreeningStatus[] = ['Unscreened', 'In Progress', 'Screened']
 const screeningMethods: ScreeningMethod[] = ['ID', 'LinkedIn', 'Provider Reference', 'Employment', 'Phone', 'Deposit', 'Other']
 
 /** Convert a Date to 'yyyy-MM-dd' using local timezone (not UTC like toISOString). */
@@ -145,7 +145,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         {/* Screening */}
         <SectionLabel label="Screening" />
         <FieldSelect label="Status" value={screeningStatus} options={screeningStatuses} onChange={v => setScreeningStatus(v as ScreeningStatus)}
-          hint="Set to Verified once screening is complete." icon={<ShieldCheck size={12} />} />
+          hint="Set to Screened once screening is complete." icon={<ShieldCheck size={12} />} />
         <FieldSelect label="Method" value={screeningMethod} options={['', ...screeningMethods]} onChange={v => setScreeningMethod(v as ScreeningMethod | '')}
           hint="How the client was screened." icon={<UserCheck size={12} />} />
 

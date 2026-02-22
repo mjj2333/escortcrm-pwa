@@ -2,7 +2,7 @@ import type { Client } from '../types'
 
 /** Small verified checkmark shown inline next to client names */
 export function VerifiedBadge({ client, size = 14 }: { client?: Client | null; size?: number }) {
-  if (!client || client.screeningStatus !== 'Verified') return null
+  if (!client || client.screeningStatus !== 'Screened') return null
   return (
     <span
       title="Verified"

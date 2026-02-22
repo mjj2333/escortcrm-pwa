@@ -405,7 +405,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                     <select value={newClientScreening} onChange={e => setNewClientScreening(e.target.value as ScreeningStatus)}
                       className="text-sm bg-transparent outline-none"
                       style={{ color: 'var(--text-primary)', fontSize: '16px' }}>
-                      {(['Unscreened', 'In Progress', 'Verified'] as ScreeningStatus[]).map(s => (
+                      {(['Unscreened', 'In Progress', 'Screened'] as ScreeningStatus[]).map(s => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
