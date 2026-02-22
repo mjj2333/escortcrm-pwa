@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, ChevronRight, User, UserPlus, Search, ChevronDown, ChevronUp, AlertTriangle, Plus, ChevronLeft } from 'lucide-react'
+import { Check, ChevronRight, User, UserPlus, Search, ChevronDown, ChevronUp, AlertTriangle, Plus, ChevronLeft, ShieldAlert } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, createBooking, createClient, formatCurrency, recordBookingPayment, completeBookingPayment } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
+import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../../utils/availability'
 import type {
@@ -110,7 +111,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
   const selectedClient = clients.find(c => c.id === clientId)
   const total = baseRate + extras + ((locationType === 'Outcall' || locationType === 'Travel') ? travelFee : 0)
-  const isValid = clientId && baseRate > 0
+  const clientIsScreened = selectedClient?.screeningStatus === 'Screened'
+  const isValid = clientId && baseRate > 0 && (isEditing || clientIsScreened)
 
   // Filter client list
   const filteredClients = clients.filter(c =>
@@ -321,7 +323,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                   </span>
                 </div>
                 <span className="text-sm font-medium flex-1" style={{ color: 'var(--text-primary)' }}>
-                  {selectedClient.alias}
+                  {selectedClient.alias}<VerifiedBadge client={selectedClient} size={13} />
                 </span>
                 <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
               </>
@@ -335,6 +337,20 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
               </>
             )}
           </button>
+
+          {/* Screening warning */}
+          {selectedClient && !clientIsScreened && !isEditing && (
+            <div className="mt-2 flex items-start gap-2 px-3 py-2.5 rounded-lg"
+              style={{ backgroundColor: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)' }}>
+              <AlertTriangle size={14} className="text-orange-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-orange-500">Client not screened</p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                  {selectedClient.alias} must be screened before booking. Edit client to update screening status.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Inline client picker */}
           {showClientPicker && (
@@ -359,7 +375,15 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                       style={{ backgroundColor: 'rgba(168,85,247,0.15)' }}>
                       <span className="text-[10px] font-bold text-purple-500">{c.alias.charAt(0).toUpperCase()}</span>
                     </div>
-                    <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{c.alias}</span>
+                    <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>
+                      {c.alias}<VerifiedBadge client={c} size={12} />
+                    </span>
+                    {c.screeningStatus !== 'Screened' && (
+                      <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full"
+                        style={{ backgroundColor: 'rgba(249,115,22,0.15)', color: '#f59e0b' }}>
+                        {c.screeningStatus}
+                      </span>
+                    )}
                     {c.riskLevel === 'High Risk' && <span className="text-xs">⚠️</span>}
                     {c.id === clientId && <Check size={14} className="text-purple-500" />}
                   </button>
@@ -448,6 +472,20 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
             </div>
           )}
         </div>
+
+        {/* Unscreened client warning */}
+        {!isEditing && selectedClient && !clientIsScreened && (
+          <div className="flex items-center gap-2.5 p-3 rounded-xl mb-2"
+            style={{ backgroundColor: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
+            <ShieldAlert size={16} className="text-orange-500 shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-orange-500">Client must be screened before booking</p>
+              <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                Mark {selectedClient.alias} as Screened from the Clients tab first.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ━━━ Date & Time ━━━ */}
         <FieldDateTime label="Date & Time" value={dateTime} onChange={setDateTime} />
@@ -585,6 +623,11 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
             }`}>
             {isEditing ? 'Save Changes' : 'Create Booking'}
           </button>
+          {!isEditing && clientId && !clientIsScreened && (
+            <p className="text-[11px] text-center mt-2 text-orange-500">
+              Cannot create booking — client must be screened first
+            </p>
+          )}
         </div>
         <div className="h-8" />
       </div>

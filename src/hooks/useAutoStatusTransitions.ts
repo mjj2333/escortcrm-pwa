@@ -67,6 +67,10 @@ export function useAutoStatusTransitions() {
         if (b.status === 'Completed' && b.recurrence && b.recurrence !== 'none') {
           const existingChild = bookings.find(child => child.parentBookingId === b.id)
           if (!existingChild) {
+            // Only auto-create if client is still screened
+            const recurClient = b.clientId ? await db.clients.get(b.clientId) : null
+            if (recurClient && recurClient.screeningStatus !== 'Screened') continue
+
             const currentDate = new Date(b.dateTime)
             let nextDate: Date
             switch (b.recurrence) {
