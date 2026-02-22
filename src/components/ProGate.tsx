@@ -1,9 +1,9 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Lock, Sparkles } from 'lucide-react'
 import { isPro } from './planLimits'
 
 interface ProGateProps {
-  children: ReactNode
+  children?: ReactNode
   /** Feature name shown in the CTA, e.g. "Session Journal" */
   feature?: string
   /** Optional callback to open the upgrade screen */

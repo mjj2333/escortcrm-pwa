@@ -19,7 +19,7 @@ import { ClientMergeModal } from './ClientMergeModal'
 import { JournalLog } from '../../components/JournalLog'
 import { JournalEntryEditor } from '../../components/JournalEntryEditor'
 import { ScreeningProofManager } from '../../components/ScreeningProofManager'
-import { ProGate, ProBadge } from '../../components/ProGate'
+import { ProGate } from '../../components/ProGate'
 import { isPro } from '../../components/planLimits'
 import { screeningStatusColors, riskLevelColors, bookingStatusColors } from '../../types'
 

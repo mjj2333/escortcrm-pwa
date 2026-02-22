@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Check, Clock, FileText } from 'lucide-react'
-import { useLiveQuery } from 'dexie-react-hooks'
 import { db, newId } from '../db'
 import { Modal } from './Modal'
 import { showToast } from './Toast'

@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Clock, MapPin,
   CheckCircle, XCircle, UserX, RotateCcw, Shield,
-  ChevronRight, Trash2, Plus, DollarSign, FileText
+  ChevronRight, Trash2, Plus, DollarSign
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, completeBookingPayment, recordBookingPayment, removeBookingPayment } from '../../db'
@@ -17,7 +17,7 @@ import { ProGate } from '../../components/ProGate'
 import { isPro } from '../../components/planLimits'
 import { showToast, showUndoToast } from '../../components/Toast'
 import { bookingStatusColors, journalTagColors } from '../../types'
-import type { Booking, BookingStatus, PaymentMethod, PaymentLabel, JournalEntry } from '../../types'
+import type { Booking, BookingStatus, PaymentMethod, PaymentLabel } from '../../types'
 
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const paymentLabels: PaymentLabel[] = ['Deposit', 'Payment', 'Tip', 'Adjustment']

@@ -12,7 +12,7 @@ interface JournalLogProps {
   onAddNew?: () => void
 }
 
-export function JournalLog({ clientId, onEditEntry, onAddNew }: JournalLogProps) {
+export function JournalLog({ clientId, onEditEntry }: JournalLogProps) {
   const entries = useLiveQuery(
     () => db.journalEntries.where('clientId').equals(clientId).reverse().sortBy('date'),
     [clientId]

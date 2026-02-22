@@ -2,9 +2,9 @@ import { useRef, useCallback } from 'react'
 import type { ScreeningStatus } from '../types'
 
 const segments: { status: ScreeningStatus; label: string; color: string; position: number }[] = [
-  { status: 'Declined',  label: 'Declined', color: '#ef4444', position: 0 },
-  { status: 'Pending',   label: 'Pending',  color: '#f59e0b', position: 1 },
-  { status: 'Verified',  label: 'Verified', color: '#22c55e', position: 2 },
+  { status: 'Unscreened',   label: 'Unscreened',   color: '#ef4444', position: 0 },
+  { status: 'In Progress',  label: 'In Progress',  color: '#f59e0b', position: 1 },
+  { status: 'Screened',     label: 'Screened',      color: '#22c55e', position: 2 },
 ]
 
 interface ScreeningStatusBarProps {
@@ -139,11 +139,11 @@ export function ScreeningStatusBar({ value, onChange, disabled, compact }: Scree
       )}
       {!compact && !disabled && value === 'In Progress' && (
         <button
-          onClick={() => onChange('Pending')}
+          onClick={() => onChange('Unscreened')}
           className="mt-1.5 text-[11px] font-medium"
           style={{ color: 'var(--text-secondary)' }}
         >
-          Clear → Pending
+          Clear → Unscreened
         </button>
       )}
     </div>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, X, FileText, Image, ZoomIn, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, X, FileText, ZoomIn, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, newId } from '../db'
 import { showToast } from './Toast'

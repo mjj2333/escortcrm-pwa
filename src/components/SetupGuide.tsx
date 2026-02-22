@@ -5,7 +5,7 @@ import { format, startOfDay } from 'date-fns'
 import { db, newId, createClient, createBooking, bookingDurationFormatted, recordBookingPayment, formatCurrency } from '../db'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../utils/availability'
 import type {
-  ContactMethod, ScreeningStatus, ScreeningMethod, RiskLevel, LocationType,
+  ContactMethod, ScreeningStatus, RiskLevel, LocationType,
   BookingStatus, PaymentMethod, RecurrencePattern, ClientTag
 } from '../types'
 import { useLocalStorage } from '../hooks/useSettings'

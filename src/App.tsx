@@ -88,7 +88,6 @@ export default function App() {
         if (hadPaidActivation && !valid) {
           // Subscription was revoked server-side — force paywall
           setShowPaywall(true)
-          setPaywallDismissed(false)
         }
       })
     })
