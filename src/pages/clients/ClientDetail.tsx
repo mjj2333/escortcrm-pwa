@@ -270,9 +270,19 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
         )}
 
         {/* Contact Info */}
-        {(client.phone || client.email) && (
+        {(client.phone || client.email || client.telegram || client.signal || client.whatsapp) && (
           <Card>
             <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Contact</p>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}>
+                Primary: {client.preferredContact}
+              </span>
+              {client.secondaryContact && (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                  Secondary: {client.secondaryContact}
+                </span>
+              )}
+            </div>
             {client.phone && (
               <div className="flex items-center gap-3 py-1.5">
                 <Phone size={14} style={{ color: 'var(--text-secondary)' }} />
@@ -299,11 +309,45 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
                 </button>
               </div>
             )}
-            <div className="flex items-center gap-3 py-1.5">
-              <MessageSquare size={14} style={{ color: 'var(--text-secondary)' }} />
-              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Preferred:</span>
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{client.preferredContact}</span>
-            </div>
+            {client.telegram && (
+              <div className="flex items-center gap-3 py-1.5">
+                <span className="text-[10px] font-bold w-[14px] text-center" style={{ color: 'var(--text-secondary)' }}>TG</span>
+                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{client.telegram}</span>
+                <button
+                  onClick={() => copyToClipboard(client.telegram!, 'telegram')}
+                  className="p-1.5 rounded-lg"
+                  style={{ color: copiedField === 'telegram' ? '#22c55e' : 'var(--text-secondary)' }}
+                >
+                  {copiedField === 'telegram' ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
+            )}
+            {client.signal && (
+              <div className="flex items-center gap-3 py-1.5">
+                <span className="text-[10px] font-bold w-[14px] text-center" style={{ color: 'var(--text-secondary)' }}>SG</span>
+                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{client.signal}</span>
+                <button
+                  onClick={() => copyToClipboard(client.signal!, 'signal')}
+                  className="p-1.5 rounded-lg"
+                  style={{ color: copiedField === 'signal' ? '#22c55e' : 'var(--text-secondary)' }}
+                >
+                  {copiedField === 'signal' ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
+            )}
+            {client.whatsapp && (
+              <div className="flex items-center gap-3 py-1.5">
+                <span className="text-[10px] font-bold w-[14px] text-center" style={{ color: 'var(--text-secondary)' }}>WA</span>
+                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{client.whatsapp}</span>
+                <button
+                  onClick={() => copyToClipboard(client.whatsapp!, 'whatsapp')}
+                  className="p-1.5 rounded-lg"
+                  style={{ color: copiedField === 'whatsapp' ? '#22c55e' : 'var(--text-secondary)' }}
+                >
+                  {copiedField === 'whatsapp' ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
+            )}
           </Card>
         )}
 
@@ -448,24 +492,37 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
         </Card>
 
         {/* Quick Booking Actions — Items 7 + 12 */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowBookingEditor(true)}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white active:opacity-80"
-            style={{ backgroundColor: '#a855f7' }}
-          >
-            <Plus size={16} /> New Booking
-          </button>
-          {lastCompletedBooking && (
+        {client.screeningStatus === 'Screened' ? (
+          <div className="flex gap-2">
             <button
-              onClick={() => setShowRebook(true)}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
-              style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
+              onClick={() => setShowBookingEditor(true)}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white active:opacity-80"
+              style={{ backgroundColor: '#a855f7' }}
             >
-              <RotateCcw size={14} /> Rebook
+              <Plus size={16} /> New Booking
             </button>
-          )}
-        </div>
+            {lastCompletedBooking && (
+              <button
+                onClick={() => setShowRebook(true)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
+                style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
+              >
+                <RotateCcw size={14} /> Rebook
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 p-3 rounded-xl"
+            style={{ backgroundColor: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.15)' }}>
+            <Shield size={16} className="text-orange-500 shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-orange-500">Screening required to book</p>
+              <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                Set screening to Screened above to enable booking.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Upcoming Bookings */}
         {upcomingBookings.length > 0 && (
@@ -636,24 +693,39 @@ function ContactActionBar({ client }: { client: Client }) {
       bg: 'rgba(59,130,246,0.15)', fg: '#3b82f6',
       preferred: pref === 'Text',
     })
+  }
+
+  // WhatsApp — use dedicated field, fall back to phone
+  const waNumber = client.whatsapp ? cleanPhone(client.whatsapp) : phone
+  if (waNumber) {
     actions.push({
       label: 'WhatsApp',
       icon: <span className="text-xs font-bold">WA</span>,
-      href: `https://wa.me/${phone.replace(/^\+/, '')}`,
+      href: `https://wa.me/${waNumber.replace(/^\+/, '')}`,
       bg: 'rgba(37,211,102,0.15)', fg: '#25d366',
       preferred: pref === 'WhatsApp',
     })
+  }
+
+  // Telegram — use dedicated field, fall back to phone
+  const tgHandle = client.telegram || (phone ? phone : null)
+  if (tgHandle) {
     actions.push({
       label: 'Telegram',
       icon: <span className="text-xs font-bold">TG</span>,
-      href: `https://t.me/${phone}`,
+      href: tgHandle.startsWith('@') ? `https://t.me/${tgHandle.slice(1)}` : `https://t.me/${tgHandle}`,
       bg: 'rgba(0,136,204,0.15)', fg: '#0088cc',
       preferred: pref === 'Telegram',
     })
+  }
+
+  // Signal — use dedicated field, fall back to phone
+  const sigNumber = client.signal ? cleanPhone(client.signal) : phone
+  if (sigNumber) {
     actions.push({
       label: 'Signal',
       icon: <span className="text-xs font-bold">SG</span>,
-      href: `https://signal.me/#p/${phone}`,
+      href: `https://signal.me/#p/${sigNumber}`,
       bg: 'rgba(59,120,246,0.15)', fg: '#3a76f0',
       preferred: pref === 'Signal',
     })

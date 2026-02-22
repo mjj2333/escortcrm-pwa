@@ -27,7 +27,11 @@ export interface Client {
   realName?: string
   phone?: string
   email?: string
+  telegram?: string
+  signal?: string
+  whatsapp?: string
   preferredContact: ContactMethod
+  secondaryContact?: ContactMethod
   screeningStatus: ScreeningStatus
   screeningMethod?: ScreeningMethod
   riskLevel: RiskLevel

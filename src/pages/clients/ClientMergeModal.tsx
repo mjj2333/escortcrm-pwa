@@ -63,7 +63,11 @@ function buildMergeFields(source: Client, target: Client): MergeField[] {
   add('realName', 'Real Name', source.realName ?? '—', target.realName ?? '—', target.realName ? 'target' : 'source')
   add('phone', 'Phone', source.phone ?? '—', target.phone ?? '—', target.phone ? 'target' : 'source')
   add('email', 'Email', source.email ?? '—', target.email ?? '—', target.email ? 'target' : 'source')
-  add('preferredContact', 'Preferred Contact', source.preferredContact, target.preferredContact, 'target')
+  add('telegram', 'Telegram', source.telegram ?? '—', target.telegram ?? '—', target.telegram ? 'target' : 'source')
+  add('signal', 'Signal', source.signal ?? '—', target.signal ?? '—', target.signal ? 'target' : 'source')
+  add('whatsapp', 'WhatsApp', source.whatsapp ?? '—', target.whatsapp ?? '—', target.whatsapp ? 'target' : 'source')
+  add('preferredContact', 'Primary Contact', source.preferredContact, target.preferredContact, 'target')
+  add('secondaryContact', 'Secondary Contact', source.secondaryContact ?? '—', target.secondaryContact ?? '—', 'target')
   add('screeningStatus', 'Screening', source.screeningStatus, target.screeningStatus,
     // prefer more advanced screening
     (['Screened', 'In Progress', 'Unscreened'] as const).indexOf(source.screeningStatus) <
@@ -156,7 +160,11 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
         realName:          resolveField('realName'),
         phone:             resolveField('phone'),
         email:             resolveField('email'),
+        telegram:          resolveField('telegram'),
+        signal:            resolveField('signal'),
+        whatsapp:          resolveField('whatsapp'),
         preferredContact:  resolveField('preferredContact'),
+        secondaryContact:  resolveField('secondaryContact'),
         screeningStatus:   resolveField('screeningStatus'),
         riskLevel:         resolveField('riskLevel'),
         isBlocked:         sourceClient.isBlocked || targetClient.isBlocked, // either blocked → blocked
