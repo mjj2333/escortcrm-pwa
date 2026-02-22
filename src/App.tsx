@@ -17,7 +17,7 @@ const AnalyticsPage = lazy(() => import('./pages/finances/AnalyticsPage').then(m
 const SettingsPage = lazy(() => import('./pages/home/SettingsPage').then(m => ({ default: m.SettingsPage })))
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
-import { Paywall, TrialBanner, needsPaywall, revalidateActivation, initTrialState } from './components/Paywall'
+import { Paywall, TrialBanner, needsPaywall, isActivated, revalidateActivation, initTrialState } from './components/Paywall'
 import { ToastContainer, showToast } from './components/Toast'
 import { seedSampleData, hasSampleDataBeenOffered } from './data/sampleData'
 import { db, migrateToPaymentLedger } from './db'
@@ -81,10 +81,11 @@ export default function App() {
   // initTrialState() must run first so needsPaywall() has accurate trial data
   useEffect(() => {
     initTrialState().then(() => {
-      // Capture current state after trial is loaded
-      const wasActivated = !needsPaywall()
+      // Only check revalidation if user has an actual paid activation —
+      // trial-only users have no subscription to revoke
+      const hadPaidActivation = isActivated()
       revalidateActivation().then(valid => {
-        if (wasActivated && !valid) {
+        if (hadPaidActivation && !valid) {
           // Subscription was revoked server-side — force paywall
           setShowPaywall(true)
           setPaywallDismissed(false)
