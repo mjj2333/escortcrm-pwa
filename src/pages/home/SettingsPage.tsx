@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Trash2, RotateCcw, Database, MessageSquare, Users } from 'lucide-react'
-import { db, newId, bookingDurationFormatted, formatCurrency } from '../../db'
+import { db, newId, bookingDurationFormatted, formatCurrency, CURRENCY_KEY, DEFAULT_CURRENCY } from '../../db'
 import { seedSampleData, clearSampleData } from '../../data/sampleData'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldToggle, fieldInputStyle } from '../../components/FormFields'
@@ -24,6 +24,31 @@ interface SettingsPageProps {
   onRestartTour: () => void
 }
 
+const SUPPORTED_CURRENCIES: { code: string; label: string }[] = [
+  { code: 'USD', label: 'USD — US Dollar ($)' },
+  { code: 'CAD', label: 'CAD — Canadian Dollar ($)' },
+  { code: 'AUD', label: 'AUD — Australian Dollar ($)' },
+  { code: 'NZD', label: 'NZD — New Zealand Dollar ($)' },
+  { code: 'GBP', label: 'GBP — British Pound (£)' },
+  { code: 'EUR', label: 'EUR — Euro (€)' },
+  { code: 'CHF', label: 'CHF — Swiss Franc (Fr)' },
+  { code: 'SEK', label: 'SEK — Swedish Krona (kr)' },
+  { code: 'NOK', label: 'NOK — Norwegian Krone (kr)' },
+  { code: 'DKK', label: 'DKK — Danish Krone (kr)' },
+  { code: 'JPY', label: 'JPY — Japanese Yen (¥)' },
+  { code: 'HKD', label: 'HKD — Hong Kong Dollar ($)' },
+  { code: 'SGD', label: 'SGD — Singapore Dollar ($)' },
+  { code: 'THB', label: 'THB — Thai Baht (฿)' },
+  { code: 'INR', label: 'INR — Indian Rupee (₹)' },
+  { code: 'AED', label: 'AED — UAE Dirham (د.إ)' },
+  { code: 'ZAR', label: 'ZAR — South African Rand (R)' },
+  { code: 'BRL', label: 'BRL — Brazilian Real (R$)' },
+  { code: 'MXN', label: 'MXN — Mexican Peso ($)' },
+  { code: 'COP', label: 'COP — Colombian Peso ($)' },
+  { code: 'ARS', label: 'ARS — Argentine Peso ($)' },
+  { code: 'CLP', label: 'CLP — Chilean Peso ($)' },
+]
+
 export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPageProps) {
   const serviceRates = useLiveQuery(() => db.serviceRates.orderBy('sortOrder').toArray()) ?? []
   const [depositPct, setDepositPct] = useLocalStorage('defaultDepositPercentage', 25)
@@ -32,6 +57,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
   const [pinEnabled, setPinEnabled] = useLocalStorage('pinEnabled', false)
   const [, setPinCode] = useLocalStorage('pinCode', '')
   const [remindersEnabled, setRemindersEnabled] = useLocalStorage('remindersEnabled', false)
+  const [currency, setCurrency] = useLocalStorage(CURRENCY_KEY, DEFAULT_CURRENCY)
 
   // New rate form
   const [showAddRate, setShowAddRate] = useState(false)
@@ -217,7 +243,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
           {/* Security */}
           <SectionLabel label="Security" />
           <FieldToggle label="PIN Lock" value={pinEnabled} onChange={handlePinToggle}
-            hint={pinEnabled ? 'PIN required each time you open the app. 10 failed attempts will erase all data.' : 'Protect the app with a 4-digit PIN.'} />
+            hint={pinEnabled ? 'PIN required each time you open the app.' : 'Protect the app with a 4-digit PIN.'} />
           {pinEnabled && (
             <button type="button" onClick={() => setShowPinSetup(true)}
               className="text-sm text-purple-500 font-medium mb-3 active:opacity-70">
@@ -231,6 +257,25 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
           {darkMode && (
             <FieldToggle label="True Black (OLED)" value={oledBlack} onChange={handleOledBlackChange} />
           )}
+
+          {/* Currency */}
+          <SectionLabel label="Currency" />
+          <div className="mb-3">
+            <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>Display Currency</label>
+            <select
+              value={currency}
+              onChange={e => setCurrency(e.target.value)}
+              className="w-full rounded-lg px-3 py-2.5 text-sm outline-none"
+              style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', fontSize: '16px' }}
+            >
+              {SUPPORTED_CURRENCIES.map(({ code, label }) => (
+                <option key={code} value={code}>{label}</option>
+              ))}
+            </select>
+            <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+              Number formatting follows your device's language settings.
+            </p>
+          </div>
 
           {/* Notifications */}
           <SectionLabel label="Notifications" />

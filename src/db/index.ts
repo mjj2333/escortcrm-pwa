@@ -225,11 +225,21 @@ export function isUpcoming(b: Booking): boolean {
   return new Date(b.dateTime) > new Date() && b.status !== 'Cancelled' && b.status !== 'Completed' && b.status !== 'No Show'
 }
 
-// Helper: format currency
+// Helper: currency setting
+export const CURRENCY_KEY = 'currency'
+export const DEFAULT_CURRENCY = 'USD'
+
+export function getCurrency(): string {
+  try { return localStorage.getItem(CURRENCY_KEY) || DEFAULT_CURRENCY } catch { return DEFAULT_CURRENCY }
+}
+
+// Helper: format currency — reads currency from localStorage, locale from browser
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
+  const currency = getCurrency()
+  const locale = typeof navigator !== 'undefined' ? navigator.language : 'en-US'
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'USD',
+    currency,
     maximumFractionDigits: 0,
   }).format(amount)
 }

@@ -79,16 +79,29 @@ export function FieldTextArea({ label, value, onChange, placeholder, hint, icon 
   )
 }
 
+function deriveCurrencySymbol(): string {
+  try {
+    const currency = localStorage.getItem('currency') || 'USD'
+    const parts = new Intl.NumberFormat(navigator.language || 'en-US', {
+      style: 'currency', currency,
+    }).formatToParts(0)
+    return parts.find(p => p.type === 'currency')?.value ?? currency
+  } catch {
+    return '$'
+  }
+}
+
 export function FieldCurrency({ label, value, onChange, hint }:
   { label: string; value: number; onChange: (v: number) => void; hint?: string }
 ) {
+  const symbol = deriveCurrencySymbol()
   return (
     <div className="mb-3">
       <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
         {label}
       </label>
       <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-        <span className="pl-3 text-sm" style={{ color: 'var(--text-secondary)' }}>$</span>
+        <span className="pl-3 text-sm" style={{ color: 'var(--text-secondary)' }}>{symbol}</span>
         <input
           type="text"
           inputMode="decimal"
