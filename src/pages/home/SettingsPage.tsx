@@ -27,7 +27,6 @@ import {
 } from '../../hooks/useBiometric'
 
 interface SettingsPageProps {
-  isOpen: boolean
   onClose: () => void
   onRestartTour: () => void
 }
@@ -57,7 +56,7 @@ const SUPPORTED_CURRENCIES: { code: string; label: string }[] = [
   { code: 'CLP', label: 'CLP — Chilean Peso ($)' },
 ]
 
-export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPageProps) {
+export function SettingsPage({ onClose, onRestartTour }: SettingsPageProps) {
   const serviceRates = useLiveQuery(() => db.serviceRates.orderBy('sortOrder').toArray()) ?? []
   const [depositPct, setDepositPct] = useLocalStorage('defaultDepositPercentage', 25)
   const [darkMode, setDarkMode] = useLocalStorage('darkMode', true)
@@ -163,7 +162,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose} title="Settings">
+      <Modal isOpen={true} onClose={onClose} title="Settings">
         <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           {/* Service Rates */}
           <SectionLabel label="Service Rates" />

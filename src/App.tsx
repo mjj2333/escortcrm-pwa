@@ -24,6 +24,7 @@ import { db, migrateToPaymentLedger } from './db'
 import { initFieldEncryption } from './db/fieldCrypto'
 import { useServiceWorker } from './hooks/useServiceWorker'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
+import { useHashNav } from './hooks/useHashNav'
 
 type Screen =
   | { type: 'tab' }
@@ -139,23 +140,28 @@ export default function App() {
     migrateToPaymentLedger()
   }, [])
 
+  const { pushNav, replaceNav } = useHashNav(setActiveTab, setScreen)
+
   function handleTabChange(tab: number) {
-    setActiveTab(tab)
-    setScreen({ type: 'tab' })
+    // Tab switches replace history — tapping tabs shouldn't pollute the back stack
+    replaceNav(tab, { type: 'tab' })
   }
 
   function openClient(clientId: string) {
-    setActiveTab(1)
-    setScreen({ type: 'clientDetail', clientId })
+    pushNav(1, { type: 'clientDetail', clientId })
   }
 
   function openBooking(bookingId: string) {
-    setActiveTab(2)
-    setScreen({ type: 'bookingDetail', bookingId })
+    pushNav(2, { type: 'bookingDetail', bookingId })
   }
 
   function goBack() {
-    setScreen({ type: 'tab' })
+    // Prefer browser back so the history stack stays consistent
+    if (history.length > 1) {
+      history.back()
+    } else {
+      replaceNav(activeTab, { type: 'tab' })
+    }
   }
 
   function finishOnboarding() {
@@ -175,8 +181,7 @@ export default function App() {
 
   function restartTour() {
     setShowSettings(false)
-    setActiveTab(0)
-    setScreen({ type: 'tab' })
+    replaceNav(0, { type: 'tab' })
     setTimeout(() => setShowSplash(true), 300)
   }
 
@@ -245,7 +250,7 @@ export default function App() {
       case 2:
         return <SchedulePage onOpenBooking={openBooking} />
       case 3:
-        return <FinancesPage onOpenAnalytics={() => setScreen({ type: 'analytics' })} onOpenBooking={openBooking} />
+        return <FinancesPage onOpenAnalytics={() => pushNav(3, { type: 'analytics' })} onOpenBooking={openBooking} />
       case 4:
         return <SafetyPage />
       default:
@@ -298,7 +303,7 @@ export default function App() {
       </Suspense>
       {showSettings && (
         <Suspense fallback={null}>
-          <SettingsPage isOpen={showSettings} onClose={() => setShowSettings(false)} onRestartTour={restartTour} />
+          <SettingsPage onClose={() => setShowSettings(false)} onRestartTour={restartTour} />
         </Suspense>
       )}
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
