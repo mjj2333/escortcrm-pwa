@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Phone, MessageSquare, Mail, Copy, Check,
   UserX, Pin, PinOff, Gift, Heart, ChevronRight, Shield,
-  ThumbsUp, ShieldAlert, StickyNote, Plus, RotateCcw, Trash2
+  ThumbsUp, ShieldAlert, StickyNote, Plus, RotateCcw, Trash2, Merge
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted } from '../../db'
@@ -15,6 +15,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { showUndoToast } from '../../components/Toast'
 import { ClientEditor } from './ClientEditor'
 import { BookingEditor } from '../schedule/BookingEditor'
+import { ClientMergeModal } from './ClientMergeModal'
 import { screeningStatusColors, riskLevelColors, bookingStatusColors } from '../../types'
 
 interface ClientDetailProps {
@@ -39,6 +40,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [showBlockConfirm, setShowBlockConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showMerge, setShowMerge] = useState(false)
 
   if (!client) return null
 
@@ -535,6 +537,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
           </button>
           <div style={{ borderTop: '1px solid var(--border)' }} />
           <button
+            onClick={() => setShowMerge(true)}
+            className="w-full py-2 text-sm font-medium text-center flex items-center justify-center gap-2"
+            style={{ color: '#a855f7' }}
+          >
+            <Merge size={14} /> Merge with Duplicate
+          </button>
+          <div style={{ borderTop: '1px solid var(--border)' }} />
+          <button
             onClick={() => setShowDeleteConfirm(true)}
             className="w-full py-2 text-sm font-medium text-center flex items-center justify-center gap-2"
             style={{ color: '#ef4444' }}
@@ -562,6 +572,12 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
       />
       <ClientEditor isOpen={showEditor} onClose={() => setShowEditor(false)} client={client} />
       <BookingEditor isOpen={showBookingEditor} onClose={() => setShowBookingEditor(false)} preselectedClientId={clientId} />
+      <ClientMergeModal
+        isOpen={showMerge}
+        onClose={() => setShowMerge(false)}
+        sourceClient={client}
+        onMergeComplete={() => { setShowMerge(false); onBack() }}
+      />
       {lastCompletedBooking && (
         <BookingEditor isOpen={showRebook} onClose={() => setShowRebook(false)} rebookFrom={lastCompletedBooking} />
       )}
