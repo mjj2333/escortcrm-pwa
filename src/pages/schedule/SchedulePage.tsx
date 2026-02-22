@@ -14,6 +14,7 @@ import { AvailabilityPicker } from './AvailabilityPicker'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
 import { formatTime12 } from '../../utils/availability'
 import { BookingStatus, bookingStatusColors } from '../../types'
+import { SchedulePageSkeleton } from '../../components/Skeleton'
 
 interface SchedulePageProps {
   onOpenBooking: (bookingId: string) => void
@@ -57,9 +58,10 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const filtersActive = searchQuery.trim() !== '' || activeStatuses.size > 0 || dateFrom !== '' || dateTo !== ''
   const isDateRangeActive = dateFrom !== '' || dateTo !== ''
 
-  const bookings    = useLiveQuery(() => db.bookings.orderBy('dateTime').toArray()) ?? []
+  const bookings    = useLiveQuery(() => db.bookings.orderBy('dateTime').toArray())
   const clients     = useLiveQuery(() => db.clients.toArray()) ?? []
   const availability = useLiveQuery(() => db.availability.toArray()) ?? []
+  if (bookings === undefined) return <SchedulePageSkeleton />
 
   const clientFor = (id?: string) => clients.find(c => c.id === id)
 

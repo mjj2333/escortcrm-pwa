@@ -21,6 +21,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { bookingStatusColors } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { showUndoToast } from '../../components/Toast'
+import { FinancesPageSkeleton } from '../../components/Skeleton'
 
 type TimePeriod = 'Week' | 'Month' | 'Quarter' | 'Year' | 'All'
 
@@ -46,10 +47,11 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
   const [showAllTransactions, setShowAllTransactions] = useState(false)
   const [showImportExport, setShowImportExport] = useState(false)
 
-  const allTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray()) ?? []
+  const allTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray())
   const allBookings = useLiveQuery(() => db.bookings.toArray()) ?? []
   const clients = useLiveQuery(() => db.clients.toArray()) ?? []
   const allPayments = useLiveQuery(() => db.payments.toArray()) ?? []
+  if (allTransactions === undefined) return <FinancesPageSkeleton />
 
   // Settings
   const [taxRate] = useLocalStorage('taxRate', 25)

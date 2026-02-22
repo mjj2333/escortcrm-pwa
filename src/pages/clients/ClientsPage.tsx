@@ -8,6 +8,7 @@ import { MiniTags } from '../../components/TagPicker'
 import { EmptyState } from '../../components/EmptyState'
 import { ClientEditor } from './ClientEditor'
 import { screeningStatusColors, riskLevelColors } from '../../types'
+import { ClientsPageSkeleton } from '../../components/Skeleton'
 import type { Client } from '../../types'
 
 import { ImportExportModal } from '../../components/ImportExport'
@@ -25,7 +26,8 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   const [showBlocked, setShowBlocked] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('az')
   const [pinnedToast, setPinnedToast] = useState<{ id: string; pinned: boolean } | null>(null)
-  const clients = useLiveQuery(() => db.clients.orderBy('alias').toArray()) ?? []
+  const clients = useLiveQuery(() => db.clients.orderBy('alias').toArray())
+  if (clients === undefined) return <ClientsPageSkeleton />
 
   const blockedCount = clients.filter(c => c.isBlocked).length
 

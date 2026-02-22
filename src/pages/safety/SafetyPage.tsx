@@ -14,6 +14,7 @@ import { SafetyContactEditor } from './SafetyContactEditor'
 import { IncidentEditor } from './IncidentEditor'
 import { SafetyCheckEditor } from './SafetyCheckEditor'
 import { showToast, showUndoToast } from '../../components/Toast'
+import { SafetyPageSkeleton } from '../../components/Skeleton'
 import type { SafetyCheckStatus } from '../../types'
 
 const statusLabel: Record<SafetyCheckStatus, string> = {
@@ -44,11 +45,12 @@ export function SafetyPage() {
   const [editingCheck, setEditingCheck] = useState<typeof safetyChecks[0] | null>(null)
   
 
-  const safetyChecks = useLiveQuery(() => db.safetyChecks.orderBy('scheduledTime').reverse().toArray()) ?? []
+  const safetyChecks = useLiveQuery(() => db.safetyChecks.orderBy('scheduledTime').reverse().toArray())
   const bookings = useLiveQuery(() => db.bookings.toArray()) ?? []
   const clients = useLiveQuery(() => db.clients.toArray()) ?? []
   const contacts = useLiveQuery(() => db.safetyContacts.toArray()) ?? []
   const incidents = useLiveQuery(() => db.incidents.orderBy('date').reverse().toArray()) ?? []
+  if (safetyChecks === undefined) return <SafetyPageSkeleton />
 
   const pendingChecks = safetyChecks.filter(c => c.status === 'pending' || c.status === 'overdue')
   const overdueChecks = safetyChecks.filter(c => c.status === 'overdue')

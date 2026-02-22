@@ -18,6 +18,7 @@ import { availabilityStatusColors, bookingStatusColors } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { useBackupReminder } from '../../hooks/useBackupReminder'
 import { BackupRestoreModal } from '../../components/BackupRestore'
+import { HomePageSkeleton } from '../../components/Skeleton'
 
 interface HomePageProps {
   onNavigateTab: (tab: number) => void
@@ -39,7 +40,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const [reminderDismissed, setReminderDismissed] = useState(false)
   const { shouldRemind, daysSince } = useBackupReminder()
 
-  const allBookings = useLiveQuery(() => db.bookings.toArray()) ?? []
+  const allBookings = useLiveQuery(() => db.bookings.toArray())
   const clients = useLiveQuery(() => db.clients.toArray()) ?? []
   const transactions = useLiveQuery(() => db.transactions.toArray()) ?? []
   const allPayments = useLiveQuery(() => db.payments.toArray()) ?? []
@@ -48,6 +49,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const todayAvailability = useLiveQuery(() =>
     db.availability.where('date').between(todayStart, todayEnd, true, true).first()
   )
+  if (allBookings === undefined) return <HomePageSkeleton />
 
   const availForDay = (day: Date) =>
     availability.find(a => isSameDay(new Date(a.date), day))
