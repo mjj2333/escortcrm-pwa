@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type {
   Client, Booking, Transaction, DayAvailability,
-  SafetyContact, SafetyCheck, IncidentLog, ServiceRate, BookingPayment, JournalEntry
+  SafetyContact, SafetyCheck, IncidentLog, ServiceRate, BookingPayment, JournalEntry, ScreeningDoc
 } from '../types'
 import type { PaymentLabel, PaymentMethod } from '../types'
 
@@ -16,6 +16,7 @@ class EscortCRMDatabase extends Dexie {
   serviceRates!: EntityTable<ServiceRate, 'id'>
   payments!: EntityTable<BookingPayment, 'id'>
   journalEntries!: EntityTable<JournalEntry, 'id'>
+  screeningDocs!: EntityTable<ScreeningDoc, 'id'>
   meta!: Dexie.Table<{ key: string; value: unknown }, string>
 
   constructor() {
@@ -154,6 +155,22 @@ class EscortCRMDatabase extends Dexie {
       serviceRates: 'id, sortOrder, isActive',
       payments: 'id, bookingId, label, date',
       journalEntries: 'id, bookingId, clientId, date',
+      meta: 'key',
+    })
+
+    // v9: Add screening documents table
+    this.version(9).stores({
+      clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId',
+      transactions: 'id, bookingId, type, category, date',
+      availability: 'id, date',
+      safetyContacts: 'id, isPrimary, isActive',
+      safetyChecks: 'id, bookingId, status, scheduledTime',
+      incidents: 'id, clientId, bookingId, date, severity',
+      serviceRates: 'id, sortOrder, isActive',
+      payments: 'id, bookingId, label, date',
+      journalEntries: 'id, bookingId, clientId, date',
+      screeningDocs: 'id, clientId, uploadedAt',
       meta: 'key',
     })
   }

@@ -159,6 +159,16 @@ export interface ServiceRate {
   sortOrder: number
 }
 
+export interface ScreeningDoc {
+  id: string
+  clientId: string
+  filename: string
+  mimeType: string
+  data: Blob
+  thumbnailUrl?: string  // object URL, generated at runtime (not stored)
+  uploadedAt: Date
+}
+
 export type JournalTag = 'Regular' | 'Great Chemistry' | 'New Experience' | 'Boundary Issue' | 'Generous' | 'Difficult' | 'Late' | 'Respectful' | 'Rushed' | 'Relaxed'
 
 export interface JournalEntry {
