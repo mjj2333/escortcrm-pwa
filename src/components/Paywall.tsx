@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect } from 'react'
 import { Shield, Check, Sparkles, Mail, X, Loader, ChevronLeft } from 'lucide-react'
 
