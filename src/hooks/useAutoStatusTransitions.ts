@@ -17,9 +17,14 @@ import { db, createBooking, completeBookingPayment, newId } from '../db'
  */
 export function useAutoStatusTransitions() {
   useEffect(() => {
+    let running = false
+
     async function checkAndUpdate() {
-      const now = Date.now()
-      const bookings = await db.bookings.toArray()
+      if (running) return
+      running = true
+      try {
+        const now = Date.now()
+        const bookings = await db.bookings.toArray()
 
       for (const b of bookings) {
         const startTime = new Date(b.dateTime).getTime()
@@ -104,6 +109,9 @@ export function useAutoStatusTransitions() {
         if (now >= deadline) {
           await db.safetyChecks.update(check.id, { status: 'overdue' })
         }
+      }
+      } finally {
+        running = false
       }
     }
 
