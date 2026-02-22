@@ -18,11 +18,12 @@ const SettingsPage = lazy(() => import('./pages/home/SettingsPage').then(m => ({
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
 import { Paywall, TrialBanner, needsPaywall, revalidateActivation, initTrialState } from './components/Paywall'
-import { ToastContainer } from './components/Toast'
+import { ToastContainer, showToast } from './components/Toast'
 import { seedSampleData, hasSampleDataBeenOffered } from './data/sampleData'
 import { db, migrateToPaymentLedger } from './db'
 import { initFieldEncryption } from './db/fieldCrypto'
 import { useServiceWorker } from './hooks/useServiceWorker'
+import { useOnlineStatus } from './hooks/useOnlineStatus'
 
 type Screen =
   | { type: 'tab' }
@@ -42,6 +43,18 @@ export default function App() {
 
   // Service worker update detection
   const { updateAvailable, applyUpdate } = useServiceWorker()
+
+  // Online/offline detection
+  const isOnline = useOnlineStatus()
+  const [wasOffline, setWasOffline] = useState(false)
+  useEffect(() => {
+    if (!isOnline) {
+      setWasOffline(true)
+    } else if (wasOffline) {
+      setWasOffline(false)
+      showToast('Back online', 'success')
+    }
+  }, [isOnline])
 
   // One-time migration: hash any existing plaintext PIN (4-digit numeric string)
   useEffect(() => {
@@ -253,6 +266,29 @@ export default function App() {
           >
             Refresh to update
           </button>
+        </div>
+      )}
+      {!isOnline && (
+        <div
+          style={{
+            backgroundColor: 'rgba(30,30,30,0.97)',
+            color: '#facc15',
+            paddingTop: updateAvailable ? '10px' : 'calc(env(safe-area-inset-top, 0px) + 10px)',
+            paddingBottom: '10px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
+            textAlign: 'center',
+            fontSize: '12px',
+            fontWeight: 500,
+            borderBottom: '1px solid rgba(250,204,21,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+          }}
+        >
+          <span style={{ fontSize: '14px' }}>⚡</span>
+          You're offline — payment verification and gift codes unavailable
         </div>
       )}
       <TrialBanner onUpgrade={() => setShowPaywall(true)} />
