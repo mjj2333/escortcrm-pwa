@@ -119,6 +119,27 @@ class EscortCRMDatabase extends Dexie {
         }
       })
     })
+
+    // v7: Rename realName → nickname
+    this.version(7).stores({
+      clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId',
+      transactions: 'id, bookingId, type, category, date',
+      availability: 'id, date',
+      safetyContacts: 'id, isPrimary, isActive',
+      safetyChecks: 'id, bookingId, status, scheduledTime',
+      incidents: 'id, clientId, bookingId, date, severity',
+      serviceRates: 'id, sortOrder, isActive',
+      payments: 'id, bookingId, label, date',
+      meta: 'key',
+    }).upgrade(tx => {
+      return tx.table('clients').toCollection().modify(client => {
+        if (client.realName) {
+          client.nickname = client.realName
+          delete client.realName
+        }
+      })
+    })
   }
 }
 
@@ -194,7 +215,7 @@ export function createClient(data: Partial<Client> & { alias: string }): Client 
   return {
     id: newId(),
     alias: data.alias,
-    realName: data.realName,
+    nickname: data.nickname,
     phone: data.phone,
     email: data.email,
     telegram: data.telegram,

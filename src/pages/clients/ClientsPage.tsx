@@ -47,7 +47,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
     .filter(c => showBlocked ? c.isBlocked : !c.isBlocked)
     .filter(c =>
       !search || c.alias.toLowerCase().includes(search.toLowerCase()) ||
-      c.realName?.toLowerCase().includes(search.toLowerCase()) ||
+      c.nickname?.toLowerCase().includes(search.toLowerCase()) ||
       c.phone?.includes(search)
     )
     .sort((a, b) => {
@@ -221,9 +221,9 @@ function ClientRow({ client, onOpen, onTogglePin, showPinToast, pinToastValue }:
           <p className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
             {client.alias}<VerifiedBadge client={client} size={13} />
           </p>
-          {client.realName && client.realName !== client.alias && (
+          {client.nickname && client.nickname !== client.alias && (
             <span className="text-[10px] shrink-0" style={{ color: 'var(--text-secondary)' }}>
-              ({client.realName})
+              ({client.nickname})
             </span>
           )}
         </div>

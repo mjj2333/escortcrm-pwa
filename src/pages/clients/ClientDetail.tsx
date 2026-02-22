@@ -168,9 +168,9 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
             </span>
           </div>
           <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            {client.realName ?? client.alias}<VerifiedBadge client={client} size={18} />
+            {client.nickname ?? client.alias}<VerifiedBadge client={client} size={18} />
           </h2>
-          {client.realName && client.realName !== client.alias && (
+          {client.nickname && client.nickname !== client.alias && (
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>({client.alias})</p>
           )}
           <div className="flex items-center gap-2 mt-2">

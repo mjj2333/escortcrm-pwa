@@ -253,7 +253,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
               </div>
               <div className="flex-1">
                 <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
-                  {client.realName ?? client.alias}<VerifiedBadge client={client} size={13} />
+                  {client.nickname ?? client.alias}<VerifiedBadge client={client} size={13} />
                 </p>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                   {client.preferredContact}{client.screeningStatus !== 'Screened' ? ` · ${client.screeningStatus}` : ''}

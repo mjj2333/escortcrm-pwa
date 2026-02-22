@@ -397,7 +397,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
               {showNewClient && (
                 <div className="px-3 py-3 space-y-3" style={{ borderTop: '1px solid var(--border)', backgroundColor: 'rgba(168,85,247,0.03)' }}>
                   <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Quick Add Client</p>
-                  <input type="text" placeholder="Alias / Display Name *"
+                  <input type="text" placeholder="Name *"
                     value={newClientAlias} onChange={e => setNewClientAlias(e.target.value)}
                     className="w-full text-sm bg-transparent outline-none pb-1"
                     style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}

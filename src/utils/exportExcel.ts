@@ -77,7 +77,7 @@ function buildClientsSheet(wb: ExcelJS.Workbook, clients: Client[]) {
   const ws = wb.addWorksheet('Clients')
   ws.columns = [
     { header: 'Alias', key: 'alias', width: 18 },
-    { header: 'Real Name', key: 'realName', width: 18 },
+    { header: 'Nickname', key: 'nickname', width: 18 },
     { header: 'Phone', key: 'phone', width: 16 },
     { header: 'Email', key: 'email', width: 24 },
     { header: 'Telegram', key: 'telegram', width: 18 },
@@ -98,7 +98,7 @@ function buildClientsSheet(wb: ExcelJS.Workbook, clients: Client[]) {
   for (const c of clients) {
     ws.addRow({
       alias: c.alias,
-      realName: c.realName ?? '',
+      nickname: c.nickname ?? '',
       phone: c.phone ?? '',
       email: c.email ?? '',
       telegram: c.telegram ?? '',

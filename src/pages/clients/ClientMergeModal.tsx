@@ -60,7 +60,7 @@ function buildMergeFields(source: Client, target: Client): MergeField[] {
   }
 
   add('alias', 'Alias', source.alias, target.alias, 'target')
-  add('realName', 'Real Name', source.realName ?? '—', target.realName ?? '—', target.realName ? 'target' : 'source')
+  add('nickname', 'Nickname', source.nickname ?? '—', target.nickname ?? '—', target.nickname ? 'target' : 'source')
   add('phone', 'Phone', source.phone ?? '—', target.phone ?? '—', target.phone ? 'target' : 'source')
   add('email', 'Email', source.email ?? '—', target.email ?? '—', target.email ? 'target' : 'source')
   add('telegram', 'Telegram', source.telegram ?? '—', target.telegram ?? '—', target.telegram ? 'target' : 'source')
@@ -111,7 +111,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
       .filter(c => c.id !== sourceClient.id)
       .filter(c =>
         c.alias.toLowerCase().includes(q) ||
-        c.realName?.toLowerCase().includes(q) ||
+        c.nickname?.toLowerCase().includes(q) ||
         c.phone?.includes(q)
       )
       .slice(0, 8)
@@ -157,7 +157,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
       // 1. Build merged client record (keep target.id)
       const merged: Partial<Client> = {
         alias:             resolveField('alias'),
-        realName:          resolveField('realName'),
+        nickname:          resolveField('nickname'),
         phone:             resolveField('phone'),
         email:             resolveField('email'),
         telegram:          resolveField('telegram'),
@@ -301,7 +301,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{c.alias}</p>
                       <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
-                        {[c.realName, c.phone].filter(Boolean).join(' · ') || c.screeningStatus}
+                        {[c.nickname, c.phone].filter(Boolean).join(' · ') || c.screeningStatus}
                       </p>
                     </div>
                     <ArrowRight size={16} style={{ color: 'var(--text-secondary)' }} />

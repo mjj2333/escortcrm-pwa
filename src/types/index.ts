@@ -24,7 +24,7 @@ export interface ClientTag {
 export interface Client {
   id: string
   alias: string
-  realName?: string
+  nickname?: string
   phone?: string
   email?: string
   telegram?: string

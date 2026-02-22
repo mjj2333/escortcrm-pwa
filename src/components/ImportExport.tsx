@@ -51,7 +51,7 @@ async function exportClients(format: Format) {
   const clients = await db.clients.toArray()
   const rows = clients.map(c => ({
     Alias: c.alias,
-    'Real Name': c.realName ?? '',
+    'Nickname': c.nickname ?? '',
     Phone: c.phone ?? '',
     Email: c.email ?? '',
     Telegram: c.telegram ?? '',
@@ -270,7 +270,7 @@ async function importClients(rows: Record<string, unknown>[]): Promise<number> {
     const client: Client = {
       id: newId(),
       alias,
-      realName: String(row['Real Name'] ?? row['realName'] ?? '').trim() || undefined,
+      nickname: String(row['Nickname'] ?? row['nickname'] ?? row['Real Name'] ?? row['realName'] ?? '').trim() || undefined,
       phone: String(row['Phone'] ?? row['phone'] ?? '').trim() || undefined,
       email: String(row['Email'] ?? row['email'] ?? '').trim() || undefined,
       telegram: String(row['Telegram'] ?? row['telegram'] ?? '').trim() || undefined,
@@ -637,7 +637,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
               {dataType === 'clients' && (
                 <>
                   <p><strong style={{ color: 'var(--text-primary)' }}>Required:</strong> Alias</p>
-                  <p><strong style={{ color: 'var(--text-primary)' }}>Optional:</strong> Real Name, Phone, Email, Preferred Contact (Phone/Text/Email/Telegram/Signal/WhatsApp), Screening Status (Unscreened/In Progress/Screened), Risk Level (Unknown/Low/Medium/High Risk), Notes, Preferences, Boundaries, Tags (semicolon-separated), Reference Source, Date Added, Birthday, Blocked (Yes/No)</p>
+                  <p><strong style={{ color: 'var(--text-primary)' }}>Optional:</strong> Nickname, Phone, Email, Preferred Contact (Phone/Text/Email/Telegram/Signal/WhatsApp), Screening Status (Unscreened/In Progress/Screened), Risk Level (Unknown/Low/Medium/High Risk), Notes, Preferences, Boundaries, Tags (semicolon-separated), Reference Source, Date Added, Birthday, Blocked (Yes/No)</p>
                 </>
               )}
               {dataType === 'transactions' && (

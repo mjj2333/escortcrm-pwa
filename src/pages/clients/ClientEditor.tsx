@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Check, Plus, ChevronLeft, User, UserCheck, ShieldCheck, Heart, ShieldAlert, FileText, Share2, Cake, CalendarDays } from 'lucide-react'
+import { Check, User, UserCheck, ShieldCheck, Heart, ShieldAlert, FileText, Share2, Cake, CalendarDays } from 'lucide-react'
 import { db, createClient } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
-import { SectionLabel, FieldHint, FieldTextInput, FieldTextArea, FieldSelect, FieldDate, fieldInputStyle } from '../../components/FormFields'
+import { SectionLabel, FieldHint, FieldTextInput, FieldTextArea, FieldDate, fieldInputStyle } from '../../components/FormFields'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { TagPicker } from '../../components/TagPicker'
 import type { Client, ClientTag, ContactMethod, ScreeningStatus, ScreeningMethod, RiskLevel } from '../../types'
@@ -12,7 +12,6 @@ const contactMethods: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', '
 const screeningStatuses: ScreeningStatus[] = ['Unscreened', 'In Progress', 'Screened']
 const screeningMethods: ScreeningMethod[] = ['ID', 'LinkedIn', 'Provider Reference', 'Employment', 'Phone', 'Deposit', 'Other']
 
-/** Map a contact method to its field key, placeholder, and input type */
 function contactFieldConfig(method: ContactMethod): { field: 'phone' | 'email' | 'telegram' | 'signal' | 'whatsapp' | null; placeholder: string; type: string } {
   switch (method) {
     case 'Phone': return { field: 'phone', placeholder: 'Phone number', type: 'tel' }
@@ -43,7 +42,9 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
 
   // Basic
   const [alias, setAlias] = useState('')
-  const [realName, setRealName] = useState('')
+  const [nickname, setNickname] = useState('')
+  const [birthday, setBirthday] = useState('')
+  const [clientSince, setClientSince] = useState('')
 
   // Contact
   const [primaryContact, setPrimaryContact] = useState<ContactMethod>('Text')
@@ -66,11 +67,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
   const [referenceSource, setReferenceSource] = useState('')
   const [verificationNotes, setVerificationNotes] = useState('')
   const [tags, setTags] = useState<ClientTag[]>([])
-  const [birthday, setBirthday] = useState('')
-  const [clientSince, setClientSince] = useState('')
-  const [showAllDetails, setShowAllDetails] = useState(false)
 
-  // Field getter/setter map
   const fieldMap: Record<string, { value: string; set: (v: string) => void }> = {
     phone: { value: phone, set: setPhone },
     email: { value: email, set: setEmail },
@@ -82,7 +79,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
   useEffect(() => {
     if (isOpen) {
       setAlias(client?.alias ?? '')
-      setRealName(client?.realName ?? '')
+      setNickname(client?.nickname ?? '')
       setPrimaryContact(client?.preferredContact ?? 'Text')
       setSecondaryContact(client?.secondaryContact ?? '')
       setPhone(client?.phone ?? '')
@@ -101,7 +98,6 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       setTags(client?.tags ?? [])
       setBirthday(client?.birthday ? toLocalDateStr(new Date(client.birthday)) : '')
       setClientSince(client?.clientSince ? toLocalDateStr(new Date(client.clientSince)) : '')
-      setShowAllDetails(!!client)
     }
   }, [isOpen, client])
 
@@ -112,7 +108,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
 
     const data = {
       alias: alias.trim(),
-      realName: realName.trim() || undefined,
+      nickname: nickname.trim() || undefined,
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
       telegram: telegram.trim() || undefined,
@@ -145,8 +141,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
     }
   }
 
-  /** Render a contact input for a given method */
-  function ContactInput({ method, label }: { method: ContactMethod; label: string }) {
+  function ContactInput({ method }: { method: ContactMethod }) {
     const config = contactFieldConfig(method)
     if (!config.field) return null
     const f = fieldMap[config.field]
@@ -164,11 +159,9 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
     )
   }
 
-  // Which contact fields are already shown by primary/secondary
   const primaryField = contactFieldConfig(primaryContact).field
   const secondaryField = secondaryContact ? contactFieldConfig(secondaryContact as ContactMethod).field : null
 
-  // All possible contact fields for the details section, excluding those already shown above
   const allContactFields: { key: string; label: string; placeholder: string; type: string }[] = [
     { key: 'phone', label: 'Phone', placeholder: 'Phone number', type: 'tel' },
     { key: 'email', label: 'Email', placeholder: 'Email address', type: 'email' },
@@ -177,7 +170,6 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
     { key: 'whatsapp', label: 'WhatsApp', placeholder: 'WhatsApp number', type: 'tel' },
   ].filter(f => f.key !== primaryField && f.key !== secondaryField)
 
-  // Secondary contact options — exclude primary
   const secondaryOptions = ['', ...contactMethods.filter(m => m !== primaryContact)]
 
   return (
@@ -193,15 +185,20 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       }
     >
       <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-        {/* ━━━ Basic ━━━ */}
+
+        {/* ━━━ Basic Info ━━━ */}
         <SectionLabel label="Basic Info" />
-        <FieldTextInput label="Alias" value={alias} onChange={setAlias} placeholder="Display name" required
-          hint="A name or nickname you use to identify this client." icon={<User size={12} />} />
+        <FieldTextInput label="Name" value={alias} onChange={setAlias} placeholder="Name" required
+          icon={<User size={12} />} />
+        <FieldTextInput label="Nickname or Preferred Name" value={nickname} onChange={setNickname}
+          placeholder="Optional" icon={<UserCheck size={12} />} />
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <FieldDate label="Birthday" value={birthday} onChange={setBirthday} icon={<Cake size={12} />} />
+          <FieldDate label="Client Since" value={clientSince} onChange={setClientSince} icon={<CalendarDays size={12} />} />
+        </div>
 
         {/* ━━━ Contact ━━━ */}
         <SectionLabel label="Contact" />
-
-        {/* Primary */}
         <div className="mb-1">
           <label className="text-[11px] font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>Primary Contact</label>
           <select
@@ -217,9 +214,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
             {contactMethods.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
-        <ContactInput method={primaryContact} label="" />
+        <ContactInput method={primaryContact} />
 
-        {/* Secondary */}
         <div className="mb-1 mt-3">
           <label className="text-[11px] font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>
             Secondary Contact <span style={{ opacity: 0.5 }}>(optional)</span>
@@ -233,7 +229,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
             {secondaryOptions.map(m => <option key={m} value={m}>{m || '— None —'}</option>)}
           </select>
         </div>
-        {secondaryContact && <ContactInput method={secondaryContact as ContactMethod} label="" />}
+        {secondaryContact && <ContactInput method={secondaryContact as ContactMethod} />}
 
         {/* ━━━ Screening ━━━ */}
         <SectionLabel label="Screening" />
@@ -269,69 +265,48 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           <TagPicker selected={tags} onChange={setTags} />
         </div>
 
-        {/* Toggle details */}
-        <button
-          type="button"
-          onClick={() => setShowAllDetails(!showAllDetails)}
-          className="flex items-center gap-2 mb-4 text-xs font-semibold active:opacity-70"
-          style={{ color: '#a855f7' }}
-        >
-          {showAllDetails ? <ChevronLeft size={14} /> : <Plus size={14} />}
-          {showAllDetails ? 'Hide Details' : 'All Details'}
-        </button>
+        {/* ━━━ Preferences & Boundaries ━━━ */}
+        <SectionLabel label="Preferences & Boundaries" optional />
+        <FieldTextArea label="Preferences" value={preferences} onChange={setPreferences}
+          placeholder="Likes, requests..." icon={<Heart size={12} />} />
+        <FieldTextArea label="Boundaries" value={boundaries} onChange={setBoundaries}
+          placeholder="Hard limits, boundaries..." icon={<ShieldAlert size={12} />} />
 
-        {showAllDetails && (
+        {/* ━━━ Screening & Referral ━━━ */}
+        <SectionLabel label="Screening & Referral" optional />
+        <FieldTextInput label="Referral Source" value={referenceSource} onChange={setReferenceSource}
+          placeholder="How they found you" icon={<Share2 size={12} />} />
+        <FieldTextArea label="Verification Notes" value={verificationNotes} onChange={setVerificationNotes}
+          placeholder="ID details, references..." icon={<ShieldCheck size={12} />} />
+
+        {/* ━━━ Other Contact Methods ━━━ */}
+        {allContactFields.length > 0 && (
           <>
-            {/* ━━━ Identity & Dates ━━━ */}
-            <SectionLabel label="Identity & Dates" optional />
-            <FieldTextInput label="Real Name" value={realName} onChange={setRealName} placeholder="Legal name"
-              icon={<UserCheck size={12} />} />
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <FieldDate label="Birthday" value={birthday} onChange={setBirthday} icon={<Cake size={12} />} />
-              <FieldDate label="Client Since" value={clientSince} onChange={setClientSince} icon={<CalendarDays size={12} />} />
-            </div>
-
-            {/* ━━━ All Contact Methods ━━━ */}
-            {allContactFields.length > 0 && (
-              <>
-                <SectionLabel label="Other Contact Methods" optional />
-                <FieldHint text="Primary/secondary values are synced automatically." />
-                {allContactFields.map(f => {
-                  const fm = fieldMap[f.key]
-                  return (
-                    <div key={f.key} className="mb-2">
-                      <label className="text-[11px] font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>{f.label}</label>
-                      <input
-                        type={f.type}
-                        value={fm.value}
-                        onChange={e => fm.set(e.target.value)}
-                        placeholder={f.placeholder}
-                        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-                        style={{ ...fieldInputStyle, fontSize: '16px' }}
-                      />
-                    </div>
-                  )
-                })}
-              </>
-            )}
-
-            {/* ━━━ Screening & Referral ━━━ */}
-            <SectionLabel label="Screening & Referral" optional />
-            <FieldTextInput label="Referral Source" value={referenceSource} onChange={setReferenceSource}
-              placeholder="How they found you" icon={<Share2 size={12} />} />
-            <FieldTextArea label="Verification Notes" value={verificationNotes} onChange={setVerificationNotes}
-              placeholder="ID details, references..." icon={<ShieldCheck size={12} />} />
-
-            {/* ━━━ Preferences & Notes ━━━ */}
-            <SectionLabel label="Preferences & Notes" optional />
-            <FieldTextArea label="Preferences" value={preferences} onChange={setPreferences}
-              placeholder="Likes, requests..." icon={<Heart size={12} />} />
-            <FieldTextArea label="Boundaries" value={boundaries} onChange={setBoundaries}
-              placeholder="Hard limits, boundaries..." icon={<ShieldAlert size={12} />} />
-            <FieldTextArea label="Notes" value={notes} onChange={setNotes}
-              placeholder="General notes..." icon={<FileText size={12} />} />
+            <SectionLabel label="Other Contact Methods" optional />
+            <FieldHint text="Primary/secondary values are synced automatically." />
+            {allContactFields.map(f => {
+              const fm = fieldMap[f.key]
+              return (
+                <div key={f.key} className="mb-2">
+                  <label className="text-[11px] font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>{f.label}</label>
+                  <input
+                    type={f.type}
+                    value={fm.value}
+                    onChange={e => fm.set(e.target.value)}
+                    placeholder={f.placeholder}
+                    className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+                    style={{ ...fieldInputStyle, fontSize: '16px' }}
+                  />
+                </div>
+              )
+            })}
           </>
         )}
+
+        {/* ━━━ Notes ━━━ */}
+        <SectionLabel label="Notes" optional />
+        <FieldTextArea label="Notes" value={notes} onChange={setNotes}
+          placeholder="General notes..." icon={<FileText size={12} />} />
 
         {/* Save button */}
         <div className="py-4">

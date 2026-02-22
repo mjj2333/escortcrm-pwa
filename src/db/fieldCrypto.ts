@@ -24,7 +24,7 @@ import nacl from 'tweetnacl'
 
 export const SENSITIVE_FIELDS: Record<string, string[]> = {
   clients: [
-    'realName', 'phone', 'email', 'notes', 'preferences',
+    'nickname', 'phone', 'email', 'notes', 'preferences',
     'boundaries', 'referenceSource', 'verificationNotes',
   ],
   bookings: ['locationAddress', 'locationNotes', 'notes', 'cancellationReason'],

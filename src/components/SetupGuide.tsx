@@ -128,7 +128,7 @@ const contactMethods: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', '
 
 function ClientStep({ onNext, setCreatedClientId }: { onNext: () => void; setCreatedClientId: (id: string) => void }) {
   const [alias, setAlias] = useState('')
-  const [realName, setRealName] = useState('')
+  const [nickname, setNickname] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [preferredContact, setPreferredContact] = useState<ContactMethod>('Text')
@@ -148,7 +148,7 @@ function ClientStep({ onNext, setCreatedClientId }: { onNext: () => void; setCre
   async function save() {
     if (!alias.trim()) return
     const newClient = createClient({
-      alias: alias.trim(), realName: realName.trim() || undefined, phone: phone.trim() || undefined,
+      alias: alias.trim(), nickname: nickname.trim() || undefined, phone: phone.trim() || undefined,
       email: email.trim() || undefined, preferredContact, screeningStatus, riskLevel,
       notes: notes.trim(), preferences: preferences.trim(), boundaries: boundaries.trim(),
       referenceSource: referenceSource.trim() || undefined, verificationNotes: verificationNotes.trim() || undefined,
@@ -166,7 +166,7 @@ function ClientStep({ onNext, setCreatedClientId }: { onNext: () => void; setCre
         description="Only the alias is required — everything else can be added now or later. We'll explain what each field is for." />
 
       <SectionLabel label="Basic Info" />
-      <FieldTextInput label="Alias" value={alias} onChange={setAlias} placeholder="e.g. James W." required
+      <FieldTextInput label="Name" value={alias} onChange={setAlias} placeholder="e.g. James W." required
         hint="A name or nickname you use to identify this client. This is the only required field." icon={<User size={12} />} />
       <FieldTextInput label="Phone" value={phone} onChange={setPhone} placeholder="Phone number" type="tel"
         hint="Enables one-tap calling and texting from their profile." icon={<PhoneIcon size={12} />} />
@@ -198,8 +198,8 @@ function ClientStep({ onNext, setCreatedClientId }: { onNext: () => void; setCre
       {showOptional && (
         <>
           <SectionLabel label="Identity" optional />
-          <FieldTextInput label="Real Name" value={realName} onChange={setRealName} placeholder="Legal name"
-            hint="Their legal name, if verified. Only visible to you." icon={<UserCheck size={12} />} />
+          <FieldTextInput label="Nickname" value={nickname} onChange={setNickname} placeholder="Preferred name"
+            hint="An alternate name or nickname, if any." icon={<UserCheck size={12} />} />
           <FieldTextInput label="Email" value={email} onChange={setEmail} placeholder="Email" type="email"
             hint="Enables one-tap email from their profile." icon={<Mail size={12} />} />
           <SectionLabel label="Dates" optional />
