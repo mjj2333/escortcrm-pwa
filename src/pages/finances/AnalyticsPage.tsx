@@ -338,6 +338,74 @@ function ClientsTab({ clients, bookings, transactions }: { clients: any[]; booki
   const topClients = [...clientStats].sort((a, b) => b.revenue - a.revenue).slice(0, 10)
   const unreliable = clientStats.filter(s => s.cancelRate >= 30 && s.totalBookings >= 2).sort((a, b) => b.cancelRate - a.cancelRate)
 
+  // Retention metrics
+  const retentionMetrics = useMemo(() => {
+    const completedBookings = bookings.filter((b: any) => b.status === 'Completed')
+    const clientsWithCompleted = new Set(completedBookings.map((b: any) => b.clientId))
+    const totalWithBookings = clientsWithCompleted.size
+
+    // Repeat = 2+ completed bookings
+    const repeatClients = clients.filter((c: any) =>
+      completedBookings.filter((b: any) => b.clientId === c.id).length >= 2
+    )
+    const repeatRate = totalWithBookings > 0
+      ? Math.round((repeatClients.length / totalWithBookings) * 100)
+      : 0
+
+    // Average bookings per repeat client
+    const avgBookingsPerRepeat = repeatClients.length > 0
+      ? Math.round(
+          repeatClients.reduce((s: number, c: any) =>
+            s + completedBookings.filter((b: any) => b.clientId === c.id).length, 0
+          ) / repeatClients.length * 10
+        ) / 10
+      : 0
+
+    // New vs returning this month
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const thisMonthBookings = completedBookings.filter((b: any) => new Date(b.dateTime) >= monthStart)
+    const thisMonthClients = new Set(thisMonthBookings.map((b: any) => b.clientId))
+    let newThisMonth = 0
+    let returningThisMonth = 0
+    thisMonthClients.forEach(cid => {
+      const priorBookings = completedBookings.filter((b: any) => b.clientId === cid && new Date(b.dateTime) < monthStart)
+      if (priorBookings.length > 0) returningThisMonth++
+      else newThisMonth++
+    })
+
+    // Average revenue per repeat vs one-time
+    const oneTimeClients = clients.filter((c: any) =>
+      completedBookings.filter((b: any) => b.clientId === c.id).length === 1
+    )
+    const avgRepeatRevenue = repeatClients.length > 0
+      ? Math.round(repeatClients.reduce((s: number, c: any) =>
+          s + transactions.filter((t: any) =>
+            completedBookings.some((b: any) => b.id === t.bookingId && b.clientId === c.id) && t.type === 'income'
+          ).reduce((ts: number, t: any) => ts + t.amount, 0), 0
+        ) / repeatClients.length)
+      : 0
+    const avgOneTimeRevenue = oneTimeClients.length > 0
+      ? Math.round(oneTimeClients.reduce((s: number, c: any) =>
+          s + transactions.filter((t: any) =>
+            completedBookings.some((b: any) => b.id === t.bookingId && b.clientId === c.id) && t.type === 'income'
+          ).reduce((ts: number, t: any) => ts + t.amount, 0), 0
+        ) / oneTimeClients.length)
+      : 0
+
+    return {
+      totalWithBookings,
+      repeatCount: repeatClients.length,
+      oneTimeCount: oneTimeClients.length,
+      repeatRate,
+      avgBookingsPerRepeat,
+      newThisMonth,
+      returningThisMonth,
+      avgRepeatRevenue,
+      avgOneTimeRevenue,
+    }
+  }, [clients, bookings, transactions])
+
   // Client sources
   const sources = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -349,6 +417,80 @@ function ClientsTab({ clients, bookings, transactions }: { clients: any[]; booki
 
   return (
     <>
+      {/* Client Retention */}
+      <Card>
+        <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Client Retention</p>
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="text-center p-2.5 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+            <p className="text-2xl font-bold text-purple-500">{retentionMetrics.repeatRate}%</p>
+            <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Repeat Client Rate</p>
+          </div>
+          <div className="text-center p-2.5 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+            <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{retentionMetrics.avgBookingsPerRepeat}</p>
+            <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Avg Bookings / Repeat</p>
+          </div>
+        </div>
+        {/* New vs Returning donut-style breakdown */}
+        <div className="flex items-center gap-3 p-2.5 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-purple-500" />
+                <span className="text-xs" style={{ color: 'var(--text-primary)' }}>Repeat</span>
+              </div>
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{retentionMetrics.repeatCount}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: 'var(--border)' }} />
+                <span className="text-xs" style={{ color: 'var(--text-primary)' }}>One-time</span>
+              </div>
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{retentionMetrics.oneTimeCount}</span>
+            </div>
+          </div>
+          <div className="w-px h-10" style={{ backgroundColor: 'var(--border)' }} />
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
+                <span className="text-xs" style={{ color: 'var(--text-primary)' }}>Returning</span>
+              </div>
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{retentionMetrics.returningThisMonth}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
+                <span className="text-xs" style={{ color: 'var(--text-primary)' }}>New</span>
+              </div>
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{retentionMetrics.newThisMonth}</span>
+            </div>
+          </div>
+        </div>
+        <p className="text-[10px] mt-1.5 text-center" style={{ color: 'var(--text-secondary)' }}>This month: new vs returning clients</p>
+      </Card>
+
+      {/* Revenue: Repeat vs One-time */}
+      {(retentionMetrics.avgRepeatRevenue > 0 || retentionMetrics.avgOneTimeRevenue > 0) && (
+        <Card>
+          <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Avg Revenue per Client</p>
+          <div className="flex gap-3">
+            <div className="flex-1 text-center p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+              <p className="text-lg font-bold text-purple-500">{formatCurrency(retentionMetrics.avgRepeatRevenue)}</p>
+              <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Repeat Clients</p>
+            </div>
+            <div className="flex-1 text-center p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+              <p className="text-lg font-bold" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(retentionMetrics.avgOneTimeRevenue)}</p>
+              <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>One-time Clients</p>
+            </div>
+          </div>
+          {retentionMetrics.avgRepeatRevenue > retentionMetrics.avgOneTimeRevenue && retentionMetrics.avgOneTimeRevenue > 0 && (
+            <p className="text-[10px] mt-2 text-center text-purple-500">
+              Repeat clients bring {Math.round(retentionMetrics.avgRepeatRevenue / retentionMetrics.avgOneTimeRevenue)}× more revenue on average
+            </p>
+          )}
+        </Card>
+      )}
+
       {/* Top Clients */}
       <Card>
         <div className="flex items-center justify-between mb-3">

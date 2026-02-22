@@ -1,7 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Plus, ArrowUpCircle, ArrowDownCircle, Trash2, Target,
-  Percent, ChevronRight, AlertCircle, Search, X, Check, BarChart3, ArrowDownUp
+  Percent, ChevronRight, AlertCircle, Search, X, Check, BarChart3, ArrowDownUp,
+  Settings2, CreditCard, MapPin
 } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import {
@@ -21,8 +22,45 @@ import { bookingStatusColors } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { showUndoToast } from '../../components/Toast'
 import { FinancesPageSkeleton } from '../../components/Skeleton'
+import type { LocationType, PaymentMethod } from '../../types'
 
 type TimePeriod = 'Week' | 'Month' | 'Quarter' | 'Year' | 'All'
+
+// Card visibility — user can toggle which sections appear
+type CardKey = 'goal' | 'stats' | 'tax' | 'chart' | 'bookingTypes' | 'paymentMethods' | 'expenses' | 'outstanding' | 'transactions'
+const CARD_LABELS: Record<CardKey, string> = {
+  goal: 'Income Goal',
+  stats: 'Stats Grid',
+  tax: 'Tax Estimate',
+  chart: 'Income vs Expenses Chart',
+  bookingTypes: 'Revenue by Booking Type',
+  paymentMethods: 'Payment Methods',
+  expenses: 'Top Expenses',
+  outstanding: 'Outstanding Balances',
+  transactions: 'Recent Transactions',
+}
+const ALL_CARDS: CardKey[] = Object.keys(CARD_LABELS) as CardKey[]
+const DEFAULT_VISIBLE: CardKey[] = [...ALL_CARDS]
+
+// Location type display config
+const LOCATION_COLORS: Record<string, string> = {
+  Incall: '#a855f7',
+  Outcall: '#3b82f6',
+  Travel: '#f97316',
+  Virtual: '#22c55e',
+}
+
+// Payment method display config
+const PAYMENT_COLORS: Record<string, string> = {
+  Cash: '#22c55e',
+  'e-Transfer': '#3b82f6',
+  Crypto: '#f97316',
+  Venmo: '#6366f1',
+  'Cash App': '#10b981',
+  Zelle: '#8b5cf6',
+  'Gift Card': '#ec4899',
+  Other: '#6b7280',
+}
 
 function periodStart(p: TimePeriod): Date {
   switch (p) {
@@ -45,6 +83,9 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
   const [showTaxSettings, setShowTaxSettings] = useState(false)
   const [showAllTransactions, setShowAllTransactions] = useState(false)
   const [showImportExport, setShowImportExport] = useState(false)
+  const [showCardSettings, setShowCardSettings] = useState(false)
+  const [visibleCards, setVisibleCards] = useLocalStorage<CardKey[]>('financeVisibleCards', DEFAULT_VISIBLE)
+  const isCardVisible = (key: CardKey) => visibleCards.includes(key)
 
   const rawTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray())
   const allTransactions = rawTransactions ?? []
@@ -148,11 +189,60 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
       .slice(0, 5)
   }, [filtered])
 
+  // Revenue by booking type (Incall/Outcall/Travel/Virtual)
+  const bookingTypeBreakdown = useMemo(() => {
+    const completedInPeriod = allBookings.filter(b =>
+      b.status === 'Completed' && new Date(b.dateTime) >= startDate
+    )
+    if (completedInPeriod.length === 0) return []
+    const grouped: Record<string, { count: number; revenue: number }> = {}
+    completedInPeriod.forEach(b => {
+      const type = b.locationType || 'Other'
+      if (!grouped[type]) grouped[type] = { count: 0, revenue: 0 }
+      grouped[type].count++
+      // Revenue from transaction ledger
+      const rev = filtered
+        .filter(t => t.bookingId === b.id && t.type === 'income')
+        .reduce((s, t) => s + t.amount, 0)
+      // Fallback to booking total if no transactions linked
+      grouped[type].revenue += rev > 0 ? rev : bookingTotal(b)
+    })
+    return Object.entries(grouped)
+      .map(([type, data]) => ({ type: type as LocationType, ...data }))
+      .sort((a, b) => b.revenue - a.revenue)
+  }, [allBookings, filtered, startDate.getTime()])
+
+  const maxTypeRevenue = Math.max(1, ...bookingTypeBreakdown.map(d => d.revenue))
+
+  // Payment method breakdown (income only)
+  const paymentMethodBreakdown = useMemo(() => {
+    const incomeWithMethod = filtered.filter(t => t.type === 'income' && t.paymentMethod)
+    if (incomeWithMethod.length === 0) return []
+    const total = incomeWithMethod.reduce((s, t) => s + t.amount, 0)
+    const grouped: Record<string, { count: number; amount: number }> = {}
+    incomeWithMethod.forEach(t => {
+      const method = t.paymentMethod!
+      if (!grouped[method]) grouped[method] = { count: 0, amount: 0 }
+      grouped[method].count++
+      grouped[method].amount += t.amount
+    })
+    return Object.entries(grouped)
+      .map(([method, data]) => ({
+        method: method as PaymentMethod,
+        ...data,
+        pct: Math.round((data.amount / total) * 100),
+      }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [filtered])
+
   if (rawTransactions === undefined) return <FinancesPageSkeleton />
 
   return (
     <div className="pb-20">
       <PageHeader title="Finances">
+        <button onClick={() => setShowCardSettings(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
+          <Settings2 size={18} />
+        </button>
         <button onClick={() => setShowEditor(true)} className="p-2 rounded-lg text-purple-500">
           <Plus size={20} />
         </button>
@@ -176,7 +266,7 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
         </div>
 
         {/* Goal Progress */}
-        {hasGoal ? (
+        {isCardVisible('goal') && (hasGoal ? (
           <Card onClick={() => setShowGoalEditor(true)}>
             <div className="flex items-center justify-between mb-2">
               <div>
@@ -230,9 +320,10 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
           >
             <Target size={16} /> Set an Income Goal
           </button>
-        )}
+        ))}
 
         {/* Stats Grid */}
+        {isCardVisible('stats') && (
         <div className="grid grid-cols-2 gap-3">
           <StatCard icon={<ArrowDownCircle size={18} />} color="#22c55e" label="Income" value={formatCurrency(totalIncome)} />
           <StatCard icon={<ArrowUpCircle size={18} />} color="#ef4444" label="Expenses" value={formatCurrency(totalExpenses)} />
@@ -244,8 +335,10 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
           />
           <StatCard icon={<span className="text-sm">📊</span>} color="#a855f7" label="Avg Booking" value={formatCurrency(avgBooking)} />
         </div>
+        )}
 
         {/* Tax Estimate */}
+        {isCardVisible('tax') && (
         <Card onClick={() => setShowTaxSettings(true)}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -266,9 +359,10 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
             </div>
           </div>
         </Card>
+        )}
 
         {/* Income vs Expenses Chart */}
-        {chartData.length > 0 && (
+        {isCardVisible('chart') && chartData.length > 0 && (
           <Card>
             <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Income vs Expenses</p>
             <div className="relative" style={{ height: '160px' }}>
@@ -368,8 +462,95 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
           </Card>
         )}
 
+        {/* Revenue by Booking Type */}
+        {isCardVisible('bookingTypes') && bookingTypeBreakdown.length > 0 && (
+          <Card>
+            <div className="flex items-center gap-2 mb-3">
+              <MapPin size={16} className="text-purple-500" />
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Revenue by Booking Type</p>
+            </div>
+            <div className="space-y-3">
+              {bookingTypeBreakdown.map(item => (
+                <div key={item.type}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: LOCATION_COLORS[item.type] ?? '#6b7280' }} />
+                      <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{item.type}</span>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                        {item.count}
+                      </span>
+                    </div>
+                    <span className="text-sm font-semibold text-green-500">{formatCurrency(item.revenue)}</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${(item.revenue / maxTypeRevenue) * 100}%`,
+                        backgroundColor: LOCATION_COLORS[item.type] ?? '#6b7280',
+                        opacity: 0.7,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Per-booking averages */}
+            <div className="flex gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+              {bookingTypeBreakdown.map(item => (
+                <div key={item.type} className="flex-1 text-center p-1.5 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                  <p className="text-xs font-bold" style={{ color: LOCATION_COLORS[item.type] ?? '#6b7280' }}>
+                    {formatCurrency(Math.round(item.revenue / item.count))}
+                  </p>
+                  <p className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>avg/{item.type.toLowerCase()}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Payment Methods */}
+        {isCardVisible('paymentMethods') && paymentMethodBreakdown.length > 0 && (
+          <Card>
+            <div className="flex items-center gap-2 mb-3">
+              <CreditCard size={16} className="text-blue-500" />
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Payment Methods</p>
+            </div>
+            {/* Stacked bar */}
+            <div className="w-full h-4 rounded-full overflow-hidden flex" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+              {paymentMethodBreakdown.map(item => (
+                <div
+                  key={item.method}
+                  className="h-full"
+                  style={{
+                    width: `${item.pct}%`,
+                    backgroundColor: PAYMENT_COLORS[item.method] ?? '#6b7280',
+                    minWidth: item.pct > 0 ? '4px' : '0',
+                  }}
+                />
+              ))}
+            </div>
+            {/* Legend + amounts */}
+            <div className="space-y-2 mt-3">
+              {paymentMethodBreakdown.map(item => (
+                <div key={item.method} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: PAYMENT_COLORS[item.method] ?? '#6b7280' }} />
+                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{item.method}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.pct}%</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-medium text-green-500">{formatCurrency(item.amount)}</span>
+                    <span className="text-xs ml-1.5" style={{ color: 'var(--text-secondary)' }}>({item.count})</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
         {/* Expense Breakdown */}
-        {expenseBreakdown.length > 0 && (
+        {isCardVisible('expenses') && expenseBreakdown.length > 0 && (
           <Card>
             <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Top Expenses</p>
             <div className="space-y-2.5">
@@ -395,7 +576,7 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
         )}
 
         {/* Outstanding Balances */}
-        {bookingsWithBalance.length > 0 && (
+        {isCardVisible('outstanding') && bookingsWithBalance.length > 0 && (
           <Card>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -430,6 +611,7 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
         )}
 
         {/* Recent Transactions */}
+        {isCardVisible('transactions') && (
         <Card>
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Recent Transactions</p>
@@ -476,6 +658,7 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
             <ArrowDownUp size={14} /> Import / Export
           </button>
         </Card>
+        )}
       </div>
 
       {/* Modals */}
@@ -484,6 +667,12 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
       <TaxSettingsEditor isOpen={showTaxSettings} onClose={() => setShowTaxSettings(false)} />
       <AllTransactionsModal isOpen={showAllTransactions} onClose={() => setShowAllTransactions(false)} />
       <ImportExportModal isOpen={showImportExport} onClose={() => setShowImportExport(false)} initialTab="transactions" />
+      <CardSettingsModal
+        isOpen={showCardSettings}
+        onClose={() => setShowCardSettings(false)}
+        visible={visibleCards}
+        onChange={setVisibleCards}
+      />
     </div>
   )
 }
@@ -504,6 +693,73 @@ function StatCard({ icon, color, label, value }: {
       <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{value}</p>
       <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{label}</p>
     </div>
+  )
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CARD SETTINGS — toggle visible report cards
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function CardSettingsModal({ isOpen, onClose, visible, onChange }: {
+  isOpen: boolean
+  onClose: () => void
+  visible: CardKey[]
+  onChange: (v: CardKey[]) => void
+}) {
+  function toggle(key: CardKey) {
+    if (visible.includes(key)) {
+      onChange(visible.filter(k => k !== key))
+    } else {
+      onChange([...visible, key])
+    }
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Customize Reports">
+      <div className="px-4 py-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+          Choose which cards appear on your Finances page.
+        </p>
+        <div className="space-y-1">
+          {ALL_CARDS.map(key => (
+            <button
+              key={key}
+              onClick={() => toggle(key)}
+              className="flex items-center gap-3 w-full p-3 rounded-lg active:opacity-70"
+              style={{ backgroundColor: 'var(--bg-primary)' }}
+            >
+              <div
+                className="w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors"
+                style={{
+                  backgroundColor: visible.includes(key) ? '#a855f7' : 'transparent',
+                  border: visible.includes(key) ? 'none' : '2px solid var(--border)',
+                }}
+              >
+                {visible.includes(key) && <Check size={12} className="text-white" strokeWidth={3} />}
+              </div>
+              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                {CARD_LABELS[key]}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 mt-4 pb-4">
+          <button
+            onClick={() => onChange([...ALL_CARDS])}
+            className="flex-1 py-2.5 rounded-lg text-sm font-medium"
+            style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+          >
+            Show All
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-purple-600 text-white"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
