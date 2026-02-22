@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Settings, Clock, CalendarDays, DollarSign, Users,
-  ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Minus
+  ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Minus, Database, X
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
 import { useState } from 'react'
@@ -16,6 +16,8 @@ import { TransactionEditor } from '../finances/TransactionEditor'
 import { formatTime12 } from '../../utils/availability'
 import { availabilityStatusColors, bookingStatusColors } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
+import { useBackupReminder } from '../../hooks/useBackupReminder'
+import { BackupRestoreModal } from '../../components/BackupRestore'
 
 interface HomePageProps {
   onNavigateTab: (tab: number) => void
@@ -33,6 +35,9 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 
   const [showExpenseEditor, setShowExpenseEditor] = useState(false)
   const [remindersEnabled] = useLocalStorage('remindersEnabled', false)
+  const [showBackup, setShowBackup] = useState(false)
+  const [reminderDismissed, setReminderDismissed] = useState(false)
+  const { shouldRemind, daysSince } = useBackupReminder()
 
   const allBookings = useLiveQuery(() => db.bookings.toArray()) ?? []
   const clients = useLiveQuery(() => db.clients.toArray()) ?? []
@@ -115,6 +120,36 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
       </PageHeader>
 
       <SampleDataBanner />
+
+      {/* Backup reminder banner */}
+      {shouldRemind && !reminderDismissed && (
+        <div
+          className="mx-4 mt-3 rounded-xl p-3 flex items-center gap-3"
+          style={{ backgroundColor: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.25)' }}
+        >
+          <Database size={18} style={{ color: '#a855f7', flexShrink: 0 }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold" style={{ color: '#a855f7' }}>
+              {daysSince === null ? 'You haven\'t backed up yet' : `Last backup ${daysSince} day${daysSince !== 1 ? 's' : ''} ago`}
+            </p>
+            <button
+              onClick={() => setShowBackup(true)}
+              className="text-xs font-medium underline mt-0.5"
+              style={{ color: '#a855f7' }}
+            >
+              Back up now
+            </button>
+          </div>
+          <button
+            onClick={() => setReminderDismissed(true)}
+            className="p-1 opacity-50 active:opacity-100 shrink-0"
+            style={{ color: '#a855f7' }}
+            aria-label="Dismiss reminder"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       <div className="px-4 py-4 space-y-4 max-w-lg mx-auto">
         {/* Safety Alert Banner */}
@@ -383,6 +418,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
       </div>
 
       <TransactionEditor isOpen={showExpenseEditor} onClose={() => setShowExpenseEditor(false)} initialType="expense" />
+      <BackupRestoreModal isOpen={showBackup} onClose={() => { setShowBackup(false); setReminderDismissed(true) }} />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import {
 } from 'lucide-react'
 import { db } from '../db'
 import { ConfirmDialog } from './ConfirmDialog'
+import { recordBackupTimestamp } from '../hooks/useBackupReminder'
 
 interface BackupRestoreProps {
   isOpen: boolean
@@ -227,10 +228,12 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
         const wrapper = JSON.stringify({ encrypted: true, data: encrypted })
         const date = new Date().toISOString().split('T')[0]
         downloadFile(wrapper, `escortcrm-backup-${date}.enc.json`)
+        recordBackupTimestamp()
         setStatus({ type: 'success', msg: `Encrypted backup saved — ${totalRecords} records` })
       } else {
         const date = new Date().toISOString().split('T')[0]
         downloadFile(json, `escortcrm-backup-${date}.json`)
+        recordBackupTimestamp()
         setStatus({ type: 'success', msg: `Backup saved — ${totalRecords} records` })
       }
     } catch (err) {

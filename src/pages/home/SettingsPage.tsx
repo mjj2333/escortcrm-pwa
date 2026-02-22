@@ -17,6 +17,10 @@ import { BackupRestoreModal } from '../../components/BackupRestore'
 import { AdminPanel } from '../../components/AdminPanel'
 import { getActivation, isActivated, getTrialDaysRemaining, isBetaTester } from '../../components/Paywall'
 import { useLocalStorage } from '../../hooks/useSettings'
+import {
+  BACKUP_REMINDER_INTERVAL_KEY, DEFAULT_REMINDER_INTERVAL,
+  daysSinceBackup, LAST_BACKUP_KEY,
+} from '../../hooks/useBackupReminder'
 
 interface SettingsPageProps {
   isOpen: boolean
@@ -58,6 +62,8 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
   const [, setPinCode] = useLocalStorage('pinCode', '')
   const [remindersEnabled, setRemindersEnabled] = useLocalStorage('remindersEnabled', false)
   const [currency, setCurrency] = useLocalStorage(CURRENCY_KEY, DEFAULT_CURRENCY)
+  const [backupReminderDays, setBackupReminderDays] = useLocalStorage(BACKUP_REMINDER_INTERVAL_KEY, DEFAULT_REMINDER_INTERVAL)
+  const daysSince = daysSinceBackup()
 
   // New rate form
   const [showAddRate, setShowAddRate] = useState(false)
@@ -130,7 +136,7 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
   async function resetAllData() {
     await db.delete()
     // Clear all localStorage EXCEPT activation/trial keys
-    const preserveKeys = ['_cstate_v2', '_cstate_rv']
+    const preserveKeys = ['_cstate_v2', '_cstate_rv', LAST_BACKUP_KEY, BACKUP_REMINDER_INTERVAL_KEY]
     const saved = preserveKeys.map(k => [k, localStorage.getItem(k)] as const)
     localStorage.clear()
     for (const [k, v] of saved) {
@@ -298,10 +304,44 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
           {/* Data */}
           <SectionLabel label="Data" />
           <button type="button" onClick={() => setShowBackup(true)}
-            className="flex items-center gap-3 w-full py-2.5 mb-3 active:opacity-70">
+            className="flex items-center gap-3 w-full py-2.5 mb-1 active:opacity-70">
             <Database size={16} style={{ color: '#a855f7' }} />
             <span className="text-sm font-medium text-purple-500">Backup & Restore</span>
           </button>
+          {/* Last backup status */}
+          <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+            {daysSince === null
+              ? 'Never backed up'
+              : daysSince === 0
+                ? 'Last backup: today'
+                : `Last backup: ${daysSince} day${daysSince !== 1 ? 's' : ''} ago`}
+          </p>
+          {/* Backup reminder interval */}
+          <div className="mb-3">
+            <label className="text-xs font-semibold block mb-1.5" style={{ color: 'var(--text-primary)' }}>
+              Backup Reminder
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {([7, 14, 30, 0] as const).map(days => (
+                <button
+                  key={days}
+                  type="button"
+                  onClick={() => setBackupReminderDays(days)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                  style={{
+                    backgroundColor: backupReminderDays === days ? '#a855f7' : 'var(--bg-primary)',
+                    color: backupReminderDays === days ? '#fff' : 'var(--text-secondary)',
+                    border: `1px solid ${backupReminderDays === days ? '#a855f7' : 'var(--border)'}`,
+                  }}
+                >
+                  {days === 0 ? 'Off' : days === 7 ? 'Weekly' : days === 14 ? 'Every 2 weeks' : 'Monthly'}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+              A reminder appears on the home screen when a backup is due.
+            </p>
+          </div>
           <button type="button" onClick={() => setShowSampleConfirm(true)}
             className="flex items-center gap-3 w-full py-2.5 mb-3 active:opacity-70">
             <Users size={16} style={{ color: '#a855f7' }} />
