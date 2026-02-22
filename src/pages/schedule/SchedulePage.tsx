@@ -59,7 +59,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const filtersActive = searchQuery.trim() !== '' || activeStatuses.size > 0 || dateFrom !== '' || dateTo !== ''
   const isDateRangeActive = dateFrom !== '' || dateTo !== ''
 
-  const bookings    = useLiveQuery(() => db.bookings.orderBy('dateTime').toArray())
+  const rawBookings = useLiveQuery(() => db.bookings.orderBy('dateTime').toArray())
+  const bookings    = rawBookings ?? []
   const clients     = useLiveQuery(() => db.clients.toArray()) ?? []
   const availability = useLiveQuery(() => db.availability.toArray()) ?? []
   const clientFor = (id?: string) => clients.find(c => c.id === id)
@@ -87,7 +88,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const isViewingCurrentMonth = isSameMonth(currentMonth, new Date())
 
   const bookingsForDay = (day: Date) =>
-    bookings!.filter(b => {
+    bookings.filter(b => {
       if (!isSameDay(new Date(b.dateTime), day)) return false
       const hiddenByDefault = b.status === 'Cancelled' || b.status === 'No Show'
       if (hiddenByDefault && !activeStatuses.has(b.status)) return false
@@ -112,7 +113,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const past30 = subDays(now, 30)
 
   const listBookings = useMemo(() => {
-    return bookings!
+    return bookings
       .filter(b => {
         const dt = new Date(b.dateTime)
         const hiddenByDefault = b.status === 'Cancelled' || b.status === 'No Show'
@@ -127,8 +128,6 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
       })
       .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
   }, [bookings, clients, activeStatuses, searchQuery, dateFrom, dateTo])
-
-  if (bookings === undefined) return <SchedulePageSkeleton />
 
   const pastBookings   = listBookings.filter(b => new Date(b.dateTime) < now)
   const futureBookings = listBookings.filter(b => new Date(b.dateTime) >= now)
@@ -174,6 +173,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
     width: '100%',
     outline: 'none',
   }
+
+  if (rawBookings === undefined) return <SchedulePageSkeleton />
 
   return (
     <div className="pb-20">
