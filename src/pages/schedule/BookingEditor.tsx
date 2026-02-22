@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, ChevronRight, User, UserPlus, Search, ChevronDown, ChevronUp, AlertTriangle, Plus, ChevronLeft } from 'lucide-react'
+import { Check, ChevronRight, User, UserPlus, Search, AlertTriangle, Plus, ChevronLeft } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, createBooking, createClient, formatCurrency, recordBookingPayment, completeBookingPayment } from '../../db'
 import { Modal } from '../../components/Modal'
@@ -10,7 +10,7 @@ import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../../utils/availability'
 import type {
-  Booking, BookingStatus, LocationType, PaymentMethod, ContactMethod, ScreeningStatus,
+  Booking, BookingStatus, LocationType, PaymentMethod, ContactMethod, ScreeningStatus, ScreeningMethod,
   RecurrencePattern
 } from '../../types'
 
@@ -18,6 +18,8 @@ const bookingStatuses: BookingStatus[] = ['To Be Confirmed', 'Pending Deposit', 
 const locationTypes: LocationType[] = ['Incall', 'Outcall', 'Travel', 'Virtual']
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const recurrenceOptions: RecurrencePattern[] = ['none', 'weekly', 'biweekly', 'monthly']
+const contactMethods: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp', 'Other']
+const screeningMethods: ScreeningMethod[] = ['ID', 'LinkedIn', 'Provider Reference', 'Employment', 'Phone', 'Deposit', 'Other']
 
 interface BookingEditorProps {
   isOpen: boolean
@@ -63,10 +65,15 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   // Inline new client state
   const [showNewClient, setShowNewClient] = useState(false)
   const [newClientAlias, setNewClientAlias] = useState('')
+  const [newClientPrimary, setNewClientPrimary] = useState<ContactMethod>('Text')
+  const [newClientSecondary, setNewClientSecondary] = useState<ContactMethod | ''>('')
   const [newClientPhone, setNewClientPhone] = useState('')
-  const [newClientContact, setNewClientContact] = useState<ContactMethod>('Text')
+  const [newClientEmail, setNewClientEmail] = useState('')
+  const [newClientTelegram, setNewClientTelegram] = useState('')
+  const [newClientSignal, setNewClientSignal] = useState('')
+  const [newClientWhatsapp, setNewClientWhatsapp] = useState('')
   const [newClientScreening, setNewClientScreening] = useState<ScreeningStatus>('Unscreened')
-  const [showNewClientDetails, setShowNewClientDetails] = useState(false)
+  const [newClientScreeningMethod, setNewClientScreeningMethod] = useState<ScreeningMethod | ''>('')
   const [newClientPreferences, setNewClientPreferences] = useState('')
   const [newClientBoundaries, setNewClientBoundaries] = useState('')
   const [newClientNotes, setNewClientNotes] = useState('')
@@ -145,8 +152,14 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
     const newClient = createClient({
       alias: newClientAlias.trim(),
       phone: newClientPhone.trim() || undefined,
-      preferredContact: newClientContact,
+      email: newClientEmail.trim() || undefined,
+      telegram: newClientTelegram.trim() || undefined,
+      signal: newClientSignal.trim() || undefined,
+      whatsapp: newClientWhatsapp.trim() || undefined,
+      preferredContact: newClientPrimary,
+      secondaryContact: newClientSecondary || undefined,
       screeningStatus: newClientScreening,
+      screeningMethod: newClientScreeningMethod || undefined,
       preferences: newClientPreferences.trim(),
       boundaries: newClientBoundaries.trim(),
       notes: newClientNotes.trim(),
@@ -157,10 +170,16 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
     setShowClientPicker(false)
     setNewClientAlias('')
     setNewClientPhone('')
+    setNewClientEmail('')
+    setNewClientTelegram('')
+    setNewClientSignal('')
+    setNewClientWhatsapp('')
+    setNewClientPrimary('Text')
+    setNewClientSecondary('')
+    setNewClientScreeningMethod('')
     setNewClientPreferences('')
     setNewClientBoundaries('')
     setNewClientNotes('')
-    setShowNewClientDetails(false)
   }
 
   function selectServiceRate(rateDuration: number, rate: number) {
@@ -395,63 +414,108 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
               {/* Inline new client form */}
               {showNewClient && (
-                <div className="px-3 py-3 space-y-3" style={{ borderTop: '1px solid var(--border)', backgroundColor: 'rgba(168,85,247,0.03)' }}>
-                  <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Quick Add Client</p>
+                <div className="px-3 py-3 space-y-2" style={{ borderTop: '1px solid var(--border)', backgroundColor: 'rgba(168,85,247,0.03)' }}>
+                  <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>New Client</p>
+
+                  {/* Name */}
                   <input type="text" placeholder="Name *"
                     value={newClientAlias} onChange={e => setNewClientAlias(e.target.value)}
                     className="w-full text-sm bg-transparent outline-none pb-1"
                     style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}
                     autoFocus />
-                  <input type="tel" placeholder="Phone number"
-                    value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)}
-                    className="w-full text-sm bg-transparent outline-none pb-1"
-                    style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }} />
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Contact:</span>
-                    <select value={newClientContact} onChange={e => setNewClientContact(e.target.value as ContactMethod)}
-                      className="text-sm bg-transparent outline-none"
-                      style={{ color: 'var(--text-primary)', fontSize: '16px' }}>
-                      {(['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp'] as ContactMethod[]).map(m => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
+
+                  {/* Primary Contact */}
+                  <div>
+                    <label className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Primary Contact</label>
+                    <select value={newClientPrimary}
+                      onChange={e => { const v = e.target.value as ContactMethod; setNewClientPrimary(v); if (v === newClientSecondary) setNewClientSecondary('') }}
+                      className="w-full text-sm bg-transparent outline-none py-1"
+                      style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
+                      {contactMethods.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
-                  </div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Screening:</span>
-                    <select value={newClientScreening} onChange={e => setNewClientScreening(e.target.value as ScreeningStatus)}
-                      className="text-sm bg-transparent outline-none"
-                      style={{ color: 'var(--text-primary)', fontSize: '16px' }}>
-                      {(['Unscreened', 'In Progress', 'Screened'] as ScreeningStatus[]).map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
+                    {(() => {
+                      const cfg: Record<string, { val: string; set: (v: string) => void; ph: string; type: string }> = {
+                        Phone: { val: newClientPhone, set: setNewClientPhone, ph: 'Phone number', type: 'tel' },
+                        Text: { val: newClientPhone, set: setNewClientPhone, ph: 'Phone number', type: 'tel' },
+                        Email: { val: newClientEmail, set: setNewClientEmail, ph: 'Email address', type: 'email' },
+                        Telegram: { val: newClientTelegram, set: setNewClientTelegram, ph: '@username or phone', type: 'text' },
+                        Signal: { val: newClientSignal, set: setNewClientSignal, ph: 'Signal number', type: 'tel' },
+                        WhatsApp: { val: newClientWhatsapp, set: setNewClientWhatsapp, ph: 'WhatsApp number', type: 'tel' },
+                      }
+                      const c = cfg[newClientPrimary]
+                      if (!c) return null
+                      return <input type={c.type} placeholder={c.ph} value={c.val} onChange={e => c.set(e.target.value)}
+                        className="w-full text-sm bg-transparent outline-none pb-1 mt-1"
+                        style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }} />
+                    })()}
                   </div>
 
-                  {/* Expandable details */}
-                  <button onClick={() => setShowNewClientDetails(!showNewClientDetails)}
-                    className="flex items-center gap-1 text-xs text-purple-500 font-medium">
-                    {showNewClientDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    {showNewClientDetails ? 'Hide Details' : 'All Details'}
-                  </button>
+                  {/* Secondary Contact */}
+                  <div>
+                    <label className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Secondary Contact <span style={{ opacity: 0.5 }}>(optional)</span></label>
+                    <select value={newClientSecondary}
+                      onChange={e => setNewClientSecondary(e.target.value as ContactMethod | '')}
+                      className="w-full text-sm bg-transparent outline-none py-1"
+                      style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
+                      <option value="">— None —</option>
+                      {contactMethods.filter(m => m !== newClientPrimary).map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    {(() => {
+                      if (!newClientSecondary) return null
+                      const cfg: Record<string, { val: string; set: (v: string) => void; ph: string; type: string }> = {
+                        Phone: { val: newClientPhone, set: setNewClientPhone, ph: 'Phone number', type: 'tel' },
+                        Text: { val: newClientPhone, set: setNewClientPhone, ph: 'Phone number', type: 'tel' },
+                        Email: { val: newClientEmail, set: setNewClientEmail, ph: 'Email address', type: 'email' },
+                        Telegram: { val: newClientTelegram, set: setNewClientTelegram, ph: '@username or phone', type: 'text' },
+                        Signal: { val: newClientSignal, set: setNewClientSignal, ph: 'Signal number', type: 'tel' },
+                        WhatsApp: { val: newClientWhatsapp, set: setNewClientWhatsapp, ph: 'WhatsApp number', type: 'tel' },
+                      }
+                      const c = cfg[newClientSecondary]
+                      if (!c) return null
+                      return <input type={c.type} placeholder={c.ph} value={c.val} onChange={e => c.set(e.target.value)}
+                        className="w-full text-sm bg-transparent outline-none pb-1 mt-1"
+                        style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }} />
+                    })()}
+                  </div>
 
-                  {showNewClientDetails && (
-                    <div className="space-y-2">
-                      <textarea placeholder="Preferences (likes, requests...)"
-                        value={newClientPreferences} onChange={e => setNewClientPreferences(e.target.value)}
-                        rows={2} className="w-full text-sm bg-transparent outline-none resize-none pb-1"
-                        style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }} />
-                      <textarea placeholder="Boundaries (hard limits...)"
-                        value={newClientBoundaries} onChange={e => setNewClientBoundaries(e.target.value)}
-                        rows={2} className="w-full text-sm bg-transparent outline-none resize-none pb-1"
-                        style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }} />
-                      <textarea placeholder="Notes"
-                        value={newClientNotes} onChange={e => setNewClientNotes(e.target.value)}
-                        rows={2} className="w-full text-sm bg-transparent outline-none resize-none pb-1"
-                        style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }} />
+                  {/* Screening — status + method side by side */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Screening</label>
+                      <select value={newClientScreening} onChange={e => setNewClientScreening(e.target.value as ScreeningStatus)}
+                        className="w-full text-sm bg-transparent outline-none py-1"
+                        style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
+                        {(['Unscreened', 'In Progress', 'Screened'] as ScreeningStatus[]).map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
                     </div>
-                  )}
+                    <div>
+                      <label className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Method</label>
+                      <select value={newClientScreeningMethod} onChange={e => setNewClientScreeningMethod(e.target.value as ScreeningMethod | '')}
+                        className="w-full text-sm bg-transparent outline-none py-1"
+                        style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
+                        <option value="">—</option>
+                        {screeningMethods.map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                  </div>
 
-                  <div className="flex gap-2">
+                  {/* Preferences & Boundaries */}
+                  <textarea placeholder="Preferences (likes, requests...)"
+                    value={newClientPreferences} onChange={e => setNewClientPreferences(e.target.value)}
+                    rows={2} className="w-full text-sm bg-transparent outline-none resize-none pb-1"
+                    style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }} />
+                  <textarea placeholder="Boundaries (hard limits...)"
+                    value={newClientBoundaries} onChange={e => setNewClientBoundaries(e.target.value)}
+                    rows={2} className="w-full text-sm bg-transparent outline-none resize-none pb-1"
+                    style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }} />
+                  <textarea placeholder="Notes"
+                    value={newClientNotes} onChange={e => setNewClientNotes(e.target.value)}
+                    rows={2} className="w-full text-sm bg-transparent outline-none resize-none pb-1"
+                    style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }} />
+
+                  <div className="flex gap-2 pt-1">
                     <button onClick={() => { setShowNewClient(false); setNewClientAlias(''); setNewClientPhone('') }}
                       className="flex-1 py-2 rounded-lg text-sm" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
                     <button onClick={createNewClientInline} disabled={!newClientAlias.trim()}
