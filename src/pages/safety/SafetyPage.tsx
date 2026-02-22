@@ -8,14 +8,13 @@ import { format } from 'date-fns'
 import { db } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card } from '../../components/Card'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { EmptyState } from '../../components/EmptyState'
 import { SafetyContactEditor } from './SafetyContactEditor'
 import { IncidentEditor } from './IncidentEditor'
 import { SafetyCheckEditor } from './SafetyCheckEditor'
 import { showToast, showUndoToast } from '../../components/Toast'
 import { SafetyPageSkeleton } from '../../components/Skeleton'
-import type { SafetyCheckStatus } from '../../types'
+import type { SafetyCheckStatus, SafetyCheck } from '../../types'
 
 const statusLabel: Record<SafetyCheckStatus, string> = {
   'pending': 'Pending',
@@ -42,7 +41,7 @@ export function SafetyPage() {
   const [tab, setTab] = useState<'checkins' | 'contacts' | 'incidents'>('checkins')
   const [showContactEditor, setShowContactEditor] = useState(false)
   const [showIncidentEditor, setShowIncidentEditor] = useState(false)
-  const [editingCheck, setEditingCheck] = useState<typeof safetyChecks[0] | null>(null)
+  const [editingCheck, setEditingCheck] = useState<SafetyCheck | null>(null)
   
 
   const safetyChecks = useLiveQuery(() => db.safetyChecks.orderBy('scheduledTime').reverse().toArray())
@@ -137,7 +136,7 @@ export function SafetyPage() {
     }
 
     // Open one SMS per unique contact, each with their relevant check details
-    contactsToNotify.forEach(({ phone, name, checks }) => {
+    contactsToNotify.forEach(({ phone, checks }) => {
       const lines = ['⚠️ SAFETY ALERT — I need help. Please check on me immediately.']
       checks.forEach(check => {
         const booking = bookingFor(check.bookingId)

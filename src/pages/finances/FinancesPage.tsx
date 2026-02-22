@@ -12,7 +12,6 @@ import {
 import { db, formatCurrency, bookingTotal, removeBookingPayment } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card } from '../../components/Card'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldTextInput, fieldInputStyle } from '../../components/FormFields'
 import { ImportExportModal } from '../../components/ImportExport'

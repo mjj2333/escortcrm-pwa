@@ -13,7 +13,8 @@ import { BookingEditor } from './BookingEditor'
 import { AvailabilityPicker } from './AvailabilityPicker'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
 import { formatTime12 } from '../../utils/availability'
-import { BookingStatus, bookingStatusColors } from '../../types'
+import type { BookingStatus } from '../../types'
+import { bookingStatusColors } from '../../types'
 import { SchedulePageSkeleton } from '../../components/Skeleton'
 
 interface SchedulePageProps {
@@ -72,7 +73,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase()
         const client = clientFor(b.clientId)
-        if (!client?.name?.toLowerCase().includes(q) && !client?.alias?.toLowerCase().includes(q)) return false
+        if (!client?.alias?.toLowerCase().includes(q)) return false
       }
       return true
     }

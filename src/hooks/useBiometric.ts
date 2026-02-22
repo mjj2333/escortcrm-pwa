@@ -48,7 +48,7 @@ async function exportWrapKey(key: CryptoKey): Promise<string> {
 
 async function importWrapKey(b64: string): Promise<CryptoKey> {
   const raw = fromBase64(b64)
-  return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt'])
+  return crypto.subtle.importKey('raw', raw.buffer as ArrayBuffer, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt'])
 }
 
 async function encryptPin(pin: string, wrapKey: CryptoKey): Promise<string> {
@@ -159,7 +159,7 @@ export async function assertBiometric(): Promise<string | null> {
         challenge,
         allowCredentials: [{
           type: 'public-key',
-          id: fromBase64(credIdB64),
+          id: fromBase64(credIdB64).buffer as ArrayBuffer,
           transports: ['internal'],
         }],
         userVerification: 'required',

@@ -13,7 +13,6 @@ import { format } from 'date-fns'
 import { db } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
-import { screeningStatusColors, riskLevelColors } from '../../types'
 import type { Client, ClientTag } from '../../types'
 
 interface ClientMergeModalProps {
