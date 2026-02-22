@@ -59,11 +59,10 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const filtersActive = searchQuery.trim() !== '' || activeStatuses.size > 0 || dateFrom !== '' || dateTo !== ''
   const isDateRangeActive = dateFrom !== '' || dateTo !== ''
 
-  const bookings    = useLiveQuery(() => db.bookings.orderBy('dateTime').toArray())
+  const rawBookings = useLiveQuery(() => db.bookings.orderBy('dateTime').toArray())
+  const bookings    = rawBookings ?? []
   const clients     = useLiveQuery(() => db.clients.toArray()) ?? []
   const availability = useLiveQuery(() => db.availability.toArray()) ?? []
-  if (bookings === undefined) return <SchedulePageSkeleton />
-
   const clientFor = (id?: string) => clients.find(c => c.id === id)
 
   // Shared search + status predicate
@@ -174,6 +173,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
     width: '100%',
     outline: 'none',
   }
+
+  if (rawBookings === undefined) return <SchedulePageSkeleton />
 
   return (
     <div className="pb-20">

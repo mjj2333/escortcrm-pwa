@@ -46,12 +46,11 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
   const [showAllTransactions, setShowAllTransactions] = useState(false)
   const [showImportExport, setShowImportExport] = useState(false)
 
-  const allTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray())
+  const rawTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray())
+  const allTransactions = rawTransactions ?? []
   const allBookings = useLiveQuery(() => db.bookings.toArray()) ?? []
   const clients = useLiveQuery(() => db.clients.toArray()) ?? []
   const allPayments = useLiveQuery(() => db.payments.toArray()) ?? []
-  if (allTransactions === undefined) return <FinancesPageSkeleton />
-
   // Settings
   const [taxRate] = useLocalStorage('taxRate', 25)
   const [setAsideRate] = useLocalStorage('setAsideRate', 30)
@@ -148,6 +147,8 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 5)
   }, [filtered])
+
+  if (rawTransactions === undefined) return <FinancesPageSkeleton />
 
   return (
     <div className="pb-20">
