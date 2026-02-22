@@ -4,7 +4,7 @@ import {
   ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Minus, Database, X
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { db, formatCurrency, isUpcoming, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card, CardHeader } from '../../components/Card'
@@ -35,6 +35,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const monthStart = startOfMonth(now)
 
   const [showExpenseEditor, setShowExpenseEditor] = useState(false)
+  const [showAllActive, setShowAllActive] = useState(false)
   const [remindersEnabled] = useLocalStorage('remindersEnabled', false)
   const [showBackup, setShowBackup] = useState(false)
   const [reminderDismissed, setReminderDismissed] = useState(false)
@@ -65,6 +66,11 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
     .filter(b => isUpcoming(b))
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
     .slice(0, 5)
+
+  // All bookings not yet completed (for "See All" modal)
+  const allActiveBookings = allBookings
+    .filter(b => !['Completed', 'Cancelled', 'No Show'].includes(b.status))
+    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
 
   const weekIncome = transactions
     .filter(t => t.type === 'income' && new Date(t.date) >= weekStart)
@@ -208,6 +214,46 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
             </div>
             <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
           </div>
+        </Card>
+
+        {/* Upcoming Bookings — moved below Today's Status */}
+        <Card>
+          <CardHeader
+            title="Upcoming"
+            icon={<CalendarDays size={16} className="text-purple-500" />}
+            action={
+              allActiveBookings.length > 0 ? (
+                <button
+                  onClick={() => setShowAllActive(true)}
+                  className="text-xs text-purple-500 font-medium"
+                >
+                  See All ({allActiveBookings.length})
+                </button>
+              ) : undefined
+            }
+          />
+          {upcoming.length === 0 ? (
+            <EmptyState
+              icon={<CalendarDays size={40} />}
+              title="No upcoming bookings"
+              description="Tap + on the Schedule tab to create one"
+            />
+          ) : (
+            <div className="space-y-3">
+              {upcoming.map(booking => {
+                const client = clientForBooking(booking.clientId)
+                return (
+                  <SwipeableBookingRow
+                    key={booking.id}
+                    booking={booking}
+                    client={client}
+                    onOpen={() => onOpenBooking(booking.id)}
+                    availabilityStatus={availForDay(new Date(booking.dateTime))?.status}
+                  />
+                )
+              })}
+            </div>
+          )}
         </Card>
 
         {/* Quick Stats */}
@@ -380,47 +426,110 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           </Card>
         )}
 
-        {/* Upcoming Bookings */}
-        <Card>
-          <CardHeader
-            title="Upcoming"
-            icon={<CalendarDays size={16} className="text-purple-500" />}
-            action={
-              <button
-                onClick={() => onNavigateTab(2)}
-                className="text-xs text-purple-500 font-medium"
-              >
-                See All
-              </button>
-            }
-          />
-          {upcoming.length === 0 ? (
-            <EmptyState
-              icon={<CalendarDays size={40} />}
-              title="No upcoming bookings"
-              description="Tap + on the Schedule tab to create one"
-            />
-          ) : (
-            <div className="space-y-3">
-              {upcoming.map(booking => {
-                const client = clientForBooking(booking.clientId)
-                return (
-                  <SwipeableBookingRow
-                    key={booking.id}
-                    booking={booking}
-                    client={client}
-                    onOpen={() => onOpenBooking(booking.id)}
-                    availabilityStatus={availForDay(new Date(booking.dateTime))?.status}
-                  />
-                )
-              })}
-            </div>
-          )}
-        </Card>
       </div>
 
       <TransactionEditor isOpen={showExpenseEditor} onClose={() => setShowExpenseEditor(false)} initialType="expense" />
       <BackupRestoreModal isOpen={showBackup} onClose={() => { setShowBackup(false); setReminderDismissed(true) }} />
+
+      {/* All Active Bookings Modal */}
+      {showAllActive && (
+        <AllActiveBookingsModal
+          bookings={allActiveBookings}
+          clientFor={clientForBooking}
+          availForDay={availForDay}
+          onClose={() => setShowAllActive(false)}
+          onOpenBooking={(id) => { setShowAllActive(false); onOpenBooking(id) }}
+        />
+      )}
+    </div>
+  )
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// All Active Bookings Modal
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function AllActiveBookingsModal({
+  bookings, clientFor, availForDay, onClose, onOpenBooking,
+}: {
+  bookings: import('../../types').Booking[]
+  clientFor: (id?: string) => import('../../types').Client | undefined
+  availForDay: (day: Date) => import('../../types').DayAvailability | undefined
+  onClose: () => void
+  onOpenBooking: (id: string) => void
+}) {
+  const backdropRef = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true))
+  }, [])
+
+  function handleClose() {
+    setVisible(false)
+    setTimeout(onClose, 200)
+  }
+
+  return (
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{
+        backgroundColor: visible ? 'rgba(0,0,0,0.5)' : 'transparent',
+        transition: 'background-color 0.2s',
+      }}
+      onClick={e => { if (e.target === backdropRef.current) handleClose() }}
+    >
+      <div
+        className="w-full max-w-lg rounded-t-2xl overflow-hidden flex flex-col"
+        style={{
+          backgroundColor: 'var(--bg-primary)',
+          maxHeight: '80vh',
+          transform: visible ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.25s ease-out',
+        }}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center py-2">
+          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
+        </div>
+
+        {/* Header */}
+        <div className="px-4 pb-3 flex items-center justify-between">
+          <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+            Active Bookings ({bookings.length})
+          </h2>
+          <button
+            onClick={handleClose}
+            className="p-2 rounded-lg"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Scrollable list */}
+        <div className="flex-1 overflow-y-auto px-4 pb-6">
+          {bookings.length === 0 ? (
+            <p className="text-sm py-6 text-center" style={{ color: 'var(--text-secondary)' }}>
+              No active bookings
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {bookings.map(b => (
+                <SwipeableBookingRow
+                  key={b.id}
+                  booking={b}
+                  client={clientFor(b.clientId)}
+                  onOpen={() => onOpenBooking(b.id)}
+                  availabilityStatus={availForDay(new Date(b.dateTime))?.status}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
