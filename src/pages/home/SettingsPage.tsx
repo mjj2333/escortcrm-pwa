@@ -71,8 +71,7 @@ export function SettingsPage({ onClose, onRestartTour }: SettingsPageProps) {
   // New rate form
   const [showAddRate, setShowAddRate] = useState(false)
   const [newRateName, setNewRateName] = useState('')
-  const [newRateDuration, setNewRateDuration] = useState(60)
-  const [newRateUnit, setNewRateUnit] = useState<'min' | 'hr'>('min')
+  const [newRateDuration, setNewRateDuration] = useState(1)
   const [newRateAmount, setNewRateAmount] = useState(0)
 
   // PIN setup
@@ -87,7 +86,7 @@ export function SettingsPage({ onClose, onRestartTour }: SettingsPageProps) {
 
   async function addRate() {
     if (!newRateName.trim() || newRateAmount <= 0) return
-    const durationInMinutes = newRateUnit === 'hr' ? Math.round(newRateDuration * 60) : newRateDuration
+    const durationInMinutes = Math.round(newRateDuration * 60)
     await db.serviceRates.add({
       id: newId(),
       name: newRateName.trim(),
@@ -97,8 +96,7 @@ export function SettingsPage({ onClose, onRestartTour }: SettingsPageProps) {
       sortOrder: serviceRates.length,
     })
     setNewRateName('')
-    setNewRateDuration(60)
-    setNewRateUnit('min')
+    setNewRateDuration(1)
     setNewRateAmount(0)
     setShowAddRate(false)
   }
@@ -195,17 +193,7 @@ export function SettingsPage({ onClose, onRestartTour }: SettingsPageProps) {
                   style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }} />
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <label className="text-[10px] uppercase block mb-1" style={{ color: 'var(--text-secondary)' }}>Duration</label>
-                    <div className="flex rounded-lg overflow-hidden mb-2" style={{ border: '2px solid var(--border)' }}>
-                      <button type="button"
-                        onClick={() => { if (newRateUnit === 'hr') { setNewRateUnit('min'); setNewRateDuration(Math.round(newRateDuration * 60)) } }}
-                        className="flex-1 py-1.5 text-xs font-bold text-center"
-                        style={{ backgroundColor: newRateUnit === 'min' ? '#a855f7' : 'transparent', color: newRateUnit === 'min' ? '#fff' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' }}>Min</button>
-                      <button type="button"
-                        onClick={() => { if (newRateUnit === 'min') { setNewRateUnit('hr'); setNewRateDuration(Math.round((newRateDuration / 60) * 10) / 10) } }}
-                        className="flex-1 py-1.5 text-xs font-bold text-center"
-                        style={{ backgroundColor: newRateUnit === 'hr' ? '#a855f7' : 'transparent', color: newRateUnit === 'hr' ? '#fff' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' }}>Hr</button>
-                    </div>
+                    <label className="text-[10px] uppercase block mb-1" style={{ color: 'var(--text-secondary)' }}>Duration (Hours)</label>
                     <input type="text" inputMode="decimal" placeholder="0"
                       value={newRateDuration > 0 ? String(newRateDuration) : ''}
                       onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '' || raw === '.') { setNewRateDuration(0); return }; const val = parseFloat(raw); if (!isNaN(val)) setNewRateDuration(val) }}

@@ -50,8 +50,7 @@ function GuidanceCard({ title, description }: { title: string; description: stri
 function RatesStep({ onNext }: { onNext: () => void }) {
   const rates = useLiveQuery(() => db.serviceRates.orderBy('sortOrder').toArray()) ?? []
   const [name, setName] = useState('')
-  const [duration, setDuration] = useState(60)
-  const [unit, setUnit] = useState<'min' | 'hr'>('hr')
+  const [duration, setDuration] = useState(1)
   const [rate, setRate] = useState(0)
   const [showForm, setShowForm] = useState(rates.length === 0)
 
@@ -59,9 +58,9 @@ function RatesStep({ onNext }: { onNext: () => void }) {
 
   async function addRate() {
     if (!name.trim() || rate <= 0) return
-    const durationMins = unit === 'hr' ? Math.round(duration * 60) : duration
+    const durationMins = Math.round(duration * 60)
     await db.serviceRates.add({ id: newId(), name: name.trim(), duration: durationMins, rate, isActive: true, sortOrder: rates.length })
-    setName(''); setDuration(unit === 'hr' ? 1 : 60); setRate(0); setShowForm(false)
+    setName(''); setDuration(1); setRate(0); setShowForm(false)
   }
 
   return (
@@ -90,15 +89,7 @@ function RatesStep({ onNext }: { onNext: () => void }) {
             hint="A descriptive name for this service option." required />
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>Duration</label>
-              <div className="flex rounded-lg overflow-hidden mb-2" style={{ border: '2px solid var(--border)' }}>
-                <button type="button" onClick={() => { setUnit('min'); setDuration(prev => prev < 10 ? Math.round(prev * 60) : prev) }}
-                  className="flex-1 py-2 text-xs font-bold text-center"
-                  style={{ backgroundColor: unit === 'min' ? '#a855f7' : 'transparent', color: unit === 'min' ? '#fff' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' }}>Min</button>
-                <button type="button" onClick={() => { setUnit('hr'); setDuration(prev => prev > 10 ? Math.round((prev / 60) * 10) / 10 : prev) }}
-                  className="flex-1 py-2 text-xs font-bold text-center"
-                  style={{ backgroundColor: unit === 'hr' ? '#a855f7' : 'transparent', color: unit === 'hr' ? '#fff' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' }}>Hr</button>
-              </div>
+              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>Duration (Hours)</label>
               <input type="text" inputMode="decimal" value={duration > 0 ? String(duration) : ''}
                 onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '') { setDuration(0); return }; const v = parseFloat(raw); if (!isNaN(v)) setDuration(v) }}
                 placeholder="1" className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={fieldInputStyle} />
@@ -260,7 +251,6 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
   const [clientId, setClientId] = useState(createdClientId)
   const [dateTime, setDateTime] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"))
   const [duration, setDuration] = useState(60)
-  const [durationUnit, setDurationUnit] = useState<'min' | 'hr'>('min')
   const [customDuration, setCustomDuration] = useState(false)
   const [locationType, setLocationType] = useState<LocationType>('Incall')
   const [locationAddress, setLocationAddress] = useState('')
@@ -287,7 +277,6 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
   function selectRate(dur: number, r: number) { setDuration(dur); setBaseRate(r); setCustomDuration(false) }
   const total = baseRate + extras + ((locationType === 'Outcall' || locationType === 'Travel') ? travelFee : 0)
   const selectedClient = clients.find(c => c.id === clientId)
-  const durationFmt = (mins: number) => { const h = Math.floor(mins / 60); const m = mins % 60; if (h > 0 && m > 0) return `${h}h ${m}m`; if (h > 0) return `${h}h`; return `${m}m` }
 
   async function handleSave() {
     const dt = new Date(dateTime)
@@ -341,12 +330,6 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
       <FieldDateTime label="Date & Time" value={dateTime} onChange={setDateTime} />
 
       <SectionLabel label="Duration" />
-      <div className="flex rounded-xl overflow-hidden mb-3" style={{ border: '2px solid var(--border)' }}>
-        <button type="button" onClick={() => setDurationUnit('min')} className="flex-1 py-2.5 text-sm font-bold text-center active:opacity-80"
-          style={{ backgroundColor: durationUnit === 'min' ? '#a855f7' : 'transparent', color: durationUnit === 'min' ? '#fff' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' }}>Minutes</button>
-        <button type="button" onClick={() => setDurationUnit('hr')} className="flex-1 py-2.5 text-sm font-bold text-center active:opacity-80"
-          style={{ backgroundColor: durationUnit === 'hr' ? '#a855f7' : 'transparent', color: durationUnit === 'hr' ? '#fff' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' }}>Hours</button>
-      </div>
 
       {rates.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
@@ -354,7 +337,7 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
             <button key={r.id} type="button" onClick={() => selectRate(r.duration, r.rate)}
               className={`px-3 py-2 rounded-lg text-sm font-medium ${duration === r.duration && baseRate === r.rate && !customDuration ? 'bg-purple-500/20 text-purple-500' : ''}`}
               style={duration !== r.duration || baseRate !== r.rate || customDuration ? { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' } : {}}>
-              <div className="font-bold">{durationUnit === 'hr' ? (r.duration >= 60 ? `${Math.round((r.duration / 60) * 10) / 10}h` : `${r.duration}m`) : durationFmt(r.duration)}</div>
+              <div className="font-bold">{`${Math.round((r.duration / 60) * 100) / 100}h`}</div>
               <div className="text-xs opacity-70">{formatCurrency(r.rate)}</div>
             </button>
           ))}
@@ -366,10 +349,10 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
 
       {(customDuration || rates.length === 0) && (
         <div className="flex items-center gap-3 mt-2 mb-3">
-          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{durationUnit === 'hr' ? 'Hours' : 'Minutes'}</span>
+          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Hours</span>
           <input type="text" inputMode="decimal"
-            value={(() => { if (duration === 0) return ''; if (durationUnit === 'hr') return String(Math.round((duration / 60) * 10) / 10); return String(duration) })()}
-            onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '' || raw === '.') { setDuration(0); return }; const val = parseFloat(raw); if (!isNaN(val)) setDuration(durationUnit === 'hr' ? Math.round(val * 60) : Math.round(val)) }}
+            value={duration === 0 ? '' : String(Math.round((duration / 60) * 100) / 100)}
+            onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '' || raw === '.') { setDuration(0); return }; const val = parseFloat(raw); if (!isNaN(val)) setDuration(Math.round(val * 60)) }}
             placeholder="0" className="flex-1 px-3 py-2.5 rounded-lg text-sm outline-none" style={fieldInputStyle} />
         </div>
       )}

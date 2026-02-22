@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ChevronRight, User, UserPlus, Search, ChevronDown, ChevronUp, AlertTriangle, Plus, ChevronLeft } from 'lucide-react'
 import { format } from 'date-fns'
-import { db, createBooking, createClient, bookingDurationFormatted, formatCurrency, recordBookingPayment, completeBookingPayment } from '../../db'
+import { db, createBooking, createClient, formatCurrency, recordBookingPayment, completeBookingPayment } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
@@ -37,7 +37,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const [clientId, setClientId] = useState(booking?.clientId ?? preselectedClientId ?? rebookFrom?.clientId ?? '')
   const [dateTime, setDateTime] = useState(booking?.dateTime ? format(new Date(booking.dateTime), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"))
   const [duration, setDuration] = useState(booking?.duration ?? rebookFrom?.duration ?? 60)
-  const [durationUnit, setDurationUnit] = useState<'min' | 'hr'>('min')
   const [customDuration, setCustomDuration] = useState(false)
   const [locationType, setLocationType] = useState<LocationType>(booking?.locationType ?? rebookFrom?.locationType ?? 'Incall')
   const [locationAddress, setLocationAddress] = useState(booking?.locationAddress ?? rebookFrom?.locationAddress ?? '')
@@ -79,7 +78,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       setClientId(booking?.clientId ?? preselectedClientId ?? rebookFrom?.clientId ?? '')
       setDateTime(booking?.dateTime ? format(new Date(booking.dateTime), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"))
       setDuration(booking?.duration ?? rebookFrom?.duration ?? 60)
-      setDurationUnit('min')
       setCustomDuration(false)
       setLocationType(booking?.locationType ?? rebookFrom?.locationType ?? 'Incall')
       setLocationAddress(booking?.locationAddress ?? rebookFrom?.locationAddress ?? '')
@@ -450,17 +448,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
         {/* ━━━ Duration ━━━ */}
         <SectionLabel label="Duration" />
-        {/* Min / Hr toggle */}
-        <div className="flex rounded-xl overflow-hidden mb-3" style={{ border: '2px solid var(--border)' }}>
-          <button type="button" onClick={() => setDurationUnit('min')}
-            className="flex-1 py-2.5 text-sm font-bold text-center active:opacity-80"
-            style={{ backgroundColor: durationUnit === 'min' ? '#a855f7' : 'transparent', color: durationUnit === 'min' ? '#fff' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' }}>
-            Minutes</button>
-          <button type="button" onClick={() => setDurationUnit('hr')}
-            className="flex-1 py-2.5 text-sm font-bold text-center active:opacity-80"
-            style={{ backgroundColor: durationUnit === 'hr' ? '#a855f7' : 'transparent', color: durationUnit === 'hr' ? '#fff' : 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' }}>
-            Hours</button>
-        </div>
 
         {/* Service rate quick-select buttons */}
         {serviceRates.length > 0 && (
@@ -474,9 +461,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                 style={duration !== rate.duration || customDuration
                   ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' } : {}}>
                 <div className="font-bold">
-                  {durationUnit === 'hr'
-                    ? (rate.duration >= 60 ? `${Math.round((rate.duration / 60) * 10) / 10}h` : `${rate.duration}m`)
-                    : bookingDurationFormatted(rate.duration)}
+                  {`${Math.round((rate.duration / 60) * 100) / 100}h`}
                 </div>
                 <div className="text-xs opacity-70">{formatCurrency(rate.rate)}</div>
               </button>
@@ -491,14 +476,14 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         {/* Custom / manual duration input */}
         {(customDuration || serviceRates.length === 0) && (
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{durationUnit === 'hr' ? 'Hours' : 'Minutes'}</span>
+            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Hours</span>
             <input type="text" inputMode="decimal"
-              value={(() => { if (duration === 0) return ''; if (durationUnit === 'hr') return String(Math.round((duration / 60) * 10) / 10); return String(duration) })()}
+              value={duration === 0 ? '' : String(Math.round((duration / 60) * 100) / 100)}
               onChange={e => {
                 const raw = e.target.value.replace(/[^0-9.]/g, '')
                 if (raw === '' || raw === '.') { setDuration(0); return }
                 const val = parseFloat(raw)
-                if (!isNaN(val)) setDuration(durationUnit === 'hr' ? Math.round(val * 60) : Math.round(val))
+                if (!isNaN(val)) setDuration(Math.round(val * 60))
               }}
               placeholder="0" className="flex-1 px-3 py-2.5 rounded-lg text-sm outline-none"
               style={fieldInputStyle} />
