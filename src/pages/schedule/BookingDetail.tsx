@@ -214,11 +214,9 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
             <ArrowLeft size={18} />
             <span className="text-sm">Back</span>
           </button>
-          {!isTerminal && (
-            <button onClick={() => setShowEditor(true)} className="p-2 text-purple-500">
-              <Edit size={18} />
-            </button>
-          )}
+          <button onClick={() => setShowEditor(true)} className="p-2 text-purple-500">
+            <Edit size={18} />
+          </button>
         </div>
       </header>
 
