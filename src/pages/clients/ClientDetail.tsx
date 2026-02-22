@@ -12,6 +12,7 @@ import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { Card } from '../../components/Card'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { showUndoToast } from '../../components/Toast'
 import { ClientEditor } from './ClientEditor'
 import { BookingEditor } from '../schedule/BookingEditor'
 import { screeningStatusColors, riskLevelColors, bookingStatusColors } from '../../types'
@@ -96,23 +97,36 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
   }
 
   async function confirmDelete() {
-    // Get all booking IDs for this client
-    const clientBookings = await db.bookings.where('clientId').equals(clientId).toArray()
-    const bookingIds = clientBookings.map(b => b.id)
-    // Delete all payments, transactions, and safety checks associated with those bookings
+    // Snapshot everything before deletion for undo
+    const clientSnap = await db.clients.get(clientId)
+    const bookingSnaps = await db.bookings.where('clientId').equals(clientId).toArray()
+    const bookingIds = bookingSnaps.map(b => b.id)
+    const paymentSnaps = bookingIds.length ? await db.payments.where('bookingId').anyOf(bookingIds).toArray() : []
+    const txnSnaps = bookingIds.length ? await db.transactions.where('bookingId').anyOf(bookingIds).toArray() : []
+    const checkSnaps = bookingIds.length ? await db.safetyChecks.where('bookingId').anyOf(bookingIds).toArray() : []
+    const incidentSnaps = await db.incidents.where('clientId').equals(clientId).toArray()
+
+    // Execute cascade delete
     for (const bid of bookingIds) {
       await db.payments.where('bookingId').equals(bid).delete()
       await db.transactions.where('bookingId').equals(bid).delete()
       await db.safetyChecks.where('bookingId').equals(bid).delete()
     }
-    // Delete all bookings for this client
     await db.bookings.where('clientId').equals(clientId).delete()
-    // Delete all incidents referencing this client
     await db.incidents.where('clientId').equals(clientId).delete()
-    // Delete the client
     await db.clients.delete(clientId)
     setShowDeleteConfirm(false)
     onBack()
+
+    const alias = clientSnap?.alias ?? 'Client'
+    showUndoToast(`Deleted ${alias}`, async () => {
+      if (clientSnap) await db.clients.put(clientSnap)
+      if (bookingSnaps.length) await db.bookings.bulkPut(bookingSnaps)
+      if (paymentSnaps.length) await db.payments.bulkPut(paymentSnaps)
+      if (txnSnaps.length) await db.transactions.bulkPut(txnSnaps)
+      if (checkSnaps.length) await db.safetyChecks.bulkPut(checkSnaps)
+      if (incidentSnaps.length) await db.incidents.bulkPut(incidentSnaps)
+    })
   }
 
   return (

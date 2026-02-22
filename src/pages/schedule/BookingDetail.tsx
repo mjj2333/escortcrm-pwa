@@ -12,7 +12,7 @@ import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Card } from '../../components/Card'
 import { BookingEditor } from './BookingEditor'
-import { showToast } from '../../components/Toast'
+import { showToast, showUndoToast } from '../../components/Toast'
 import { bookingStatusColors } from '../../types'
 import type { Booking, BookingStatus, PaymentMethod, PaymentLabel } from '../../types'
 
@@ -113,13 +113,25 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
   }
 
   async function deleteBooking() {
-    // Delete associated payments, transactions, and safety checks
+    // Snapshot everything before deletion for undo
+    const bookingSnap = await db.bookings.get(bookingId)
+    const paymentsSnap = await db.payments.where('bookingId').equals(bookingId).toArray()
+    const txnsSnap = await db.transactions.where('bookingId').equals(bookingId).toArray()
+    const checksSnap = await db.safetyChecks.where('bookingId').equals(bookingId).toArray()
+
     await db.payments.where('bookingId').equals(bookingId).delete()
     await db.transactions.where('bookingId').equals(bookingId).delete()
     await db.safetyChecks.where('bookingId').equals(bookingId).delete()
     await db.bookings.delete(bookingId)
     setConfirmAction(null)
     onBack()
+
+    showUndoToast('Booking deleted', async () => {
+      if (bookingSnap) await db.bookings.put(bookingSnap)
+      if (paymentsSnap.length) await db.payments.bulkPut(paymentsSnap)
+      if (txnsSnap.length) await db.transactions.bulkPut(txnsSnap)
+      if (checksSnap.length) await db.safetyChecks.bulkPut(checksSnap)
+    })
   }
 
   function openPaymentForm(defaultLabel?: PaymentLabel, defaultAmount?: number) {

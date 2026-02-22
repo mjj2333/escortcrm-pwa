@@ -20,6 +20,7 @@ import { TransactionEditor } from './TransactionEditor'
 import { StatusBadge } from '../../components/StatusBadge'
 import { bookingStatusColors } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
+import { showUndoToast } from '../../components/Toast'
 
 type TimePeriod = 'Week' | 'Month' | 'Quarter' | 'Year' | 'All'
 
@@ -665,7 +666,6 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const allTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray()) ?? []
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
   const [search, setSearch] = useState('')
-  const [deleteTxnId, setDeleteTxnId] = useState<string | null>(null)
 
   const filtered = allTransactions
     .filter(t => filterType === 'all' || t.type === filterType)
@@ -747,7 +747,38 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                 </p>
                 <button
-                  onClick={() => setDeleteTxnId(t.id)}
+                  onClick={async () => {
+                    // Snapshot for undo
+                    const txnSnap = await db.transactions.get(t.id)
+                    const paySnap = txnSnap?.paymentId ? await db.payments.get(txnSnap.paymentId) : undefined
+
+                    if (txnSnap?.paymentId) {
+                      await removeBookingPayment(txnSnap.paymentId)
+                      const stillExists = await db.transactions.get(t.id)
+                      if (stillExists) await db.transactions.delete(t.id)
+                    } else {
+                      await db.transactions.delete(t.id)
+                    }
+
+                    showUndoToast('Transaction deleted', async () => {
+                      if (txnSnap) await db.transactions.put(txnSnap)
+                      if (paySnap) {
+                        await db.payments.put(paySnap)
+                        // Re-sync booking payment booleans
+                        const booking = await db.bookings.get(paySnap.bookingId)
+                        if (booking) {
+                          const allPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).toArray())
+                            .reduce((s, p) => s + p.amount, 0)
+                          const depositPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).filter(p => p.label === 'Deposit').toArray())
+                            .reduce((s, p) => s + p.amount, 0)
+                          await db.bookings.update(paySnap.bookingId, {
+                            paymentReceived: allPaid >= (booking.baseRate + booking.extras + booking.travelFee),
+                            depositReceived: depositPaid >= booking.depositAmount,
+                          })
+                        }
+                      }
+                    })
+                  }}
                   className="p-1 opacity-40 active:opacity-100"
                   style={{ color: 'var(--text-secondary)' }}
                 >
@@ -774,30 +805,6 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
         <div className="h-8" />
       </div>
     </Modal>
-    <ConfirmDialog
-      isOpen={!!deleteTxnId}
-      title="Delete Transaction"
-      message="Delete this transaction? This cannot be undone."
-      confirmLabel="Delete"
-      onConfirm={async () => {
-        if (deleteTxnId) {
-          const txn = await db.transactions.get(deleteTxnId)
-          if (txn?.paymentId) {
-            // Transaction was created by payment ledger — use removeBookingPayment
-            // which deletes both the payment and its transaction, and syncs booleans
-            await removeBookingPayment(txn.paymentId)
-            // If the payment was already gone, removeBookingPayment is a no-op —
-            // fall through and delete the orphaned transaction directly
-            const stillExists = await db.transactions.get(deleteTxnId)
-            if (stillExists) await db.transactions.delete(deleteTxnId)
-          } else {
-            await db.transactions.delete(deleteTxnId)
-          }
-        }
-        setDeleteTxnId(null)
-      }}
-      onCancel={() => setDeleteTxnId(null)}
-    />
     </>
   )
 }

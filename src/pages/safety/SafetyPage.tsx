@@ -12,7 +12,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { EmptyState } from '../../components/EmptyState'
 import { SafetyContactEditor } from './SafetyContactEditor'
 import { IncidentEditor } from './IncidentEditor'
-import { showToast } from '../../components/Toast'
+import { showToast, showUndoToast } from '../../components/Toast'
 import type { SafetyCheckStatus } from '../../types'
 
 const statusLabel: Record<SafetyCheckStatus, string> = {
@@ -40,7 +40,7 @@ export function SafetyPage() {
   const [tab, setTab] = useState<'checkins' | 'contacts' | 'incidents'>('checkins')
   const [showContactEditor, setShowContactEditor] = useState(false)
   const [showIncidentEditor, setShowIncidentEditor] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'contact' | 'incident'; id: string; name: string } | null>(null)
+  
 
   const safetyChecks = useLiveQuery(() => db.safetyChecks.orderBy('scheduledTime').reverse().toArray()) ?? []
   const bookings = useLiveQuery(() => db.bookings.toArray()) ?? []
@@ -297,7 +297,13 @@ export function SafetyPage() {
                         <Phone size={18} className="text-green-500" />
                       </a>
                       <button
-                        onClick={() => setDeleteTarget({ type: 'contact', id: contact.id, name: contact.name })}
+                        onClick={async () => {
+                          const snap = await db.safetyContacts.get(contact.id)
+                          await db.safetyContacts.delete(contact.id)
+                          showUndoToast(`Removed ${contact.name}`, async () => {
+                            if (snap) await db.safetyContacts.put(snap)
+                          })
+                        }}
                         className="p-1"
                         style={{ color: 'var(--text-secondary)' }}
                       >
@@ -335,7 +341,13 @@ export function SafetyPage() {
                           {format(new Date(incident.date), 'MMM d, yyyy')}
                         </span>
                         <button
-                          onClick={() => setDeleteTarget({ type: 'incident', id: incident.id, name: 'this incident' })}
+                          onClick={async () => {
+                            const snap = await db.incidents.get(incident.id)
+                            await db.incidents.delete(incident.id)
+                            showUndoToast('Incident deleted', async () => {
+                              if (snap) await db.incidents.put(snap)
+                            })
+                          }}
                           className="p-1"
                           style={{ color: 'var(--text-secondary)' }}
                         >
@@ -366,20 +378,6 @@ export function SafetyPage() {
 
       <SafetyContactEditor isOpen={showContactEditor} onClose={() => setShowContactEditor(false)} />
       <IncidentEditor isOpen={showIncidentEditor} onClose={() => setShowIncidentEditor(false)} />
-      <ConfirmDialog
-        isOpen={!!deleteTarget}
-        title={deleteTarget?.type === 'contact' ? 'Remove Contact' : 'Delete Incident'}
-        message={deleteTarget?.type === 'contact'
-          ? `Remove ${deleteTarget?.name ?? ''}?`
-          : 'Delete this incident log?'}
-        confirmLabel="Delete"
-        onConfirm={async () => {
-          if (deleteTarget?.type === 'contact') await db.safetyContacts.delete(deleteTarget.id)
-          else if (deleteTarget?.type === 'incident') await db.incidents.delete(deleteTarget!.id)
-          setDeleteTarget(null)
-        }}
-        onCancel={() => setDeleteTarget(null)}
-      />
     </div>
   )
 }
