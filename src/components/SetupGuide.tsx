@@ -244,6 +244,8 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
   const clients = useLiveQuery(() => db.clients.filter(c => !c.isBlocked).sortBy('alias')) ?? []
   const rates = useLiveQuery(() => db.serviceRates.filter(r => r.isActive).sortBy('sortOrder')) ?? []
   const [defaultDepositPct] = useLocalStorage('defaultDepositPercentage', 25)
+  const [defaultDepositType] = useLocalStorage<'percent' | 'flat'>('defaultDepositType', 'percent')
+  const [defaultDepositFlat] = useLocalStorage('defaultDepositFlat', 0)
 
   const [clientId, setClientId] = useState(createdClientId)
   const [dateTime, setDateTime] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"))
@@ -267,15 +269,18 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
   const [userEditedDeposit, setUserEditedDeposit] = useState(false)
   const [conflictWarning, setConflictWarning] = useState<{ reason: string; dayStatus: string; isDoubleBook: boolean } | null>(null)
 
-  useEffect(() => { if (rates.length > 0 && baseRate === 0) { setBaseRate(rates[0].rate); setDuration(rates[0].duration); setDepositAmount(Math.round(rates[0].rate * defaultDepositPct / 100)) } }, [rates.length])
-  useEffect(() => { if (!userEditedDeposit && baseRate > 0) setDepositAmount(Math.round(baseRate * defaultDepositPct / 100)) }, [baseRate, defaultDepositPct, userEditedDeposit])
+  useEffect(() => { if (rates.length > 0 && baseRate === 0) { setBaseRate(rates[0].rate); setDuration(rates[0].duration); setDepositAmount(defaultDepositType === 'flat' ? defaultDepositFlat : Math.round(rates[0].rate * defaultDepositPct / 100)) } }, [rates.length])
+  useEffect(() => { if (!userEditedDeposit) { if (defaultDepositType === 'flat') setDepositAmount(defaultDepositFlat); else if (baseRate > 0) setDepositAmount(Math.round(baseRate * defaultDepositPct / 100)) } }, [baseRate, defaultDepositPct, defaultDepositType, defaultDepositFlat, userEditedDeposit])
   useEffect(() => { const c = clients.find(c => c.id === clientId); if (c) setRequiresSafetyCheck(c.riskLevel === 'High Risk' || c.riskLevel === 'Unknown') }, [clientId, clients])
 
   function selectRate(dur: number, r: number) { setDuration(dur); setBaseRate(r); setCustomDuration(false) }
   const total = baseRate + extras + ((locationType === 'Outcall' || locationType === 'Travel') ? travelFee : 0)
   const selectedClient = clients.find(c => c.id === clientId)
+  const clientIsScreened = selectedClient?.screeningStatus === 'Screened'
+  const canSave = clientId && baseRate > 0 && clientIsScreened
 
   async function handleSave() {
+    if (!canSave) return
     const dt = new Date(dateTime)
     const conflict = await checkBookingConflict(dt, duration)
     if (conflict.hasConflict) { setConflictWarning({ reason: conflict.reason, dayStatus: conflict.dayStatus ?? '', isDoubleBook: conflict.isDoubleBook ?? false }); return }
@@ -320,7 +325,7 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
         <select value={clientId} onChange={e => setClientId(e.target.value)}
           className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={fieldInputStyle}>
           <option value="">No client (anonymous)</option>
-          {clients.map(c => <option key={c.id} value={c.id}>{c.alias}</option>)}
+          {clients.map(c => <option key={c.id} value={c.id}>{c.alias}{c.screeningStatus !== 'Screened' ? ` (${c.screeningStatus})` : ' ✓'}</option>)}
         </select>
       </div>
 
@@ -381,7 +386,7 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
       <SectionLabel label="Deposit" />
       <div className="flex gap-3">
         <div className="flex-1"><FieldCurrency label="Amount" value={depositAmount} onChange={v => { setDepositAmount(v); setUserEditedDeposit(true) }}
-          hint={`Auto-calculated at ${defaultDepositPct}% of base rate.`} /></div>
+          hint={defaultDepositType === 'flat' ? `Default flat deposit.` : `Auto-calculated at ${defaultDepositPct}% of base rate.`} /></div>
         <div className="flex-1"><FieldSelect label="Deposit Method" value={depositMethod || '' as PaymentMethod}
           options={['', ...paymentMethods] as PaymentMethod[]} onChange={v => setDepositMethod(v || '')}
           displayFn={(v: string) => v || 'Not set'} /></div>
@@ -416,7 +421,18 @@ function BookingStep({ onNext, createdClientId }: { onNext: () => void; createdC
         </>
       )}
 
-      <button type="button" onClick={handleSave} className="w-full py-3.5 rounded-xl font-bold text-sm text-white active:opacity-80"
+      {!clientIsScreened && clientId && (
+        <div className="flex items-center gap-2 p-3 rounded-xl"
+          style={{ backgroundColor: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
+          <ShieldCheck size={14} className="text-orange-500 shrink-0" />
+          <p className="text-xs text-orange-500 font-medium">
+            Client must be screened before booking. Set screening to Screened on the previous step.
+          </p>
+        </div>
+      )}
+
+      <button type="button" onClick={handleSave} disabled={!canSave}
+        className={`w-full py-3.5 rounded-xl font-bold text-sm text-white active:opacity-80 ${!canSave ? 'opacity-40' : ''}`}
         style={{ backgroundColor: '#a855f7' }}>Save Booking — Last Step</button>
 
       {conflictWarning && (

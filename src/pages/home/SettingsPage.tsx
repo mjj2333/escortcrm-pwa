@@ -59,6 +59,8 @@ const SUPPORTED_CURRENCIES: { code: string; label: string }[] = [
 export function SettingsPage({ onClose, onRestartTour }: SettingsPageProps) {
   const serviceRates = useLiveQuery(() => db.serviceRates.orderBy('sortOrder').toArray()) ?? []
   const [depositPct, setDepositPct] = useLocalStorage('defaultDepositPercentage', 25)
+  const [depositType, setDepositType] = useLocalStorage<'percent' | 'flat'>('defaultDepositType', 'percent')
+  const [depositFlat, setDepositFlat] = useLocalStorage('defaultDepositFlat', 0)
   const [darkMode, setDarkMode] = useLocalStorage('darkMode', true)
   const [oledBlack, setOledBlack] = useLocalStorage('oledBlack', true)
   const [pinEnabled, setPinEnabled] = useLocalStorage('pinEnabled', false)
@@ -229,16 +231,54 @@ export function SettingsPage({ onClose, onRestartTour }: SettingsPageProps) {
           {/* Default Deposit */}
           <SectionLabel label="Default Deposit" />
           <div className="mb-3">
-            <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>Percentage</label>
-            <div className="flex items-center gap-2">
-              <input type="text" inputMode="numeric"
-                value={depositPct > 0 ? String(depositPct) : ''}
-                onChange={e => { const raw = e.target.value.replace(/[^0-9]/g, ''); if (raw === '') { setDepositPct(0); return }; const val = parseInt(raw); if (!isNaN(val) && val <= 100) setDepositPct(val) }}
-                placeholder="0" className="w-20 px-3 py-2.5 rounded-lg text-sm outline-none"
-                style={fieldInputStyle} />
-              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>%</span>
+            <div className="flex rounded-lg overflow-hidden mb-3" style={{ border: '1px solid var(--border)' }}>
+              <button
+                onClick={() => setDepositType('percent')}
+                className="flex-1 py-2 text-xs font-semibold transition-colors"
+                style={{
+                  backgroundColor: depositType === 'percent' ? '#a855f7' : 'transparent',
+                  color: depositType === 'percent' ? '#fff' : 'var(--text-secondary)',
+                }}
+              >
+                Percentage
+              </button>
+              <button
+                onClick={() => setDepositType('flat')}
+                className="flex-1 py-2 text-xs font-semibold transition-colors"
+                style={{
+                  backgroundColor: depositType === 'flat' ? '#a855f7' : 'transparent',
+                  color: depositType === 'flat' ? '#fff' : 'var(--text-secondary)',
+                }}
+              >
+                Flat Rate
+              </button>
             </div>
-            <FieldHint text={`New bookings will auto-calculate ${depositPct}% of the base rate as deposit.`} />
+
+            {depositType === 'percent' ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <input type="text" inputMode="numeric"
+                    value={depositPct > 0 ? String(depositPct) : ''}
+                    onChange={e => { const raw = e.target.value.replace(/[^0-9]/g, ''); if (raw === '') { setDepositPct(0); return }; const val = parseInt(raw); if (!isNaN(val) && val <= 100) setDepositPct(val) }}
+                    placeholder="0" className="w-20 px-3 py-2.5 rounded-lg text-sm outline-none"
+                    style={fieldInputStyle} />
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>%</span>
+                </div>
+                <FieldHint text={`New bookings will auto-calculate ${depositPct}% of the base rate as deposit.`} />
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>$</span>
+                  <input type="text" inputMode="decimal"
+                    value={depositFlat > 0 ? String(depositFlat) : ''}
+                    onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '' || raw === '.') { setDepositFlat(0); return }; const val = parseFloat(raw); if (!isNaN(val)) setDepositFlat(val) }}
+                    placeholder="0" className="w-28 px-3 py-2.5 rounded-lg text-sm outline-none"
+                    style={fieldInputStyle} />
+                </div>
+                <FieldHint text={`New bookings will default to ${formatCurrency(depositFlat)} deposit.`} />
+              </>
+            )}
           </div>
 
           {/* Security */}
