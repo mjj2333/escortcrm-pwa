@@ -15,7 +15,6 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
   const isEditing = !!contact
   const [name, setName] = useState(contact?.name ?? '')
   const [phone, setPhone] = useState(contact?.phone ?? '')
-  const [relationship, setRelationship] = useState(contact?.relationship ?? '')
   const [isPrimary, setIsPrimary] = useState(contact?.isPrimary ?? false)
 
   // Reset form when modal opens
@@ -23,7 +22,6 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
     if (isOpen) {
       setName(contact?.name ?? '')
       setPhone(contact?.phone ?? '')
-      setRelationship(contact?.relationship ?? '')
       setIsPrimary(contact?.isPrimary ?? false)
     }
   }, [isOpen, contact])
@@ -43,7 +41,6 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
       await db.safetyContacts.update(contact.id, {
         name: name.trim(),
         phone: phone.trim(),
-        relationship: relationship.trim(),
         isPrimary,
       })
     } else {
@@ -57,7 +54,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
         id: newId(),
         name: name.trim(),
         phone: phone.trim(),
-        relationship: relationship.trim(),
+        relationship: '',
         isPrimary,
         isActive: true,
       })
@@ -83,8 +80,6 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
           hint="Your safety contact's name." />
         <FieldTextInput label="Phone" value={phone} onChange={setPhone} placeholder="Phone number" type="tel" required
           hint="The number that will be contacted for safety check-ins." />
-        <FieldTextInput label="Relationship" value={relationship} onChange={setRelationship} placeholder="e.g. Friend, Sister"
-          hint="How you know this person." />
 
         <SectionLabel label="Settings" />
         <FieldToggle label="Primary Contact" value={isPrimary} onChange={setIsPrimary}

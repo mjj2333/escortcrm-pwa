@@ -162,15 +162,17 @@ export function SafetyPage() {
   return (
     <div className="pb-20">
       <PageHeader title="Safety">
-        <button
-          onClick={() => {
-            if (tab === 'contacts') setShowContactEditor(true)
-            else if (tab === 'incidents') setShowIncidentEditor(true)
-          }}
-          className="p-2 rounded-lg text-purple-500"
-        >
-          <Plus size={20} />
-        </button>
+        {tab !== 'checkins' && (
+          <button
+            onClick={() => {
+              if (tab === 'contacts') setShowContactEditor(true)
+              else if (tab === 'incidents') setShowIncidentEditor(true)
+            }}
+            className="p-2 rounded-lg text-purple-500"
+          >
+            <Plus size={20} />
+          </button>
+        )}
       </PageHeader>
 
       <div className="max-w-lg mx-auto">
@@ -356,7 +358,7 @@ export function SafetyPage() {
                           )}
                         </div>
                         <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                          {contact.phone} · {contact.relationship}
+                          {contact.phone}
                         </p>
                       </div>
                     <div className="flex items-center gap-2">

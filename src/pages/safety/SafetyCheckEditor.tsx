@@ -155,7 +155,7 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
                       )}
                     </p>
                     <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
-                      {c.phone} · {c.relationship}
+                      {c.phone}
                     </p>
                   </div>
                 </button>
