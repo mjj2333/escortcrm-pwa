@@ -61,7 +61,7 @@ async function exportClients(format: Format) {
     'Secondary Contact': c.secondaryContact ?? '',
     'Screening Status': c.screeningStatus,
     'Risk Level': c.riskLevel,
-    Blocked: c.isBlocked ? 'Yes' : 'No',
+    Blacklisted: c.isBlocked ? 'Yes' : 'No',
     Preferences: c.preferences,
     Boundaries: c.boundaries,
     Notes: c.notes,
@@ -282,7 +282,7 @@ async function importClients(rows: Record<string, unknown>[]): Promise<number> {
         (() => { const s = String(row['Screening Status'] ?? row['screeningStatus'] ?? 'Unscreened').trim(); return s === 'Pending' || s === 'Declined' ? 'Unscreened' : s === 'Verified' ? 'Screened' : s })(),
         VALID_SCREENING_STATUSES, 'Unscreened'),
       riskLevel: validateEnum(String(row['Risk Level'] ?? row['riskLevel'] ?? 'Unknown'), VALID_RISK_LEVELS, 'Unknown'),
-      isBlocked: yesNo(row['Blocked'] ?? row['isBlocked']),
+      isBlocked: yesNo(row['Blacklisted'] ?? row['Blocked'] ?? row['isBlocked']),
       preferences: String(row['Preferences'] ?? row['preferences'] ?? ''),
       boundaries: String(row['Boundaries'] ?? row['boundaries'] ?? ''),
       notes: String(row['Notes'] ?? row['notes'] ?? ''),
@@ -637,7 +637,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
               {dataType === 'clients' && (
                 <>
                   <p><strong style={{ color: 'var(--text-primary)' }}>Required:</strong> Alias</p>
-                  <p><strong style={{ color: 'var(--text-primary)' }}>Optional:</strong> Nickname, Phone, Email, Preferred Contact (Phone/Text/Email/Telegram/Signal/WhatsApp), Screening Status (Unscreened/In Progress/Screened), Risk Level (Unknown/Low/Medium/High Risk), Notes, Preferences, Boundaries, Tags (semicolon-separated), Reference Source, Date Added, Birthday, Blocked (Yes/No)</p>
+                  <p><strong style={{ color: 'var(--text-primary)' }}>Optional:</strong> Nickname, Phone, Email, Preferred Contact (Phone/Text/Email/Telegram/Signal/WhatsApp), Screening Status (Unscreened/In Progress/Screened), Risk Level (Unknown/Low/Medium/High Risk), Notes, Preferences, Boundaries, Tags (semicolon-separated), Reference Source, Date Added, Birthday, Blocked/Blacklisted (Yes/No)</p>
                 </>
               )}
               {dataType === 'transactions' && (

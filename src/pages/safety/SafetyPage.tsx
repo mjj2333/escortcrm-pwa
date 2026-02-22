@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Plus, ShieldCheck, ShieldAlert, UserPlus, AlertTriangle,
-  Phone, CheckCircle, XCircle, Clock, Siren, Edit2
+  Phone, CheckCircle, XCircle, Clock, Siren, Edit2, Ban, Download
 } from 'lucide-react'
 import { useState } from 'react'
 import { format } from 'date-fns'
@@ -12,6 +12,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { SafetyContactEditor } from './SafetyContactEditor'
 import { IncidentEditor } from './IncidentEditor'
 import { SafetyCheckEditor } from './SafetyCheckEditor'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { showToast, showUndoToast } from '../../components/Toast'
 import { SafetyPageSkeleton } from '../../components/Skeleton'
 import type { SafetyCheckStatus, SafetyCheck } from '../../types'
@@ -38,10 +39,11 @@ const statusColor: Record<SafetyCheckStatus, string> = {
 }
 
 export function SafetyPage() {
-  const [tab, setTab] = useState<'checkins' | 'contacts' | 'incidents'>('checkins')
+  const [tab, setTab] = useState<'checkins' | 'contacts' | 'incidents' | 'blacklist'>('checkins')
   const [showContactEditor, setShowContactEditor] = useState(false)
   const [showIncidentEditor, setShowIncidentEditor] = useState(false)
   const [editingCheck, setEditingCheck] = useState<SafetyCheck | null>(null)
+  const [blacklistConfirm, setBlacklistConfirm] = useState<{ clientId: string; alias: string } | null>(null)
   
 
   const safetyChecks = useLiveQuery(() => db.safetyChecks.orderBy('scheduledTime').reverse().toArray())
@@ -53,6 +55,7 @@ export function SafetyPage() {
 
   const pendingChecks = safetyChecks.filter(c => c.status === 'pending' || c.status === 'overdue')
   const overdueChecks = safetyChecks.filter(c => c.status === 'overdue')
+  const blacklistedClients = clients.filter(c => c.isBlocked)
 
   const bookingFor = (id: string) => bookings.find(b => b.id === id)
   const clientFor = (id?: string) => clients.find(c => c.id === id)
@@ -157,20 +160,50 @@ export function SafetyPage() {
     { id: 'checkins' as const, label: 'Check-ins', count: pendingChecks.length },
     { id: 'contacts' as const, label: 'Contacts', count: contacts.length },
     { id: 'incidents' as const, label: 'Incidents', count: incidents.length },
+    { id: 'blacklist' as const, label: 'Blacklist', count: blacklistedClients.length },
   ]
+
+  async function exportBlacklist() {
+    const rows = blacklistedClients.map(c => ({
+      Name: c.alias,
+      Phone: c.phone ?? '',
+      Email: c.email ?? '',
+      'Risk Level': c.riskLevel,
+      'Date Added': c.dateAdded ? format(new Date(c.dateAdded), 'yyyy-MM-dd') : '',
+    }))
+    // Simple CSV export
+    if (rows.length === 0) { showToast('No blacklisted clients to export'); return }
+    const headers = Object.keys(rows[0])
+    const csv = [
+      headers.join(','),
+      ...rows.map(r => headers.map(h => `"${String((r as any)[h]).replace(/"/g, '""')}"`).join(','))
+    ].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `blacklist-${format(new Date(), 'yyyy-MM-dd')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast(`Exported ${rows.length} blacklisted client${rows.length !== 1 ? 's' : ''}`)
+  }
 
   return (
     <div className="pb-20">
       <PageHeader title="Safety">
-        {tab !== 'checkins' && (
-          <button
-            onClick={() => {
-              if (tab === 'contacts') setShowContactEditor(true)
-              else if (tab === 'incidents') setShowIncidentEditor(true)
-            }}
-            className="p-2 rounded-lg text-purple-500"
-          >
+        {tab === 'contacts' && (
+          <button onClick={() => setShowContactEditor(true)} className="p-2 rounded-lg text-purple-500">
             <Plus size={20} />
+          </button>
+        )}
+        {tab === 'incidents' && (
+          <button onClick={() => setShowIncidentEditor(true)} className="p-2 rounded-lg text-purple-500">
+            <Plus size={20} />
+          </button>
+        )}
+        {tab === 'blacklist' && blacklistedClients.length > 0 && (
+          <button onClick={exportBlacklist} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
+            <Download size={18} />
           </button>
         )}
       </PageHeader>
@@ -395,50 +428,133 @@ export function SafetyPage() {
               />
             ) : (
               <div className="space-y-2">
-                {incidents.map(incident => (
-                  <Card key={incident.id}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs font-semibold capitalize ${
-                        incident.severity === 'critical' || incident.severity === 'high'
-                          ? 'text-red-500'
-                          : incident.severity === 'medium' ? 'text-orange-500' : 'text-yellow-500'
-                      }`}>
-                        {incident.severity} severity
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                          {format(new Date(incident.date), 'MMM d, yyyy')}
+                {incidents.map(incident => {
+                  const linkedClient = incident.clientId ? clientFor(incident.clientId) : undefined
+                  const isBlacklisted = linkedClient?.isBlocked
+                  return (
+                    <Card key={incident.id}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs font-semibold capitalize ${
+                          incident.severity === 'critical' || incident.severity === 'high'
+                            ? 'text-red-500'
+                            : incident.severity === 'medium' ? 'text-orange-500' : 'text-yellow-500'
+                        }`}>
+                          {incident.severity} severity
                         </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            {format(new Date(incident.date), 'MMM d, yyyy')}
+                          </span>
+                          <button
+                            onClick={async () => {
+                              const snap = await db.incidents.get(incident.id)
+                              await db.incidents.delete(incident.id)
+                              showUndoToast('Incident deleted', async () => {
+                                if (snap) await db.incidents.put(snap)
+                              })
+                            }}
+                            className="p-1"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            <XCircle size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                        {incident.description}
+                      </p>
+                      {linkedClient && (
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            Client: {linkedClient.alias}
+                          </p>
+                          {isBlacklisted ? (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-500">
+                              Blacklisted
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setBlacklistConfirm({ clientId: linkedClient.id, alias: linkedClient.alias })}
+                              className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full active:opacity-70"
+                              style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
+                            >
+                              <Ban size={10} /> Blacklist
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {incident.actionTaken && (
+                        <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                          Action: {incident.actionTaken}
+                        </p>
+                      )}
+                    </Card>
+                  )
+                })}
+              </div>
+            )
+          )}
+
+          {tab === 'blacklist' && (
+            blacklistedClients.length === 0 ? (
+              <EmptyState
+                icon={<Ban size={40} />}
+                title="No blacklisted clients"
+                description="Clients you blacklist will appear here"
+              />
+            ) : (
+              <div className="space-y-2">
+                {blacklistedClients.map(client => {
+                  const clientIncidents = incidents.filter(i => i.clientId === client.id)
+                  return (
+                    <Card key={client.id}>
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: 'rgba(239,68,68,0.15)' }}
+                        >
+                          <span className="text-sm font-bold text-red-500">
+                            {client.alias.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                            {client.alias}
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {client.phone && (
+                              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{client.phone}</p>
+                            )}
+                            {clientIncidents.length > 0 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-500 font-medium">
+                                {clientIncidents.length} incident{clientIncidents.length !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                              client.riskLevel === 'High Risk' ? 'bg-red-500/15 text-red-500'
+                                : client.riskLevel === 'Medium Risk' ? 'bg-orange-500/15 text-orange-500'
+                                : 'bg-gray-500/15 text-gray-400'
+                            }`}>
+                              {client.riskLevel}
+                            </span>
+                          </div>
+                        </div>
                         <button
                           onClick={async () => {
-                            const snap = await db.incidents.get(incident.id)
-                            await db.incidents.delete(incident.id)
-                            showUndoToast('Incident deleted', async () => {
-                              if (snap) await db.incidents.put(snap)
+                            await db.clients.update(client.id, { isBlocked: false })
+                            showUndoToast(`${client.alias} removed from blacklist`, async () => {
+                              await db.clients.update(client.id, { isBlocked: true })
                             })
                           }}
-                          className="p-1"
-                          style={{ color: 'var(--text-secondary)' }}
+                          className="text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 active:opacity-70"
+                          style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}
                         >
-                          <XCircle size={14} />
+                          Remove
                         </button>
                       </div>
-                    </div>
-                    <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                      {incident.description}
-                    </p>
-                    {incident.clientId && clientFor(incident.clientId) && (
-                      <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        Client: {clientFor(incident.clientId)!.alias}
-                      </p>
-                    )}
-                    {incident.actionTaken && (
-                      <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        Action: {incident.actionTaken}
-                      </p>
-                    )}
-                  </Card>
-                ))}
+                    </Card>
+                  )
+                })}
               </div>
             )
           )}
@@ -454,6 +570,20 @@ export function SafetyPage() {
           check={editingCheck}
         />
       )}
+      <ConfirmDialog
+        isOpen={!!blacklistConfirm}
+        title="Blacklist Client"
+        message={`Add ${blacklistConfirm?.alias ?? 'this client'} to your blacklist? They will be hidden from your main client list and cannot be booked.`}
+        confirmLabel="Blacklist"
+        onConfirm={async () => {
+          if (blacklistConfirm) {
+            await db.clients.update(blacklistConfirm.clientId, { isBlocked: true })
+            showToast(`${blacklistConfirm.alias} blacklisted`)
+          }
+          setBlacklistConfirm(null)
+        }}
+        onCancel={() => setBlacklistConfirm(null)}
+      />
     </div>
   )
 }

@@ -364,7 +364,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
 
             {/* Auto-merged fields note */}
             <p className="text-[10px] mb-3" style={{ color: 'var(--text-secondary)' }}>
-              Tags combined · Earliest date added kept · Most recent last seen kept · If either is blocked, merged record stays blocked
+              Tags combined · Earliest date added kept · Most recent last seen kept · If either is blacklisted, merged record stays blacklisted
             </p>
 
             {/* Field-by-field choices */}

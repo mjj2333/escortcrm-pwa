@@ -87,7 +87,7 @@ function buildClientsSheet(wb: ExcelJS.Workbook, clients: Client[]) {
     { header: 'Secondary Contact', key: 'secondary', width: 14 },
     { header: 'Screening', key: 'screening', width: 13 },
     { header: 'Risk', key: 'risk', width: 13 },
-    { header: 'Blocked', key: 'blocked', width: 9 },
+    { header: 'Blacklisted', key: 'blocked', width: 11 },
     { header: 'Date Added', key: 'dateAdded', width: 12 },
     { header: 'Last Seen', key: 'lastSeen', width: 12 },
     { header: 'Tags', key: 'tags', width: 20 },

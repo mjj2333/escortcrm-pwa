@@ -144,7 +144,7 @@ function OverviewTab({ bookings, clients, transactions }: {
             { label: 'Total', count: clients.length, color: '#3b82f6' },
             { label: 'Screened', count: clients.filter((c: any) => c.screeningStatus === 'Screened').length, color: '#22c55e' },
             { label: 'Repeat', count: clients.filter((c: any) => bookings.filter((b: any) => b.clientId === c.id && b.status === 'Completed').length >= 2).length, color: '#a855f7' },
-            { label: 'Blocked', count: clients.filter((c: any) => c.isBlocked).length, color: '#ef4444' },
+            { label: 'Blacklisted', count: clients.filter((c: any) => c.isBlocked).length, color: '#ef4444' },
           ].map(s => (
             <div key={s.label} className="text-center py-2">
               <p className="text-lg font-bold" style={{ color: s.color }}>{s.count}</p>

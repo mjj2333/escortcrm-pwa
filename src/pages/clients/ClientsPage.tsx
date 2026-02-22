@@ -107,7 +107,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
           />
         </div>
 
-        {/* Active / Blocked filter */}
+        {/* Active / Blacklisted filter */}
         {blockedCount > 0 && (
           <div className="flex gap-2 mt-2">
             <button
@@ -128,7 +128,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
                 color: showBlocked ? '#fff' : 'var(--text-secondary)',
               }}
             >
-              Blocked ({blockedCount})
+              Blacklisted ({blockedCount})
             </button>
           </div>
         )}
@@ -156,8 +156,8 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
         {filtered.length === 0 ? (
           <EmptyState
             icon={<UserX size={40} />}
-            title={showBlocked ? 'No blocked clients' : search ? 'No matches' : 'No clients yet'}
-            description={showBlocked ? 'Blocked clients will appear here' : search ? `No clients match "${search}"` : 'Add your first client to get started'}
+            title={showBlocked ? 'No blacklisted clients' : search ? 'No matches' : 'No clients yet'}
+            description={showBlocked ? 'Blacklisted clients will appear here' : search ? `No clients match "${search}"` : 'Add your first client to get started'}
           />
         ) : (
           <div className="space-y-2">

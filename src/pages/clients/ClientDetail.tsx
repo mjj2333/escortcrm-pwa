@@ -622,7 +622,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
             onClick={toggleBlock}
             className={`w-full py-2 text-sm font-medium text-center ${client.isBlocked ? 'text-green-500' : 'text-red-500'}`}
           >
-            {client.isBlocked ? 'Unblock Client' : 'Block Client'}
+            {client.isBlocked ? 'Remove from Blacklist' : 'Blacklist Client'}
           </button>
           <div style={{ borderTop: '1px solid var(--border)' }} />
           <button
@@ -645,9 +645,9 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
 
       <ConfirmDialog
         isOpen={showBlockConfirm}
-        title="Block Client"
-        message="Block this client? They will be hidden from your main list."
-        confirmLabel="Block"
+        title="Blacklist Client"
+        message="Add this client to your blacklist? They will be hidden from your main client list and cannot be booked."
+        confirmLabel="Blacklist"
         onConfirm={confirmBlock}
         onCancel={() => setShowBlockConfirm(false)}
       />
