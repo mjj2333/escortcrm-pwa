@@ -74,33 +74,80 @@ export function SafetyPage() {
     showToast(`${pendingChecks.length} check-in${pendingChecks.length > 1 ? 's' : ''} confirmed`)
   }
 
+  // Build the sms: URI — iOS wants sms:[phone]&body=[text], Android wants sms:[phone]?body=[text].
+  // The & separator works on both modern iOS and Android; ? only works on Android.
+  function smsHref(phone: string, body: string): string {
+    return `sms:${phone}&body=${encodeURIComponent(body)}`
+  }
+
+  function buildAlertMessage(check: typeof safetyChecks[0]): string {
+    const booking = bookingFor(check.bookingId)
+    const client = booking?.clientId ? clientFor(booking.clientId) : undefined
+    const parts: string[] = ['⚠️ SAFETY ALERT — I need help. Please check on me immediately.']
+    if (client) parts.push(`Client: ${client.alias}`)
+    if (booking?.locationAddress) parts.push(`Location: ${booking.locationAddress}`)
+    else if (booking?.locationType) parts.push(`Location type: ${booking.locationType}`)
+    if (booking?.dateTime) parts.push(`Scheduled: ${format(new Date(booking.dateTime), 'MMM d h:mm a')}`)
+    return parts.join('\n')
+  }
+
   async function sendAlert(checkId: string) {
-    await db.safetyChecks.update(checkId, {
-      status: 'alert' as SafetyCheckStatus,
-    })
-    // Open SMS/call to primary contact
-    if (primaryContact) {
-      const booking = bookingFor(safetyChecks.find(c => c.id === checkId)?.bookingId ?? '')
-      const clientName = booking?.clientId ? clientFor(booking.clientId)?.alias : 'Unknown'
-      const smsBody = encodeURIComponent(
-        `SAFETY ALERT: I need help. My last check-in was missed. Client: ${clientName}. Please check on me.`
-      )
-      window.open(`sms:${primaryContact.phone}?body=${smsBody}`, '_blank')
+    const check = safetyChecks.find(c => c.id === checkId)
+    if (!check) return
+
+    await db.safetyChecks.update(checkId, { status: 'alert' as SafetyCheckStatus })
+
+    // Use the contact assigned to this specific check, fall back to primary
+    const alertContact = contactFor(check.safetyContactId) ?? primaryContact
+    if (alertContact) {
+      const body = buildAlertMessage(check)
+      // Use <a> click instead of window.open — works in PWA standalone mode
+      const a = document.createElement('a')
+      a.href = smsHref(alertContact.phone, body)
+      a.click()
+      showToast(`SMS opened — tap Send to alert ${alertContact.name}`, 'error')
+    } else {
+      showToast('Alert status set — add a safety contact to enable SMS', 'error')
     }
-    showToast('Alert status set', 'error')
   }
 
   async function sendAlertAll() {
     for (const c of pendingChecks) {
       await db.safetyChecks.update(c.id, { status: 'alert' as SafetyCheckStatus })
     }
-    if (primaryContact) {
-      const smsBody = encodeURIComponent(
-        `SAFETY ALERT: I need help. I have ${pendingChecks.length} missed check-in(s). Please check on me immediately.`
-      )
-      window.open(`sms:${primaryContact.phone}?body=${smsBody}`, '_blank')
+
+    // Deduplicate contacts across all pending checks — notify each unique contact once
+    const contactsToNotify = new Map<string, { phone: string; name: string; checks: typeof pendingChecks }>()
+    for (const check of pendingChecks) {
+      const contact = contactFor(check.safetyContactId) ?? primaryContact
+      if (!contact) continue
+      if (!contactsToNotify.has(contact.id)) {
+        contactsToNotify.set(contact.id, { phone: contact.phone, name: contact.name, checks: [] })
+      }
+      contactsToNotify.get(contact.id)!.checks.push(check)
     }
-    showToast('Alert sent to emergency contact', 'error')
+
+    if (contactsToNotify.size === 0) {
+      showToast('Alert status set — add a safety contact to enable SMS', 'error')
+      return
+    }
+
+    // Open one SMS per unique contact, each with their relevant check details
+    contactsToNotify.forEach(({ phone, name, checks }) => {
+      const lines = ['⚠️ SAFETY ALERT — I need help. Please check on me immediately.']
+      checks.forEach(check => {
+        const booking = bookingFor(check.bookingId)
+        const client = booking?.clientId ? clientFor(booking.clientId) : undefined
+        if (client) lines.push(`• Client: ${client.alias}`)
+        if (booking?.locationAddress) lines.push(`  Location: ${booking.locationAddress}`)
+      })
+      const a = document.createElement('a')
+      a.href = smsHref(phone, lines.join('\n'))
+      a.click()
+    })
+
+    const names = [...contactsToNotify.values()].map(c => c.name).join(', ')
+    showToast(`SMS opened — tap Send to alert ${names}`, 'error')
   }
 
   const tabs = [
@@ -149,7 +196,7 @@ export function SafetyPage() {
             </div>
             {primaryContact && (
               <p className="text-[10px] text-red-400 text-center mt-2">
-                "Not OK" will text {primaryContact.name} ({primaryContact.phone})
+                "Not OK" opens your SMS app pre-filled — tap Send to alert {primaryContact.name}
               </p>
             )}
             {!primaryContact && (
@@ -233,7 +280,7 @@ export function SafetyPage() {
                           )}
                           {/* Actions for pending/overdue */}
                           {isPending && (
-                            <div className="flex gap-2 mt-2">
+                            <div className="flex gap-2 mt-2 flex-wrap">
                               <button
                                 onClick={() => checkIn(check.id)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 text-white"
@@ -246,6 +293,15 @@ export function SafetyPage() {
                               >
                                 <Siren size={12} /> Send Alert
                               </button>
+                              {(contactFor(check.safetyContactId) ?? primaryContact) && (
+                                <a
+                                  href={`tel:${(contactFor(check.safetyContactId) ?? primaryContact)!.phone}`}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                                  style={{ backgroundColor: '#16a34a' }}
+                                >
+                                  <Phone size={12} /> Call {(contactFor(check.safetyContactId) ?? primaryContact)!.name}
+                                </a>
+                              )}
                             </div>
                           )}
                         </div>
