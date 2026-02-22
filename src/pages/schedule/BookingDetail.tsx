@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Clock, MapPin,
   CheckCircle, XCircle, UserX, RotateCcw, Shield,
-  ChevronRight, Trash2, Plus, DollarSign
+  ChevronRight, Trash2, Plus, DollarSign, FileText
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, completeBookingPayment, recordBookingPayment, removeBookingPayment } from '../../db'
@@ -12,9 +12,10 @@ import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Card } from '../../components/Card'
 import { BookingEditor } from './BookingEditor'
+import { JournalEntryEditor } from '../../components/JournalEntryEditor'
 import { showToast, showUndoToast } from '../../components/Toast'
-import { bookingStatusColors } from '../../types'
-import type { Booking, BookingStatus, PaymentMethod, PaymentLabel } from '../../types'
+import { bookingStatusColors, journalTagColors } from '../../types'
+import type { Booking, BookingStatus, PaymentMethod, PaymentLabel, JournalEntry } from '../../types'
 
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const paymentLabels: PaymentLabel[] = ['Deposit', 'Payment', 'Tip', 'Adjustment']
@@ -48,6 +49,13 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
   const [showRebook, setShowRebook] = useState(false)
   const [confirmAction, setConfirmAction] = useState<'noshow' | 'cancel' | 'delete' | null>(null)
   const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [showJournal, setShowJournal] = useState(false)
+
+  // Journal entry for this booking
+  const journalEntry = useLiveQuery(
+    () => db.journalEntries.where('bookingId').equals(bookingId).first(),
+    [bookingId]
+  )
   const [payAmount, setPayAmount] = useState('')
   const [payMethod, setPayMethod] = useState<PaymentMethod | ''>('')
   const [payLabel, setPayLabel] = useState<PaymentLabel>('Payment')
@@ -85,6 +93,9 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
       }
     }
     await db.bookings.update(bookingId, updates)
+    if (status === 'Completed') {
+      setTimeout(() => setShowJournal(true), 400)
+    }
   }
 
   async function markNoShow(feeAmount?: number, feeMethod?: PaymentMethod) {
@@ -486,6 +497,58 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
           </Card>
         )}
 
+        {/* Session Journal */}
+        <Card>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Session Journal</p>
+            <button onClick={() => setShowJournal(true)}
+              className="text-xs font-medium text-purple-500 active:opacity-70">
+              {journalEntry ? 'Edit' : '+ Add'}
+            </button>
+          </div>
+          {journalEntry ? (
+            <div>
+              {journalEntry.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {journalEntry.tags.map(tag => {
+                    const colors = journalTagColors[tag]
+                    return (
+                      <span key={tag} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                        style={{ backgroundColor: colors.bg, color: colors.fg }}>
+                        {tag}
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+              {journalEntry.notes && (
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                  {journalEntry.notes}
+                </p>
+              )}
+              {(journalEntry.actualDuration || journalEntry.timingNotes) && (
+                <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  {journalEntry.actualDuration && (
+                    <span className="flex items-center gap-1">
+                      <Clock size={10} />{journalEntry.actualDuration}m
+                      {journalEntry.actualDuration !== booking.duration && (
+                        <span style={{ color: journalEntry.actualDuration > booking.duration ? '#f97316' : '#22c55e' }}>
+                          ({journalEntry.actualDuration > booking.duration ? '+' : ''}{journalEntry.actualDuration - booking.duration}m)
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  {journalEntry.timingNotes && <span>· {journalEntry.timingNotes}</span>}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {isTerminal ? 'No session notes recorded.' : 'Available after session is completed.'}
+            </p>
+          )}
+        </Card>
+
         {/* Cancellation info */}
         {(booking.status === 'Cancelled' || booking.status === 'No Show') && (
           <Card>
@@ -722,6 +785,13 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
       {/* Editors */}
       <BookingEditor isOpen={showEditor} onClose={() => setShowEditor(false)} booking={booking} />
       <BookingEditor isOpen={showRebook} onClose={() => setShowRebook(false)} rebookFrom={booking} />
+      <JournalEntryEditor
+        isOpen={showJournal}
+        onClose={() => setShowJournal(false)}
+        booking={booking}
+        clientAlias={client?.alias}
+        existingEntry={journalEntry ?? undefined}
+      />
 
       {/* Record Payment Modal */}
       {showPaymentForm && (

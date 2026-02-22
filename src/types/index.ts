@@ -159,6 +159,34 @@ export interface ServiceRate {
   sortOrder: number
 }
 
+export type JournalTag = 'Regular' | 'Great Chemistry' | 'New Experience' | 'Boundary Issue' | 'Generous' | 'Difficult' | 'Late' | 'Respectful' | 'Rushed' | 'Relaxed'
+
+export interface JournalEntry {
+  id: string
+  bookingId: string
+  clientId: string
+  date: Date
+  notes: string
+  tags: JournalTag[]
+  actualDuration?: number    // minutes — how long it actually went
+  timingNotes?: string       // e.g. "arrived 10 min early", "ran 15 min over"
+  createdAt: Date
+  updatedAt: Date
+}
+
+export const journalTagColors: Record<JournalTag, { bg: string; fg: string }> = {
+  'Regular': { bg: 'rgba(168,85,247,0.15)', fg: '#a855f7' },
+  'Great Chemistry': { bg: 'rgba(34,197,94,0.15)', fg: '#22c55e' },
+  'New Experience': { bg: 'rgba(59,130,246,0.15)', fg: '#3b82f6' },
+  'Boundary Issue': { bg: 'rgba(239,68,68,0.15)', fg: '#ef4444' },
+  'Generous': { bg: 'rgba(34,197,94,0.15)', fg: '#22c55e' },
+  'Difficult': { bg: 'rgba(249,115,22,0.15)', fg: '#f97316' },
+  'Late': { bg: 'rgba(249,115,22,0.15)', fg: '#f97316' },
+  'Respectful': { bg: 'rgba(34,197,94,0.15)', fg: '#22c55e' },
+  'Rushed': { bg: 'rgba(249,115,22,0.15)', fg: '#f97316' },
+  'Relaxed': { bg: 'rgba(59,130,246,0.15)', fg: '#3b82f6' },
+}
+
 // Display helpers
 
 export const screeningStatusColors: Record<ScreeningStatus, string> = {

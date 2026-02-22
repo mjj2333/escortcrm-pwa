@@ -16,6 +16,8 @@ import { showUndoToast } from '../../components/Toast'
 import { ClientEditor } from './ClientEditor'
 import { BookingEditor } from '../schedule/BookingEditor'
 import { ClientMergeModal } from './ClientMergeModal'
+import { JournalLog } from '../../components/JournalLog'
+import { JournalEntryEditor } from '../../components/JournalEntryEditor'
 import { screeningStatusColors, riskLevelColors, bookingStatusColors } from '../../types'
 
 interface ClientDetailProps {
@@ -41,6 +43,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
   const [showBlockConfirm, setShowBlockConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showMerge, setShowMerge] = useState(false)
+  const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: any; booking: any } | null>(null)
 
   if (!client) return null
 
@@ -587,6 +590,12 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
           </Card>
         )}
 
+        {/* Session Journal */}
+        <JournalLog
+          clientId={clientId}
+          onEditEntry={(entry, booking) => setJournalEditEntry({ entry, booking })}
+        />
+
         {/* Notes */}
         {client.notes && (
           <Card>
@@ -656,6 +665,15 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
       />
       {lastCompletedBooking && (
         <BookingEditor isOpen={showRebook} onClose={() => setShowRebook(false)} rebookFrom={lastCompletedBooking} />
+      )}
+      {journalEditEntry && (
+        <JournalEntryEditor
+          isOpen={!!journalEditEntry}
+          onClose={() => setJournalEditEntry(null)}
+          booking={journalEditEntry.booking}
+          clientAlias={client.alias}
+          existingEntry={journalEditEntry.entry}
+        />
       )}
     </div>
   )

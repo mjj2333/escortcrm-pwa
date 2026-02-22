@@ -1,19 +1,20 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, CalendarDays, List, SlidersHorizontal, X } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { Plus, CalendarDays, List, SlidersHorizontal, X, ChevronRight } from 'lucide-react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   startOfMonth, endOfMonth, eachDayOfInterval, format, isSameDay, isToday,
   startOfWeek, endOfWeek, isSameMonth, addMonths, subMonths, subDays,
   parseISO, startOfDay, endOfDay
 } from 'date-fns'
-import { db } from '../../db'
+import { db, formatCurrency, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { EmptyState } from '../../components/EmptyState'
 import { BookingEditor } from './BookingEditor'
 import { AvailabilityPicker } from './AvailabilityPicker'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
+import { JournalEntryEditor } from '../../components/JournalEntryEditor'
 import { formatTime12 } from '../../utils/availability'
-import type { BookingStatus } from '../../types'
+import type { Booking, BookingStatus } from '../../types'
 import { bookingStatusColors } from '../../types'
 import { SchedulePageSkeleton } from '../../components/Skeleton'
 
@@ -22,7 +23,7 @@ interface SchedulePageProps {
 }
 
 const ALL_STATUSES: BookingStatus[] = [
-  'Inquiry', 'Screening', 'Pending Deposit', 'Confirmed',
+  'To Be Confirmed', 'Screening', 'Pending Deposit', 'Confirmed',
   'In Progress', 'Completed', 'Cancelled', 'No Show'
 ]
 
@@ -42,12 +43,26 @@ const chipStyle = (color: string, active: boolean): React.CSSProperties => {
     : { backgroundColor: p.bg,       color: p.text, border: `1px solid ${p.border}` }
 }
 
+/** Map status color names to actual hex values */
+const statusHex: Record<string, string> = {
+  purple: '#a855f7', blue: '#3b82f6', orange: '#f97316',
+  green: '#22c55e', teal: '#14b8a6', gray: '#6b7280', red: '#ef4444',
+}
+
+/** Max booking bars to show per calendar cell */
+const MAX_BARS = 2
+
 export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const [viewMode, setViewMode]         = useState<'calendar' | 'list'>('calendar')
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
   const [showEditor, setShowEditor]     = useState(false)
   const [showAvailPicker, setShowAvailPicker] = useState(false)
+
+  // Day detail modal
+  const [dayDetailDate, setDayDetailDate] = useState<Date | null>(null)
+
+  // Monthly summary filter — which status pill is expanded
+  const [summaryFilter, setSummaryFilter] = useState<BookingStatus | null>(null)
 
   // Filter state
   const [filtersOpen, setFiltersOpen]         = useState(false)
@@ -58,6 +73,9 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
 
   const filtersActive = searchQuery.trim() !== '' || activeStatuses.size > 0 || dateFrom !== '' || dateTo !== ''
   const isDateRangeActive = dateFrom !== '' || dateTo !== ''
+
+  // Journal prompt after completing a booking
+  const [journalBooking, setJournalBooking] = useState<Booking | null>(null)
 
   const rawBookings = useLiveQuery(() => db.bookings.orderBy('dateTime').toArray())
   const bookings    = rawBookings ?? []
@@ -104,8 +122,33 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const availForDay = (day: Date) =>
     availability.find(a => isSameDay(new Date(a.date), day))
 
-  const selectedBookings = selectedDate
-    ? bookingsForDay(selectedDate).sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+  // ── Monthly summary ──────────────────────────────────────────
+  const monthBookings = useMemo(() => {
+    return bookings.filter(b => {
+      const dt = new Date(b.dateTime)
+      if (dt < monthStart || dt > monthEnd) return false
+      const hiddenByDefault = b.status === 'Cancelled' || b.status === 'No Show'
+      if (hiddenByDefault && !activeStatuses.has(b.status)) return false
+      if (!matchesFilters(b)) return false
+      return true
+    })
+  }, [bookings, clients, activeStatuses, searchQuery, currentMonth])
+
+  const monthRevenue = monthBookings
+    .filter(b => b.status === 'Completed')
+    .reduce((sum, b) => sum + bookingTotal(b), 0)
+
+  const monthStatusCounts = useMemo(() => {
+    const counts: Partial<Record<BookingStatus, number>> = {}
+    for (const b of monthBookings) {
+      counts[b.status] = (counts[b.status] ?? 0) + 1
+    }
+    return counts
+  }, [monthBookings])
+
+  // ── Day detail bookings ──────────────────────────────────────
+  const dayDetailBookings = dayDetailDate
+    ? bookingsForDay(dayDetailDate).sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
     : []
 
   // List view
@@ -134,7 +177,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
 
   function goToToday() {
     setCurrentMonth(new Date())
-    setSelectedDate(new Date())
+    setSummaryFilter(null)
   }
 
   function toggleStatus(s: BookingStatus) {
@@ -224,7 +267,6 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           className="border-b px-4 py-3 space-y-3"
           style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-primary)' }}
         >
-          {/* Search input */}
           <input
             type="search"
             placeholder="Search by client name or alias…"
@@ -232,8 +274,6 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
             onChange={e => setSearchQuery(e.target.value)}
             style={baseInputStyle}
           />
-
-          {/* Status chips */}
           <div className="flex flex-wrap gap-1.5">
             {ALL_STATUSES.map(s => {
               const active = activeStatuses.has(s)
@@ -249,38 +289,19 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
               )
             })}
           </div>
-
-          {/* Date range */}
           <div className="flex gap-2 items-end">
             <div className="flex-1">
               <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>From</label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={e => setDateFrom(e.target.value)}
-                style={baseInputStyle}
-              />
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={baseInputStyle} />
             </div>
             <div className="flex-1">
               <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>To</label>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={e => setDateTo(e.target.value)}
-                style={baseInputStyle}
-              />
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={baseInputStyle} />
             </div>
           </div>
-
-          {/* Clear filters */}
           {filtersActive && (
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-1 text-xs font-medium"
-              style={{ color: '#a855f7' }}
-            >
-              <X size={12} />
-              Clear all filters
+            <button onClick={clearFilters} className="flex items-center gap-1 text-xs font-medium" style={{ color: '#a855f7' }}>
+              <X size={12} /> Clear all filters
             </button>
           )}
         </div>
@@ -292,7 +313,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
             {/* Month navigation */}
             <div className="flex items-center justify-between mb-4">
               <button
-                onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                onClick={() => { setCurrentMonth(subMonths(currentMonth, 1)); setSummaryFilter(null) }}
                 className="text-sm font-medium px-3 py-1 rounded-lg"
                 style={{ color: 'var(--text-secondary)' }}
               >
@@ -313,7 +334,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                 )}
               </div>
               <button
-                onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                onClick={() => { setCurrentMonth(addMonths(currentMonth, 1)); setSummaryFilter(null) }}
                 className="text-sm font-medium px-3 py-1 rounded-lg"
                 style={{ color: 'var(--text-secondary)' }}
               >
@@ -333,81 +354,174 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
             {/* Calendar grid */}
             <div className="grid grid-cols-7 gap-1">
               {days.map((day, i) => {
-                const inMonth    = isSameMonth(day, currentMonth)
-                const today      = isToday(day)
-                const selected   = selectedDate && isSameDay(day, selectedDate)
+                const inMonth     = isSameMonth(day, currentMonth)
+                const today       = isToday(day)
                 const dayBookings = bookingsForDay(day)
-                const avail      = availColor(day)
+                const avail       = availColor(day)
+                const sorted      = [...dayBookings].sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+                const visible     = sorted.slice(0, MAX_BARS)
+                const overflow    = sorted.length - MAX_BARS
 
                 return (
                   <button
                     key={i}
-                    onClick={() => setSelectedDate(day)}
-                    className={`relative flex flex-col items-center justify-center py-2 rounded-lg text-sm transition-colors ${!inMonth ? 'opacity-30' : ''}`}
+                    onClick={() => setDayDetailDate(day)}
+                    className={`relative flex flex-col items-stretch rounded-lg text-sm transition-colors overflow-hidden ${!inMonth ? 'opacity-30' : ''}`}
                     style={{
-                      backgroundColor: selected ? 'rgba(168,85,247,0.2)' : today ? 'var(--bg-secondary)' : undefined,
-                      color: selected ? '#a855f7' : 'var(--text-primary)',
-                      fontWeight: today || selected ? 700 : 400,
+                      backgroundColor: today ? 'var(--bg-secondary)' : undefined,
+                      minHeight: '58px',
+                      padding: '2px',
                     }}
                   >
-                    {avail && (
-                      <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: avail }} />
-                    )}
-                    {format(day, 'd')}
-                    {dayBookings.length > 0 && (
+                    {/* Day number row */}
+                    <div className="flex items-center justify-between px-0.5">
                       <span
-                        className="text-[8px] font-bold leading-none mt-0.5 rounded-full min-w-[14px] text-center py-px"
-                        style={{ backgroundColor: 'rgba(168,85,247,0.2)', color: '#a855f7' }}
+                        className="text-[11px] leading-none"
+                        style={{
+                          color: today ? '#a855f7' : 'var(--text-primary)',
+                          fontWeight: today ? 700 : 400,
+                        }}
                       >
-                        {dayBookings.length}
+                        {format(day, 'd')}
                       </span>
-                    )}
+                      {avail && (
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: avail }} />
+                      )}
+                    </div>
+
+                    {/* Booking bars */}
+                    <div className="flex flex-col gap-px mt-0.5 flex-1">
+                      {visible.map(b => {
+                        const color = statusHex[bookingStatusColors[b.status]] ?? '#6b7280'
+                        const dt = new Date(b.dateTime)
+                        const h = dt.getHours()
+                        const m = dt.getMinutes()
+                        const timeStr = `${h > 12 ? h - 12 : h || 12}${m > 0 ? `:${m.toString().padStart(2, '0')}` : ''}${h >= 12 ? 'p' : 'a'}`
+                        const client = clientFor(b.clientId)
+                        return (
+                          <div
+                            key={b.id}
+                            className="rounded-sm px-0.5 truncate"
+                            style={{
+                              backgroundColor: color + '25',
+                              borderLeft: `2px solid ${color}`,
+                              fontSize: '8px',
+                              lineHeight: '13px',
+                              color: color,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {timeStr}{client ? ` ${client.alias.slice(0, 4)}` : ''}
+                          </div>
+                        )
+                      })}
+                      {overflow > 0 && (
+                        <div
+                          className="text-center rounded-sm"
+                          style={{
+                            fontSize: '7px',
+                            lineHeight: '11px',
+                            color: 'var(--text-secondary)',
+                            backgroundColor: 'var(--bg-secondary)',
+                          }}
+                        >
+                          +{overflow} more
+                        </div>
+                      )}
+                    </div>
                   </button>
                 )
               })}
             </div>
 
-            {/* Selected day details */}
-            {selectedDate && (
-              <div className="mt-4">
-                <h3 className="font-semibold text-sm mb-2" style={{ color: 'var(--text-primary)' }}>
-                  {format(selectedDate, 'EEEE, MMMM d')}
-                </h3>
-                <button
-                  onClick={() => setShowAvailPicker(true)}
-                  className="mb-3 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium"
-                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
-                >
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: availColor(selectedDate) ?? 'var(--text-secondary)' }}
-                  />
-                  {availForDay(selectedDate)?.status ?? 'Set Availability'}
-                  {availForDay(selectedDate)?.startTime && availForDay(selectedDate)?.endTime && (
-                    <span className="opacity-60 ml-1">
-                      {formatTime12(availForDay(selectedDate)!.startTime!)} – {formatTime12(availForDay(selectedDate)!.endTime!)}
-                    </span>
-                  )}
-                </button>
-                {selectedBookings.length === 0 ? (
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    {filtersActive ? 'No matching bookings' : 'No bookings'}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedBookings.map(b => (
-                      <SwipeableBookingRow
-                        key={b.id}
-                        booking={b}
-                        client={clientFor(b.clientId)}
-                        onOpen={() => onOpenBooking(b.id)}
-                        availabilityStatus={availForDay(selectedDate!)?.status}
-                      />
-                    ))}
+            {/* ── Monthly Summary ───────────────────────────────────────── */}
+            <div className="mt-5">
+              <h3 className="font-semibold text-sm mb-3" style={{ color: 'var(--text-primary)' }}>
+                {format(currentMonth, 'MMMM')} Summary
+              </h3>
+
+              {monthBookings.length === 0 ? (
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  {filtersActive ? 'No matching bookings this month' : 'No bookings this month'}
+                </p>
+              ) : (
+                <>
+                  {/* Top-level stats */}
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                      <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{monthBookings.length}</p>
+                      <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>Bookings</p>
+                    </div>
+                    <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                      <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                        {monthBookings.filter(b => b.status === 'Completed').length}
+                      </p>
+                      <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>Completed</p>
+                    </div>
+                    <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                      <p className="text-lg font-bold text-purple-500">{formatCurrency(monthRevenue)}</p>
+                      <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>Revenue</p>
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* Status breakdown — clickable */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(monthStatusCounts)
+                      .sort(([, a], [, b]) => (b ?? 0) - (a ?? 0))
+                      .map(([status, count]) => {
+                        const color = statusHex[bookingStatusColors[status as BookingStatus]] ?? '#6b7280'
+                        const isActive = summaryFilter === status
+                        return (
+                          <button
+                            key={status}
+                            onClick={() => setSummaryFilter(isActive ? null : status as BookingStatus)}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                            style={{
+                              backgroundColor: isActive ? color : color + '15',
+                              color: isActive ? '#fff' : color,
+                              border: isActive ? `1px solid ${color}` : '1px solid transparent',
+                            }}
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isActive ? '#fff' : color }} />
+                            {status} ({count})
+                          </button>
+                        )
+                      })}
+                  </div>
+
+                  {/* Expanded booking list for selected status */}
+                  {summaryFilter && monthStatusCounts[summaryFilter] && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
+                          {summaryFilter} ({monthStatusCounts[summaryFilter]})
+                        </p>
+                        <button
+                          onClick={() => setSummaryFilter(null)}
+                          className="text-xs font-medium flex items-center gap-1"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                          <X size={12} /> Close
+                        </button>
+                      </div>
+                      {monthBookings
+                        .filter(b => b.status === summaryFilter)
+                        .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+                        .map(b => (
+                          <SwipeableBookingRow
+                            key={b.id}
+                            booking={b}
+                            client={clientFor(b.clientId)}
+                            onOpen={() => onOpenBooking(b.id)}
+                            onCompleted={setJournalBooking}
+                            availabilityStatus={availForDay(new Date(b.dateTime))?.status}
+                          />
+                        ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         ) : (
           /* List view */
@@ -424,7 +538,6 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
               />
             ) : (
               <div className="space-y-4">
-                {/* Upcoming */}
                 {futureBookings.length > 0 && (
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--text-secondary)' }}>
@@ -437,13 +550,13 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                           booking={b}
                           client={clientFor(b.clientId)}
                           onOpen={() => onOpenBooking(b.id)}
+                          onCompleted={setJournalBooking}
                           availabilityStatus={availForDay(new Date(b.dateTime))?.status}
                         />
                       ))}
                     </div>
                   </div>
                 )}
-                {/* Past / Recent */}
                 {pastBookings.length > 0 && (
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--text-secondary)' }}>
@@ -456,6 +569,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                           booking={b}
                           client={clientFor(b.clientId)}
                           onOpen={() => onOpenBooking(b.id)}
+                          onCompleted={setJournalBooking}
                           availabilityStatus={availForDay(new Date(b.dateTime))?.status}
                         />
                       ))}
@@ -468,14 +582,168 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
         )}
       </div>
 
+      {/* ── Day Detail Modal ──────────────────────────────────────────── */}
+      {dayDetailDate && (
+        <DayDetailModal
+          date={dayDetailDate}
+          bookings={dayDetailBookings}
+          clientFor={clientFor}
+          availForDay={availForDay}
+          availColor={availColor(dayDetailDate)}
+          filtersActive={filtersActive}
+          onClose={() => setDayDetailDate(null)}
+          onOpenBooking={(id) => { setDayDetailDate(null); onOpenBooking(id) }}
+          onSetAvailability={() => setShowAvailPicker(true)}
+          onBookingCompleted={setJournalBooking}
+        />
+      )}
+
       <BookingEditor isOpen={showEditor} onClose={() => setShowEditor(false)} />
-      {showAvailPicker && selectedDate && (
+      {showAvailPicker && dayDetailDate && (
         <AvailabilityPicker
-          date={selectedDate}
-          current={availForDay(selectedDate)}
+          date={dayDetailDate}
+          current={availForDay(dayDetailDate)}
           onClose={() => setShowAvailPicker(false)}
         />
       )}
+
+      {/* Journal prompt after booking completion */}
+      {journalBooking && (
+        <JournalEntryEditor
+          isOpen={!!journalBooking}
+          onClose={() => setJournalBooking(null)}
+          booking={journalBooking}
+          clientAlias={clientFor(journalBooking.clientId)?.alias}
+        />
+      )}
+    </div>
+  )
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Day Detail Modal — slide-up overlay
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+interface DayDetailModalProps {
+  date: Date
+  bookings: import('../../types').Booking[]
+  clientFor: (id?: string) => import('../../types').Client | undefined
+  availForDay: (day: Date) => import('../../types').DayAvailability | undefined
+  availColor?: string
+  filtersActive: boolean
+  onClose: () => void
+  onOpenBooking: (id: string) => void
+  onSetAvailability: () => void
+  onBookingCompleted?: (booking: import('../../types').Booking) => void
+}
+
+function DayDetailModal({
+  date, bookings, clientFor, availForDay, availColor, filtersActive,
+  onClose, onOpenBooking, onSetAvailability, onBookingCompleted,
+}: DayDetailModalProps) {
+  const backdropRef = useRef<HTMLDivElement>(null)
+  const avail = availForDay(date)
+
+  // Animate in
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true))
+  }, [])
+
+  function handleClose() {
+    setVisible(false)
+    setTimeout(onClose, 200)
+  }
+
+  return (
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{
+        backgroundColor: visible ? 'rgba(0,0,0,0.5)' : 'transparent',
+        transition: 'background-color 0.2s',
+      }}
+      onClick={e => { if (e.target === backdropRef.current) handleClose() }}
+    >
+      <div
+        className="w-full max-w-lg rounded-t-2xl overflow-hidden flex flex-col"
+        style={{
+          backgroundColor: 'var(--bg-primary)',
+          maxHeight: '75vh',
+          transform: visible ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.25s ease-out',
+        }}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center py-2">
+          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
+        </div>
+
+        {/* Header */}
+        <div className="px-4 pb-3 flex items-center justify-between">
+          <div>
+            <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+              {format(date, 'EEEE, MMMM d')}
+            </h2>
+            {isToday(date) && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-500">
+                Today
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleClose}
+            className="p-2 rounded-lg"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Availability button */}
+        <div className="px-4 pb-3">
+          <button
+            onClick={onSetAvailability}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium"
+            style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+          >
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: availColor ?? 'var(--text-secondary)' }}
+            />
+            {avail?.status ?? 'Set Availability'}
+            {avail?.startTime && avail?.endTime && (
+              <span className="opacity-60 ml-1">
+                {formatTime12(avail.startTime)} – {formatTime12(avail.endTime)}
+              </span>
+            )}
+            <ChevronRight size={12} className="ml-auto opacity-40" />
+          </button>
+        </div>
+
+        {/* Booking rows — scrollable */}
+        <div className="flex-1 overflow-y-auto px-4 pb-6">
+          {bookings.length === 0 ? (
+            <p className="text-sm py-6 text-center" style={{ color: 'var(--text-secondary)' }}>
+              {filtersActive ? 'No matching bookings' : 'No bookings this day'}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {bookings.map(b => (
+                <SwipeableBookingRow
+                  key={b.id}
+                  booking={b}
+                  client={clientFor(b.clientId)}
+                  onOpen={() => onOpenBooking(b.id)}
+                  onCompleted={onBookingCompleted}
+                  availabilityStatus={avail?.status}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -77,10 +77,11 @@ interface Props {
   booking: Booking
   client?: Client
   onOpen: () => void
+  onCompleted?: (booking: Booking) => void
   availabilityStatus?: AvailabilityStatus
 }
 
-export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatus }: Props) {
+export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, availabilityStatus }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const startX = useRef(0)
   const currentX = useRef(0)
@@ -200,6 +201,10 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
     await db.bookings.update(booking.id, updates)
     if (navigator.vibrate) navigator.vibrate(newStatus === 'Cancelled' ? [20, 50, 20] : 20)
     closePanel()
+    if (newStatus === 'Completed' && onCompleted) {
+      // Small delay so the panel closes first
+      setTimeout(() => onCompleted(booking), 300)
+    }
   }
 
   async function markNoShow() {

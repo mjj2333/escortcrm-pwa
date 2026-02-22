@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type {
   Client, Booking, Transaction, DayAvailability,
-  SafetyContact, SafetyCheck, IncidentLog, ServiceRate, BookingPayment
+  SafetyContact, SafetyCheck, IncidentLog, ServiceRate, BookingPayment, JournalEntry
 } from '../types'
 import type { PaymentLabel, PaymentMethod } from '../types'
 
@@ -15,6 +15,7 @@ class EscortCRMDatabase extends Dexie {
   incidents!: EntityTable<IncidentLog, 'id'>
   serviceRates!: EntityTable<ServiceRate, 'id'>
   payments!: EntityTable<BookingPayment, 'id'>
+  journalEntries!: EntityTable<JournalEntry, 'id'>
   meta!: Dexie.Table<{ key: string; value: unknown }, string>
 
   constructor() {
@@ -139,6 +140,21 @@ class EscortCRMDatabase extends Dexie {
           delete client.realName
         }
       })
+    })
+
+    // v8: Add journal entries table
+    this.version(8).stores({
+      clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId',
+      transactions: 'id, bookingId, type, category, date',
+      availability: 'id, date',
+      safetyContacts: 'id, isPrimary, isActive',
+      safetyChecks: 'id, bookingId, status, scheduledTime',
+      incidents: 'id, clientId, bookingId, date, severity',
+      serviceRates: 'id, sortOrder, isActive',
+      payments: 'id, bookingId, label, date',
+      journalEntries: 'id, bookingId, clientId, date',
+      meta: 'key',
     })
   }
 }
