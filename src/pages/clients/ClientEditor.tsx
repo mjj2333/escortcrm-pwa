@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Check, User, UserCheck, ShieldCheck, Heart, ShieldAlert, FileText, Share2, Cake, CalendarDays } from 'lucide-react'
+import { Check, User, UserCheck, ShieldCheck, Heart, ShieldAlert, Share2, Cake, CalendarDays } from 'lucide-react'
 import { db, createClient } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldHint, FieldTextInput, FieldTextArea, FieldDate, fieldInputStyle } from '../../components/FormFields'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { TagPicker } from '../../components/TagPicker'
+import { ScreeningProofManager } from '../../components/ScreeningProofManager'
 import type { Client, ClientTag, ContactMethod, ScreeningStatus, ScreeningMethod, RiskLevel } from '../../types'
 
 const contactMethods: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp', 'Other']
@@ -61,7 +62,6 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
   const [riskLevel, setRiskLevel] = useState<RiskLevel>('Unknown')
 
   // Details
-  const [notes, setNotes] = useState('')
   const [preferences, setPreferences] = useState('')
   const [boundaries, setBoundaries] = useState('')
   const [referenceSource, setReferenceSource] = useState('')
@@ -90,7 +90,6 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       setScreeningStatus(client?.screeningStatus ?? 'Unscreened')
       setScreeningMethod(client?.screeningMethod ?? '')
       setRiskLevel(client?.riskLevel ?? 'Unknown')
-      setNotes(client?.notes ?? '')
       setPreferences(client?.preferences ?? '')
       setBoundaries(client?.boundaries ?? '')
       setReferenceSource(client?.referenceSource ?? '')
@@ -119,7 +118,6 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       screeningStatus,
       screeningMethod: screeningMethod || undefined,
       riskLevel,
-      notes: notes.trim(),
       preferences: preferences.trim(),
       boundaries: boundaries.trim(),
       referenceSource: referenceSource.trim() || undefined,
@@ -253,6 +251,13 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           </div>
         </div>
 
+        {/* Screening document uploads — only for existing clients */}
+        {isEditing && client && (
+          <div className="mb-3">
+            <ScreeningProofManager clientId={client.id} editable />
+          </div>
+        )}
+
         {/* ━━━ Risk Level ━━━ */}
         <SectionLabel label="Risk Level" />
         <div className="mb-3">
@@ -302,11 +307,6 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
             })}
           </>
         )}
-
-        {/* ━━━ Notes ━━━ */}
-        <SectionLabel label="Notes" optional />
-        <FieldTextArea label="Notes" value={notes} onChange={setNotes}
-          placeholder="General notes..." icon={<FileText size={12} />} />
 
         {/* Save button */}
         <div className="py-4">

@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Phone, MessageSquare, Mail, Copy, Check,
   UserX, Pin, PinOff, Gift, Heart, ChevronRight, Shield,
-  ThumbsUp, ShieldAlert, StickyNote, Plus, RotateCcw, Trash2, Merge
+  ThumbsUp, ShieldAlert, Plus, RotateCcw, Trash2, Merge
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted } from '../../db'
@@ -18,6 +18,7 @@ import { BookingEditor } from '../schedule/BookingEditor'
 import { ClientMergeModal } from './ClientMergeModal'
 import { JournalLog } from '../../components/JournalLog'
 import { JournalEntryEditor } from '../../components/JournalEntryEditor'
+import { ScreeningProofManager } from '../../components/ScreeningProofManager'
 import { screeningStatusColors, riskLevelColors, bookingStatusColors } from '../../types'
 
 interface ClientDetailProps {
@@ -110,6 +111,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
     const txnSnaps = bookingIds.length ? await db.transactions.where('bookingId').anyOf(bookingIds).toArray() : []
     const checkSnaps = bookingIds.length ? await db.safetyChecks.where('bookingId').anyOf(bookingIds).toArray() : []
     const incidentSnaps = await db.incidents.where('clientId').equals(clientId).toArray()
+    const journalSnaps = await db.journalEntries.where('clientId').equals(clientId).toArray()
+    const screeningDocSnaps = await db.screeningDocs.where('clientId').equals(clientId).toArray()
 
     // Execute cascade delete
     for (const bid of bookingIds) {
@@ -119,6 +122,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
     }
     await db.bookings.where('clientId').equals(clientId).delete()
     await db.incidents.where('clientId').equals(clientId).delete()
+    await db.journalEntries.where('clientId').equals(clientId).delete()
+    await db.screeningDocs.where('clientId').equals(clientId).delete()
     await db.clients.delete(clientId)
     setShowDeleteConfirm(false)
     onBack()
@@ -131,6 +136,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
       if (txnSnaps.length) await db.transactions.bulkPut(txnSnaps)
       if (checkSnaps.length) await db.safetyChecks.bulkPut(checkSnaps)
       if (incidentSnaps.length) await db.incidents.bulkPut(incidentSnaps)
+      if (journalSnaps.length) await db.journalEntries.bulkPut(journalSnaps)
+      if (screeningDocSnaps.length) await db.screeningDocs.bulkPut(screeningDocSnaps)
     })
   }
 
@@ -420,6 +427,10 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
               </select>
             </div>
           </div>
+
+          {/* Screening documents */}
+          <ScreeningProofManager clientId={clientId} />
+
           {noShowCount > 0 && (
             <div className="flex items-center justify-between py-1.5">
               <span className="text-sm flex items-center gap-2 text-red-500">
@@ -591,26 +602,12 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
         )}
 
         {/* Session Journal */}
-        <JournalLog
-          clientId={clientId}
-          onEditEntry={(entry, booking) => setJournalEditEntry({ entry, booking })}
-        />
-
-        {/* Notes */}
-        {client.notes && (
-          <Card>
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{ backgroundColor: 'rgba(168,85,247,0.12)' }}>
-                <StickyNote size={15} style={{ color: '#a855f7' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-secondary)' }}>Notes</p>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{client.notes}</p>
-              </div>
-            </div>
-          </Card>
-        )}
+        <Card>
+          <JournalLog
+            clientId={clientId}
+            onEditEntry={(entry, booking) => setJournalEditEntry({ entry, booking })}
+          />
+        </Card>
 
         {/* Actions */}
         <Card>
