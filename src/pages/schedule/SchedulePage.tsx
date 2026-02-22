@@ -87,7 +87,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const isViewingCurrentMonth = isSameMonth(currentMonth, new Date())
 
   const bookingsForDay = (day: Date) =>
-    bookings.filter(b => {
+    bookings!.filter(b => {
       if (!isSameDay(new Date(b.dateTime), day)) return false
       const hiddenByDefault = b.status === 'Cancelled' || b.status === 'No Show'
       if (hiddenByDefault && !activeStatuses.has(b.status)) return false
@@ -112,7 +112,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const past30 = subDays(now, 30)
 
   const listBookings = useMemo(() => {
-    return bookings
+    return bookings!
       .filter(b => {
         const dt = new Date(b.dateTime)
         const hiddenByDefault = b.status === 'Cancelled' || b.status === 'No Show'
