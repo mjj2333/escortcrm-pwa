@@ -247,7 +247,7 @@ function yesNo(val: unknown): boolean {
 }
 
 const VALID_CONTACT_METHODS: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp', 'Other']
-const VALID_SCREENING_STATUSES: ScreeningStatus[] = ['Pending', 'In Progress', 'Verified', 'Declined']
+const VALID_SCREENING_STATUSES: ScreeningStatus[] = ['Unscreened', 'In Progress', 'Verified']
 const VALID_RISK_LEVELS: RiskLevel[] = ['Unknown', 'Low Risk', 'Medium Risk', 'High Risk']
 const VALID_TRANSACTION_TYPES: TransactionType[] = ['income', 'expense']
 const VALID_TRANSACTION_CATEGORIES: TransactionCategory[] = ['booking', 'tip', 'gift', 'supplies', 'travel', 'advertising', 'clothing', 'health', 'rent', 'phone', 'other']
@@ -270,7 +270,9 @@ async function importClients(rows: Record<string, unknown>[]): Promise<number> {
       phone: String(row['Phone'] ?? row['phone'] ?? '').trim() || undefined,
       email: String(row['Email'] ?? row['email'] ?? '').trim() || undefined,
       preferredContact: validateEnum(String(row['Preferred Contact'] ?? row['preferredContact'] ?? 'Text'), VALID_CONTACT_METHODS, 'Text'),
-      screeningStatus: validateEnum(String(row['Screening Status'] ?? row['screeningStatus'] ?? 'Pending'), VALID_SCREENING_STATUSES, 'Pending'),
+      screeningStatus: validateEnum(
+        (() => { const s = String(row['Screening Status'] ?? row['screeningStatus'] ?? 'Unscreened').trim(); return s === 'Pending' || s === 'Declined' ? 'Unscreened' : s })(),
+        VALID_SCREENING_STATUSES, 'Unscreened'),
       riskLevel: validateEnum(String(row['Risk Level'] ?? row['riskLevel'] ?? 'Unknown'), VALID_RISK_LEVELS, 'Unknown'),
       isBlocked: yesNo(row['Blocked'] ?? row['isBlocked']),
       preferences: String(row['Preferences'] ?? row['preferences'] ?? ''),
@@ -627,7 +629,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
               {dataType === 'clients' && (
                 <>
                   <p><strong style={{ color: 'var(--text-primary)' }}>Required:</strong> Alias</p>
-                  <p><strong style={{ color: 'var(--text-primary)' }}>Optional:</strong> Real Name, Phone, Email, Preferred Contact (Phone/Text/Email/Telegram/Signal/WhatsApp), Screening Status (Pending/In Progress/Verified/Declined), Risk Level (Unknown/Low/Medium/High Risk), Notes, Preferences, Boundaries, Tags (semicolon-separated), Reference Source, Date Added, Birthday, Blocked (Yes/No)</p>
+                  <p><strong style={{ color: 'var(--text-primary)' }}>Optional:</strong> Real Name, Phone, Email, Preferred Contact (Phone/Text/Email/Telegram/Signal/WhatsApp), Screening Status (Unscreened/In Progress/Verified), Risk Level (Unknown/Low/Medium/High Risk), Notes, Preferences, Boundaries, Tags (semicolon-separated), Reference Source, Date Added, Birthday, Blocked (Yes/No)</p>
                 </>
               )}
               {dataType === 'transactions' && (

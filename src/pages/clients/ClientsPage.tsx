@@ -5,6 +5,7 @@ import { db } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusBadge } from '../../components/StatusBadge'
 import { MiniTags } from '../../components/TagPicker'
+import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { EmptyState } from '../../components/EmptyState'
 import { ClientEditor } from './ClientEditor'
 import { screeningStatusColors, riskLevelColors } from '../../types'
@@ -218,7 +219,7 @@ function ClientRow({ client, onOpen, onTogglePin, showPinToast, pinToastValue }:
         <div className="flex items-center gap-1.5">
           {client.isPinned && <Pin size={11} className="text-purple-400 shrink-0" />}
           <p className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-            {client.alias}
+            {client.alias}<VerifiedBadge client={client} size={13} />
           </p>
           {client.realName && client.realName !== client.alias && (
             <span className="text-[10px] shrink-0" style={{ color: 'var(--text-secondary)' }}>

@@ -5,12 +5,11 @@ import { format, startOfDay } from 'date-fns'
 import { db, newId, createClient, createBooking, bookingDurationFormatted, recordBookingPayment, formatCurrency } from '../db'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../utils/availability'
 import type {
-  ContactMethod, ScreeningStatus, RiskLevel, LocationType,
+  ContactMethod, ScreeningStatus, ScreeningMethod, RiskLevel, LocationType,
   BookingStatus, PaymentMethod, RecurrencePattern, ClientTag
 } from '../types'
 import { useLocalStorage } from '../hooks/useSettings'
 import { RiskLevelBar } from '../components/RiskLevelBar'
-import { ScreeningStatusBar } from '../components/ScreeningStatusBar'
 import { TagPicker } from '../components/TagPicker'
 import {
   SectionLabel, FieldHint, FieldTextInput, FieldTextArea,
@@ -133,7 +132,7 @@ function ClientStep({ onNext, setCreatedClientId }: { onNext: () => void; setCre
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [preferredContact, setPreferredContact] = useState<ContactMethod>('Text')
-  const [screeningStatus, setScreeningStatus] = useState<ScreeningStatus>('Pending')
+  const [screeningStatus, setScreeningStatus] = useState<ScreeningStatus>('Unscreened')
   const [riskLevel, setRiskLevel] = useState<RiskLevel>('Unknown')
   const [notes, setNotes] = useState('')
   const [preferences, setPreferences] = useState('')
@@ -175,10 +174,8 @@ function ClientStep({ onNext, setCreatedClientId }: { onNext: () => void; setCre
         hint="How this client prefers to be reached. Shows on their profile for quick reference." icon={<MessageSquare size={12} />} />
       {/* Screening Status */}
       <SectionLabel label="Screening" />
-      <div className="mb-3">
-        <ScreeningStatusBar value={screeningStatus} onChange={setScreeningStatus} />
-        <FieldHint text="Slide or tap to set. Declined → Pending → Verified." />
-      </div>
+      <FieldSelect label="Status" value={screeningStatus} options={['Unscreened', 'In Progress', 'Verified'] as ScreeningStatus[]} onChange={v => setScreeningStatus(v as ScreeningStatus)}
+        hint="Set to Verified once screening is complete." icon={<ShieldCheck size={12} />} />
 
       <SectionLabel label="Risk Level" />
       <div className="mb-3">
@@ -239,7 +236,7 @@ function ClientStep({ onNext, setCreatedClientId }: { onNext: () => void; setCre
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const locationTypes: LocationType[] = ['Incall', 'Outcall', 'Travel', 'Virtual']
-const bookingStatuses: BookingStatus[] = ['Inquiry', 'Screening', 'Pending Deposit', 'Confirmed', 'In Progress', 'Completed']
+const bookingStatuses: BookingStatus[] = ['To Be Confirmed', 'Pending Deposit', 'Confirmed', 'Completed']
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const recurrenceOptions: RecurrencePattern[] = ['none', 'weekly', 'biweekly', 'monthly']
 

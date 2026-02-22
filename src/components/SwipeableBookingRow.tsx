@@ -4,6 +4,7 @@ import { format, isToday, isTomorrow, differenceInDays, startOfDay } from 'date-
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment, removeBookingPayment as removePayment } from '../db'
 import { StatusBadge } from './StatusBadge'
 import { MiniTags } from './TagPicker'
+import { VerifiedBadge } from './VerifiedBadge'
 import { bookingStatusColors, screeningStatusColors } from '../types'
 import type { Booking, BookingStatus, Client, ScreeningStatus, AvailabilityStatus } from '../types'
 
@@ -222,12 +223,9 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
     closePanel()
   }
 
-  // Booking status pills — split into two rows for readability
-  // Row 1: Pre-session progression (matches BookingDetail status flow)
+  // Booking status pills — simplified (Screening and Pending Deposit removed — they have their own rows)
   const statusFlowPills: { status: BookingStatus; label: string; color: string }[] = [
-    { status: 'Inquiry',         label: 'Inquiry',  color: '#a855f7' },
-    { status: 'Screening',       label: 'Screen',   color: '#3b82f6' },
-    { status: 'Pending Deposit', label: 'P.Dep',    color: '#f97316' },
+    { status: 'To Be Confirmed', label: 'TBC',      color: '#a855f7' },
     { status: 'Confirmed',       label: 'Confirm',  color: '#22c55e' },
   ]
   // Row 2: Session / terminal statuses
@@ -237,10 +235,12 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
   ]
 
   const screeningPills: { status: ScreeningStatus; label: string; color: string }[] = [
-    { status: 'Declined', label: 'Declined', color: '#ef4444' },
-    { status: 'Pending',  label: 'Pending', color: '#f59e0b' },
-    { status: 'Verified', label: 'Verified', color: '#22c55e' },
+    { status: 'Unscreened',   label: 'Unscreened', color: '#f59e0b' },
+    { status: 'In Progress',  label: 'In Prog',    color: '#3b82f6' },
+    { status: 'Verified',     label: 'Verified',   color: '#22c55e' },
   ]
+
+  const isVerified = client?.screeningStatus === 'Verified'
 
   return (
     <div className="relative overflow-hidden rounded-xl" style={{ touchAction: 'pan-y' }}>
@@ -252,86 +252,91 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
           background: 'linear-gradient(135deg, #1e1b2e, #1a1a2e)',
         }}
       >
-        {/* Row 1: Deposit */}
-        <ActionRow label="Deposit">
-          <ActionPill
-            label="Pending"
-            active={booking.depositAmount > 0 && totalDeposits === 0}
-            color="#f59e0b"
-            onTap={totalDeposits > 0 ? removeAllDeposits : () => {}}
-          />
-          {depositPartial && (
-            <ActionPill
-              label="Partial"
-              active={true}
-              color="#f97316"
-              onTap={() => {}}
-            />
-          )}
-          <ActionPill
-            label="Received"
-            active={depositFullyPaid}
-            color="#22c55e"
-            onTap={!depositFullyPaid ? recordRemainingDeposit : () => {}}
-          />
-        </ActionRow>
+        {/* Unverified: show only screening row */}
+        {!isVerified && (
+          <ActionRow label="Screen">
+            {screeningPills.map(p => (
+              <ActionPill
+                key={p.status}
+                label={p.label}
+                active={client?.screeningStatus === p.status}
+                color={p.color}
+                onTap={() => setScreening(p.status)}
+              />
+            ))}
+          </ActionRow>
+        )}
 
-        {/* Row 2: Screening (client) */}
-        <ActionRow label="Screen">
-          {screeningPills.map(p => (
-            <ActionPill
-              key={p.status}
-              label={p.label}
-              active={client?.screeningStatus === p.status}
-              color={p.color}
-              onTap={() => setScreening(p.status)}
-            />
-          ))}
-        </ActionRow>
+        {/* Verified: show deposit, status, and session rows */}
+        {isVerified && (
+          <>
+            {/* Row 1: Deposit */}
+            <ActionRow label="Deposit">
+              <ActionPill
+                label="Pending"
+                active={booking.depositAmount > 0 && totalDeposits === 0}
+                color="#f59e0b"
+                onTap={totalDeposits > 0 ? removeAllDeposits : () => {}}
+              />
+              {depositPartial && (
+                <ActionPill
+                  label="Partial"
+                  active={true}
+                  color="#f97316"
+                  onTap={() => {}}
+                />
+              )}
+              <ActionPill
+                label="Received"
+                active={depositFullyPaid}
+                color="#22c55e"
+                onTap={!depositFullyPaid ? recordRemainingDeposit : () => {}}
+              />
+            </ActionRow>
 
-        {/* Row 3: Booking Status — pre-session flow */}
-        <ActionRow label="Status">
-          {statusFlowPills.map(p => (
-            <ActionPill
-              key={p.status}
-              label={p.label}
-              active={booking.status === p.status}
-              color={p.color}
-              onTap={() => {
-                if (p.status !== booking.status) setBookingStatus(p.status)
-              }}
-            />
-          ))}
-        </ActionRow>
+            {/* Row 2: Booking Status */}
+            <ActionRow label="Status">
+              {statusFlowPills.map(p => (
+                <ActionPill
+                  key={p.status}
+                  label={p.label}
+                  active={booking.status === p.status}
+                  color={p.color}
+                  onTap={() => {
+                    if (p.status !== booking.status) setBookingStatus(p.status)
+                  }}
+                />
+              ))}
+            </ActionRow>
 
-        {/* Row 4: Session / terminal statuses + cancel */}
-        <ActionRow label="">
-          {statusSessionPills.map(p => (
-            <ActionPill
-              key={p.status}
-              label={p.label}
-              active={booking.status === p.status}
-              color={p.color}
-              onTap={() => {
-                if (p.status !== booking.status) setBookingStatus(p.status)
-              }}
-            />
-          ))}
-          {/* Cancel button */}
-          <ActionPill
-            label="✕"
-            active={false}
-            color="#ef4444"
-            onTap={() => setBookingStatus('Cancelled')}
-          />
-          {/* No-Show button */}
-          <ActionPill
-            label="N/S"
-            active={booking.status === 'No Show'}
-            color="#ef4444"
-            onTap={() => markNoShow()}
-          />
-        </ActionRow>
+            {/* Row 3: Session / terminal statuses + cancel */}
+            <ActionRow label="">
+              {statusSessionPills.map(p => (
+                <ActionPill
+                  key={p.status}
+                  label={p.label}
+                  active={booking.status === p.status}
+                  color={p.color}
+                  onTap={() => {
+                    if (p.status !== booking.status) setBookingStatus(p.status)
+                  }}
+                />
+              ))}
+              <ActionPill
+                label="✕"
+                active={false}
+                color="#ef4444"
+                onTap={() => setBookingStatus('Cancelled')}
+              />
+              <ActionPill
+                label="N/S"
+                active={booking.status === 'No Show'}
+                color="#ef4444"
+                onTap={() => markNoShow()}
+              />
+            </ActionRow>
+          </>
+        )}
       </div>
 
       {/* Foreground card */}
@@ -365,7 +370,7 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
         {/* Info */}
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-            {client?.alias ?? 'Unknown'}
+            {client?.alias ?? 'Unknown'}<VerifiedBadge client={client} size={13} />
           </p>
           <div className="flex items-center gap-1.5">
             {availabilityStatus && (

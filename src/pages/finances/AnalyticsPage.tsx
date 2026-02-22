@@ -80,7 +80,7 @@ function OverviewTab({ bookings, clients, transactions }: {
   const avgDuration = completed.length > 0
     ? Math.round(completed.reduce((s: number, b: any) => s + b.duration, 0) / completed.length)
     : 0
-  const nonCancelled = bookings.filter(b => !['Inquiry', 'Screening'].includes(b.status))
+  const nonCancelled = bookings.filter(b => !['To Be Confirmed', 'Screening'].includes(b.status))
   const completionRate = nonCancelled.length > 0
     ? Math.round((completed.length / nonCancelled.length) * 100)
     : 0

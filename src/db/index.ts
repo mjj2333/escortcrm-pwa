@@ -59,6 +59,46 @@ class EscortCRMDatabase extends Dexie {
       payments: 'id, bookingId, label, date',
       meta: 'key',
     })
+
+    // v4: rename 'Inquiry' status → 'To Be Confirmed'
+    this.version(4).stores({
+      clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId',
+      transactions: 'id, bookingId, type, category, date',
+      availability: 'id, date',
+      safetyContacts: 'id, isPrimary, isActive',
+      safetyChecks: 'id, bookingId, status, scheduledTime',
+      incidents: 'id, clientId, bookingId, date, severity',
+      serviceRates: 'id, sortOrder, isActive',
+      payments: 'id, bookingId, label, date',
+      meta: 'key',
+    }).upgrade(tx => {
+      return tx.table('bookings').toCollection().modify(booking => {
+        if (booking.status === 'Inquiry') {
+          booking.status = 'To Be Confirmed'
+        }
+      })
+    })
+
+    // v5: rename screening statuses: Pending/Declined → Unscreened
+    this.version(5).stores({
+      clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId',
+      transactions: 'id, bookingId, type, category, date',
+      availability: 'id, date',
+      safetyContacts: 'id, isPrimary, isActive',
+      safetyChecks: 'id, bookingId, status, scheduledTime',
+      incidents: 'id, clientId, bookingId, date, severity',
+      serviceRates: 'id, sortOrder, isActive',
+      payments: 'id, bookingId, label, date',
+      meta: 'key',
+    }).upgrade(tx => {
+      return tx.table('clients').toCollection().modify(client => {
+        if (client.screeningStatus === 'Pending' || client.screeningStatus === 'Declined') {
+          client.screeningStatus = 'Unscreened'
+        }
+      })
+    })
   }
 }
 
@@ -138,7 +178,7 @@ export function createClient(data: Partial<Client> & { alias: string }): Client 
     phone: data.phone,
     email: data.email,
     preferredContact: data.preferredContact ?? 'Text',
-    screeningStatus: data.screeningStatus ?? 'Pending',
+    screeningStatus: data.screeningStatus ?? 'Unscreened',
     riskLevel: data.riskLevel ?? 'Unknown',
     isBlocked: false,
     notes: data.notes ?? '',
@@ -166,7 +206,7 @@ export function createBooking(data: Partial<Booking>): Booking {
     locationType: data.locationType ?? 'Incall',
     locationAddress: data.locationAddress,
     locationNotes: data.locationNotes,
-    status: data.status ?? 'Inquiry',
+    status: data.status ?? 'To Be Confirmed',
     baseRate: data.baseRate ?? 0,
     extras: data.extras ?? 0,
     travelFee: data.travelFee ?? 0,

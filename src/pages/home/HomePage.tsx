@@ -79,7 +79,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
     .reduce((sum, t) => sum + t.amount, 0)
 
   const pendingScreenings = clients.filter(
-    c => c.screeningStatus === 'Pending' || c.screeningStatus === 'In Progress'
+    c => c.screeningStatus === 'Unscreened' || c.screeningStatus === 'In Progress'
   ).length
 
   // Upcoming birthdays (next 30 days)

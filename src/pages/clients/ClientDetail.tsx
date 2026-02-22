@@ -9,7 +9,7 @@ import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
-import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
+import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { Card } from '../../components/Card'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { showUndoToast } from '../../components/Toast'
@@ -168,7 +168,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
             </span>
           </div>
           <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            {client.realName ?? client.alias}
+            {client.realName ?? client.alias}<VerifiedBadge client={client} size={18} />
           </h2>
           {client.realName && client.realName !== client.alias && (
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>({client.alias})</p>
@@ -345,14 +345,33 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
 
         {/* Screening & Risk */}
         <Card>
-          {/* Interactive Screening Bar */}
-          <div className="py-2">
-            <ScreeningStatusBar
-              value={client.screeningStatus}
-              onChange={async (status) => {
-                await db.clients.update(client.id, { screeningStatus: status })
-              }}
-            />
+          {/* Screening Status */}
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Screening</span>
+            <div className="flex items-center gap-2">
+              {client.screeningMethod && (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                  {client.screeningMethod}
+                </span>
+              )}
+              <select
+                value={client.screeningStatus}
+                onChange={async (e) => {
+                  await db.clients.update(client.id, { screeningStatus: e.target.value as any })
+                }}
+                className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: client.screeningStatus === 'Verified' ? '#22c55e' : client.screeningStatus === 'In Progress' ? '#3b82f6' : '#f59e0b',
+                  border: 'none',
+                }}
+              >
+                <option value="Unscreened">Unscreened</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Verified">Verified</option>
+              </select>
+            </div>
           </div>
           {noShowCount > 0 && (
             <div className="flex items-center justify-between py-1.5">

@@ -8,7 +8,7 @@ import {
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, completeBookingPayment, recordBookingPayment, removeBookingPayment } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
-import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
+import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Card } from '../../components/Card'
 import { BookingEditor } from './BookingEditor'
@@ -27,7 +27,7 @@ interface BookingDetailProps {
 
 // Status progression map
 const nextStatus: Partial<Record<BookingStatus, BookingStatus>> = {
-  'Inquiry': 'Screening',
+  'To Be Confirmed': 'Screening',
   'Screening': 'Pending Deposit',
   'Pending Deposit': 'Confirmed',
   'Confirmed': 'In Progress',
@@ -253,10 +253,10 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
               </div>
               <div className="flex-1">
                 <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
-                  {client.realName ?? client.alias}
+                  {client.realName ?? client.alias}<VerifiedBadge client={client} size={13} />
                 </p>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  {client.preferredContact} · {client.screeningStatus}
+                  {client.preferredContact}{client.screeningStatus !== 'Verified' ? ` · ${client.screeningStatus}` : ''}
                 </p>
               </div>
               <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
@@ -439,15 +439,27 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
         </Card>
 
         {/* Client Screening — quick toggle */}
-        {client && (
+        {client && client.screeningStatus !== 'Verified' && (
           <Card>
-            <ScreeningStatusBar
-              value={client.screeningStatus}
-              onChange={async (status) => {
-                await db.clients.update(client.id, { screeningStatus: status })
-              }}
-              compact
-            />
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Client Screening</span>
+              <select
+                value={client.screeningStatus}
+                onChange={async (e) => {
+                  await db.clients.update(client.id, { screeningStatus: e.target.value as any })
+                }}
+                className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: client.screeningStatus === 'In Progress' ? '#3b82f6' : '#f59e0b',
+                  border: 'none',
+                }}
+              >
+                <option value="Unscreened">Unscreened</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Verified">Verified</option>
+              </select>
+            </div>
           </Card>
         )}
 

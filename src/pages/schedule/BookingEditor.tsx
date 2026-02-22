@@ -6,7 +6,6 @@ import { db, createBooking, createClient, formatCurrency, recordBookingPayment, 
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
-import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../../utils/availability'
 import type {
@@ -14,7 +13,7 @@ import type {
   RecurrencePattern
 } from '../../types'
 
-const bookingStatuses: BookingStatus[] = ['Inquiry', 'Screening', 'Pending Deposit', 'Confirmed', 'In Progress', 'Completed', 'Cancelled', 'No Show']
+const bookingStatuses: BookingStatus[] = ['To Be Confirmed', 'Pending Deposit', 'Confirmed', 'Completed', 'Cancelled', 'No Show']
 const locationTypes: LocationType[] = ['Incall', 'Outcall', 'Travel', 'Virtual']
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const recurrenceOptions: RecurrencePattern[] = ['none', 'weekly', 'biweekly', 'monthly']
@@ -41,7 +40,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const [locationType, setLocationType] = useState<LocationType>(booking?.locationType ?? rebookFrom?.locationType ?? 'Incall')
   const [locationAddress, setLocationAddress] = useState(booking?.locationAddress ?? rebookFrom?.locationAddress ?? '')
   const [locationNotes, setLocationNotes] = useState(booking?.locationNotes ?? rebookFrom?.locationNotes ?? '')
-  const [status, setStatus] = useState<BookingStatus>(booking?.status ?? 'Inquiry')
+  const [status, setStatus] = useState<BookingStatus>(booking?.status ?? 'To Be Confirmed')
   const [baseRate, setBaseRate] = useState(booking?.baseRate ?? rebookFrom?.baseRate ?? 0)
   const [extras, setExtras] = useState(booking?.extras ?? rebookFrom?.extras ?? 0)
   const [travelFee, setTravelFee] = useState(booking?.travelFee ?? rebookFrom?.travelFee ?? 0)
@@ -63,7 +62,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const [newClientAlias, setNewClientAlias] = useState('')
   const [newClientPhone, setNewClientPhone] = useState('')
   const [newClientContact, setNewClientContact] = useState<ContactMethod>('Text')
-  const [newClientScreening, setNewClientScreening] = useState<ScreeningStatus>('Pending')
+  const [newClientScreening, setNewClientScreening] = useState<ScreeningStatus>('Unscreened')
   const [showNewClientDetails, setShowNewClientDetails] = useState(false)
   const [newClientPreferences, setNewClientPreferences] = useState('')
   const [newClientBoundaries, setNewClientBoundaries] = useState('')
@@ -82,7 +81,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       setLocationType(booking?.locationType ?? rebookFrom?.locationType ?? 'Incall')
       setLocationAddress(booking?.locationAddress ?? rebookFrom?.locationAddress ?? '')
       setLocationNotes(booking?.locationNotes ?? rebookFrom?.locationNotes ?? '')
-      setStatus(booking?.status ?? 'Inquiry')
+      setStatus(booking?.status ?? 'To Be Confirmed')
       setBaseRate(booking?.baseRate ?? rebookFrom?.baseRate ?? 0)
       setExtras(booking?.extras ?? rebookFrom?.extras ?? 0)
       setTravelFee(booking?.travelFee ?? rebookFrom?.travelFee ?? 0)
@@ -100,7 +99,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       setNewClientAlias('')
       setNewClientPhone('')
       setNewClientContact('Text')
-      setNewClientScreening('Pending')
+      setNewClientScreening('Unscreened')
       setShowNewClientDetails(false)
       setNewClientPreferences('')
       setNewClientBoundaries('')
@@ -401,8 +400,15 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                       ))}
                     </select>
                   </div>
-                  <div className="mt-1">
-                    <ScreeningStatusBar value={newClientScreening} onChange={setNewClientScreening} compact />
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Screening:</span>
+                    <select value={newClientScreening} onChange={e => setNewClientScreening(e.target.value as ScreeningStatus)}
+                      className="text-sm bg-transparent outline-none"
+                      style={{ color: 'var(--text-primary)', fontSize: '16px' }}>
+                      {(['Unscreened', 'In Progress', 'Verified'] as ScreeningStatus[]).map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Expandable details */}

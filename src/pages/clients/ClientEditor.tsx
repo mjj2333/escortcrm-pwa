@@ -5,11 +5,12 @@ import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldHint, FieldTextInput, FieldTextArea, FieldSelect, FieldDate } from '../../components/FormFields'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
-import { ScreeningStatusBar } from '../../components/ScreeningStatusBar'
 import { TagPicker } from '../../components/TagPicker'
-import type { Client, ClientTag, ContactMethod, ScreeningStatus, RiskLevel } from '../../types'
+import type { Client, ClientTag, ContactMethod, ScreeningStatus, ScreeningMethod, RiskLevel } from '../../types'
 
 const contactMethods: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp', 'Other']
+const screeningStatuses: ScreeningStatus[] = ['Unscreened', 'In Progress', 'Verified']
+const screeningMethods: ScreeningMethod[] = ['ID', 'LinkedIn', 'Provider Reference', 'Employment', 'Phone', 'Deposit', 'Other']
 
 /** Convert a Date to 'yyyy-MM-dd' using local timezone (not UTC like toISOString). */
 function toLocalDateStr(d: Date): string {
@@ -33,7 +34,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [preferredContact, setPreferredContact] = useState<ContactMethod>('Text')
-  const [screeningStatus, setScreeningStatus] = useState<ScreeningStatus>('Pending')
+  const [screeningStatus, setScreeningStatus] = useState<ScreeningStatus>('Unscreened')
+  const [screeningMethod, setScreeningMethod] = useState<ScreeningMethod | ''>('')
   const [riskLevel, setRiskLevel] = useState<RiskLevel>('Unknown')
   const [notes, setNotes] = useState('')
   const [preferences, setPreferences] = useState('')
@@ -53,7 +55,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       setPhone(client?.phone ?? '')
       setEmail(client?.email ?? '')
       setPreferredContact(client?.preferredContact ?? 'Text')
-      setScreeningStatus(client?.screeningStatus ?? 'Pending')
+      setScreeningStatus(client?.screeningStatus ?? 'Unscreened')
+      setScreeningMethod(client?.screeningMethod ?? '')
       setRiskLevel(client?.riskLevel ?? 'Unknown')
       setNotes(client?.notes ?? '')
       setPreferences(client?.preferences ?? '')
@@ -80,6 +83,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         email: email.trim() || undefined,
         preferredContact,
         screeningStatus,
+        screeningMethod: screeningMethod || undefined,
         riskLevel,
         notes: notes.trim(),
         preferences: preferences.trim(),
@@ -100,6 +104,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         email: email.trim() || undefined,
         preferredContact,
         screeningStatus,
+        screeningMethod: screeningMethod || undefined,
         riskLevel,
         notes: notes.trim(),
         preferences: preferences.trim(),
@@ -137,12 +142,12 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           hint="Enables one-tap calling and texting from their profile." icon={<PhoneIcon size={12} />} />
         <FieldSelect label="Preferred Contact" value={preferredContact} options={contactMethods} onChange={setPreferredContact}
           hint="How this client prefers to be reached." icon={<MessageSquare size={12} />} />
-        {/* Screening Status */}
+        {/* Screening */}
         <SectionLabel label="Screening" />
-        <div className="mb-3">
-          <ScreeningStatusBar value={screeningStatus} onChange={setScreeningStatus} />
-          <FieldHint text="Slide or tap to set. Declined → Pending → Verified." />
-        </div>
+        <FieldSelect label="Status" value={screeningStatus} options={screeningStatuses} onChange={v => setScreeningStatus(v as ScreeningStatus)}
+          hint="Set to Verified once screening is complete." icon={<ShieldCheck size={12} />} />
+        <FieldSelect label="Method" value={screeningMethod} options={['', ...screeningMethods]} onChange={v => setScreeningMethod(v as ScreeningMethod | '')}
+          hint="How the client was screened." icon={<UserCheck size={12} />} />
 
         {/* Risk Level Bar */}
         <SectionLabel label="Risk Level" />
