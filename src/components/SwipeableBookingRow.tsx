@@ -97,8 +97,6 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
   const depositFullyPaid = booking.depositAmount > 0 && depositRemaining <= 0
   const depositPartial = totalDeposits > 0 && depositRemaining > 0
 
-  const isTerminal = booking.status === 'Completed' || booking.status === 'Cancelled' || booking.status === 'No Show'
-  const hasActions = !isTerminal
 
   // Panel width
   const PANEL_WIDTH = 280
@@ -106,12 +104,11 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
 
   // ━━━ Gesture handling ━━━
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (!hasActions) return
     startX.current = e.clientX
     currentX.current = 0
     isDragging.current = false
     setSwiping(true)
-  }, [hasActions])
+  }, [])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!swiping) return
@@ -414,7 +411,7 @@ export function SwipeableBookingRow({ booking, client, onOpen, availabilityStatu
         </div>
 
         {/* Swipe hint edge indicator */}
-        {hasActions && offset === 0 && (
+        {offset === 0 && (
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-l-full opacity-20"
             style={{ backgroundColor: '#a855f7' }} />
         )}
