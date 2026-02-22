@@ -10,10 +10,11 @@
 //   #booking/ID   → bookingDetail screen
 //   #analytics    → analytics screen
 //
-// Usage in App.tsx:
-//   const { pushNav, replaceNav } = useHashNav(setActiveTab, setScreen)
-//   Replace setActiveTab / setScreen calls with pushNav / replaceNav.
-//   The hook also listens to popstate to drive state from the back button.
+// Pattern:
+//   1. App.tsx initializes useState directly from parseNavHash() — no post-mount
+//      setState, which would trigger React error #310 in Suspense boundaries.
+//   2. useHashNav only wires up the popstate listener and provides pushNav/replaceNav.
+//   3. On mount, history.replaceState seeds the initial entry (no setState needed).
 
 import { useEffect, useCallback, startTransition } from 'react'
 
@@ -37,7 +38,9 @@ function stateToHash({ tab, screen }: NavState): string {
   return TAB_HASHES[tab] ?? '#home'
 }
 
-function hashToState(hash: string): NavState {
+/** Parse a URL hash string into { tab, screen }. Exported so App can use it
+ *  as a useState initializer — avoids any post-mount state update. */
+export function parseNavHash(hash: string): NavState {
   if (hash.startsWith('#client/')) {
     const clientId = hash.slice('#client/'.length)
     if (clientId) return { tab: 1, screen: { type: 'clientDetail', clientId } }
@@ -52,22 +55,16 @@ function hashToState(hash: string): NavState {
 }
 
 export function useHashNav(
+  activeTab: number,
+  screen: Screen,
   setActiveTab: (tab: number) => void,
   setScreen: (screen: Screen) => void,
 ) {
-  // On mount: restore state from current hash (deep link / refresh)
+  // Seed the initial history entry so back-button has somewhere to go.
+  // History-only — no setState, so no Suspense boundary issue.
   useEffect(() => {
-    const hash = window.location.hash || '#home'
-    const { tab, screen } = hashToState(hash)
-    // Replace so the initial state is in history
-    const initialHash = stateToHash({ tab, screen })
-    history.replaceState({ tab, screen }, '', initialHash)
-    // startTransition prevents React error #310 (Suspense boundary reactivation)
-    // when this state update fires while a lazy component is mid-load
-    startTransition(() => {
-      setActiveTab(tab)
-      setScreen(screen)
-    })
+    const hash = stateToHash({ tab: activeTab, screen })
+    history.replaceState({ tab: activeTab, screen }, '', hash)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Back/forward button handler
@@ -79,8 +76,7 @@ export function useHashNav(
           setActiveTab(state.tab)
           setScreen(state.screen)
         } else {
-          // No state on the entry — parse from hash as fallback
-          const { tab, screen } = hashToState(window.location.hash)
+          const { tab, screen } = parseNavHash(window.location.hash)
           setActiveTab(tab)
           setScreen(screen)
         }

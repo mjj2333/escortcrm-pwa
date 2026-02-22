@@ -24,7 +24,7 @@ import { db, migrateToPaymentLedger } from './db'
 import { initFieldEncryption } from './db/fieldCrypto'
 import { useServiceWorker } from './hooks/useServiceWorker'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
-import { useHashNav } from './hooks/useHashNav'
+import { useHashNav, parseNavHash } from './hooks/useHashNav'
 
 type Screen =
   | { type: 'tab' }
@@ -33,9 +33,17 @@ type Screen =
   | { type: 'analytics' }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState(0)
+  // Initialize nav state directly from hash — avoids a post-mount setState
+  // which would trigger React error #310 (Suspense boundary reactivation)
+  const [activeTab, setActiveTab] = useState<number>(() => {
+    const { tab } = parseNavHash(window.location.hash || '#home')
+    return tab
+  })
   const [showSettings, setShowSettings] = useState(false)
-  const [screen, setScreen] = useState<Screen>({ type: 'tab' })
+  const [screen, setScreen] = useState<Screen>(() => {
+    const { screen } = parseNavHash(window.location.hash || '#home')
+    return screen
+  })
 
   // PIN lock
   const [pinEnabled] = useLocalStorage('pinEnabled', false)
@@ -140,7 +148,7 @@ export default function App() {
     migrateToPaymentLedger()
   }, [])
 
-  const { pushNav, replaceNav } = useHashNav(setActiveTab, setScreen)
+  const { pushNav, replaceNav } = useHashNav(activeTab, screen, setActiveTab, setScreen)
 
   function handleTabChange(tab: number) {
     // Tab switches replace history — tapping tabs shouldn't pollute the back stack
