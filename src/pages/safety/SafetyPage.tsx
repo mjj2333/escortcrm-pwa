@@ -83,7 +83,7 @@ export function SafetyPage() {
     return `sms:${phone}&body=${encodeURIComponent(body)}`
   }
 
-  function buildAlertMessage(check: typeof safetyChecks[0]): string {
+  function buildAlertMessage(check: SafetyCheck): string {
     const booking = bookingFor(check.bookingId)
     const client = booking?.clientId ? clientFor(booking.clientId) : undefined
     const parts: string[] = ['⚠️ SAFETY ALERT — I need help. Please check on me immediately.']
@@ -95,7 +95,7 @@ export function SafetyPage() {
   }
 
   async function sendAlert(checkId: string) {
-    const check = safetyChecks.find(c => c.id === checkId)
+    const check = safetyChecks!.find(c => c.id === checkId)
     if (!check) return
 
     await db.safetyChecks.update(checkId, { status: 'alert' as SafetyCheckStatus })
