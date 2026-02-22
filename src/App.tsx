@@ -157,11 +157,11 @@ export default function App() {
   }
 
   function openClient(clientId: string) {
-    pushNav(1, { type: 'clientDetail', clientId })
+    pushNav(2, { type: 'clientDetail', clientId })
   }
 
   function openBooking(bookingId: string) {
-    pushNav(2, { type: 'bookingDetail', bookingId })
+    pushNav(1, { type: 'bookingDetail', bookingId })
   }
 
   function goBack() {
@@ -255,9 +255,9 @@ export default function App() {
           />
         )
       case 1:
-        return <ClientsPage onOpenClient={openClient} />
-      case 2:
         return <SchedulePage onOpenBooking={openBooking} />
+      case 2:
+        return <ClientsPage onOpenClient={openClient} />
       case 3:
         return <FinancesPage onOpenAnalytics={() => pushNav(3, { type: 'analytics' })} onOpenBooking={openBooking} />
       case 4:

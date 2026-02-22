@@ -2,8 +2,8 @@
 //
 // Route format:
 //   #home         → tab 0
-//   #clients      → tab 1
-//   #schedule     → tab 2
+//   #schedule     → tab 1
+//   #clients      → tab 2
 //   #finances     → tab 3
 //   #safety       → tab 4
 //   #client/ID    → clientDetail screen
@@ -18,7 +18,7 @@
 
 import { useEffect, useCallback, startTransition } from 'react'
 
-const TAB_HASHES = ['#home', '#clients', '#schedule', '#finances', '#safety']
+const TAB_HASHES = ['#home', '#schedule', '#clients', '#finances', '#safety']
 
 type Screen =
   | { type: 'tab' }
@@ -43,11 +43,11 @@ function stateToHash({ tab, screen }: NavState): string {
 export function parseNavHash(hash: string): NavState {
   if (hash.startsWith('#client/')) {
     const clientId = hash.slice('#client/'.length)
-    if (clientId) return { tab: 1, screen: { type: 'clientDetail', clientId } }
+    if (clientId) return { tab: 2, screen: { type: 'clientDetail', clientId } }
   }
   if (hash.startsWith('#booking/')) {
     const bookingId = hash.slice('#booking/'.length)
-    if (bookingId) return { tab: 2, screen: { type: 'bookingDetail', bookingId } }
+    if (bookingId) return { tab: 1, screen: { type: 'bookingDetail', bookingId } }
   }
   if (hash === '#analytics') return { tab: 3, screen: { type: 'analytics' } }
   const tab = TAB_HASHES.indexOf(hash)

@@ -52,7 +52,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const [depositAmount, setDepositAmount] = useState(booking?.depositAmount ?? rebookFrom?.depositAmount ?? 0)
   const [depositReceived, setDepositReceived] = useState(booking?.depositReceived ?? false)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(booking?.paymentMethod ?? rebookFrom?.paymentMethod ?? '')
-  const [notes, setNotes] = useState(booking?.notes ?? '')
   const [requiresSafetyCheck, setRequiresSafetyCheck] = useState(booking?.requiresSafetyCheck ?? rebookFrom?.requiresSafetyCheck ?? true)
   const [recurrence, setRecurrence] = useState<RecurrencePattern>(booking?.recurrence ?? rebookFrom?.recurrence ?? 'none')
 
@@ -76,7 +75,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const [newClientScreeningMethod, setNewClientScreeningMethod] = useState<ScreeningMethod | ''>('')
   const [newClientPreferences, setNewClientPreferences] = useState('')
   const [newClientBoundaries, setNewClientBoundaries] = useState('')
-  const [newClientNotes, setNewClientNotes] = useState('')
 
   // Availability conflict
   const [conflictWarning, setConflictWarning] = useState<{ reason: string; dayStatus: string; isDoubleBook: boolean } | null>(null)
@@ -98,7 +96,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       setDepositAmount(booking?.depositAmount ?? rebookFrom?.depositAmount ?? 0)
       setDepositReceived(booking?.depositReceived ?? false)
       setPaymentMethod(booking?.paymentMethod ?? rebookFrom?.paymentMethod ?? '')
-      setNotes(booking?.notes ?? '')
       setRequiresSafetyCheck(booking?.requiresSafetyCheck ?? rebookFrom?.requiresSafetyCheck ?? true)
       setRecurrence(booking?.recurrence ?? rebookFrom?.recurrence ?? 'none')
       setShowClientPicker(false)
@@ -118,7 +115,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       setNewClientScreeningMethod('')
       setNewClientPreferences('')
       setNewClientBoundaries('')
-      setNewClientNotes('')
       setConflictWarning(null)
     }
   }, [isOpen, booking, rebookFrom, preselectedClientId])
@@ -167,7 +163,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       screeningMethod: newClientScreeningMethod || undefined,
       preferences: newClientPreferences.trim(),
       boundaries: newClientBoundaries.trim(),
-      notes: newClientNotes.trim(),
     })
     await db.clients.add(newClient)
     setClientId(newClient.id)
@@ -184,7 +179,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
     setNewClientScreeningMethod('')
     setNewClientPreferences('')
     setNewClientBoundaries('')
-    setNewClientNotes('')
   }
 
   function selectServiceRate(rateDuration: number, rate: number) {
@@ -228,7 +222,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         travelFee: finalTravelFee,
         depositAmount,
         paymentMethod: paymentMethod || undefined,
-        notes: notes.trim(),
         requiresSafetyCheck,
         recurrence,
         // Set timestamps when status changes
@@ -280,7 +273,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         travelFee: finalTravelFee,
         depositAmount,
         paymentMethod: paymentMethod || undefined,
-        notes: notes.trim(),
         requiresSafetyCheck,
         recurrence,
         // Set timestamps when creating with an advanced status
@@ -515,10 +507,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                     value={newClientBoundaries} onChange={e => setNewClientBoundaries(e.target.value)}
                     rows={2} className="w-full text-sm bg-transparent outline-none resize-none pb-1"
                     style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }} />
-                  <textarea placeholder="Notes"
-                    value={newClientNotes} onChange={e => setNewClientNotes(e.target.value)}
-                    rows={2} className="w-full text-sm bg-transparent outline-none resize-none pb-1"
-                    style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }} />
 
                   <div className="flex gap-2 pt-1">
                     <button onClick={() => { setShowNewClient(false); setNewClientAlias(''); setNewClientPhone('') }}
@@ -671,8 +659,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
               displayFn={(v: string) => v === 'none' ? 'None' : v === 'weekly' ? 'Weekly' : v === 'biweekly' ? 'Every 2 Weeks' : 'Monthly'}
               hint="A new booking will auto-create when this one completes." />
 
-            <SectionLabel label="Notes" />
-            <FieldTextArea label="Notes" value={notes} onChange={setNotes} placeholder="Booking notes..." />
           </>
         )}
 

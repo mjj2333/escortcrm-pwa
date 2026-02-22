@@ -177,7 +177,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
         )}
 
         {/* Availability Status */}
-        <Card onClick={() => onNavigateTab(2)}>
+        <Card onClick={() => onNavigateTab(1)}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div
@@ -256,7 +256,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <Card onClick={() => onNavigateTab(2)}>
+          <Card onClick={() => onNavigateTab(1)}>
             <div className="flex items-center gap-2 mb-2">
               <CalendarDays size={16} className="text-purple-500" />
               <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Today</span>
@@ -269,7 +269,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
             </p>
           </Card>
 
-          <Card onClick={() => onNavigateTab(1)}>
+          <Card onClick={() => onNavigateTab(2)}>
             <div className="flex items-center gap-2 mb-2">
               <Users size={16} className="text-purple-500" />
               <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Screening</span>

@@ -7,8 +7,8 @@ interface TabBarProps {
 
 const tabs = [
   { icon: Home, label: 'Home' },
-  { icon: Users, label: 'Clients' },
   { icon: Calendar, label: 'Schedule' },
+  { icon: Users, label: 'Clients' },
   { icon: DollarSign, label: 'Finances' },
   { icon: Shield, label: 'Safety' },
 ]

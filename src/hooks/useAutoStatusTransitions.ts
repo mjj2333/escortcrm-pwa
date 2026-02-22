@@ -2,6 +2,19 @@ import { useEffect } from 'react'
 import { addWeeks, addMonths, addMinutes } from 'date-fns'
 import { db, createBooking, completeBookingPayment, newId } from '../db'
 
+function sendJournalReminder(clientAlias: string, durationMin: number) {
+  if (!('Notification' in window)) return
+  if (Notification.permission === 'granted') {
+    new Notification('Session completed', {
+      body: `${clientAlias} · ${durationMin} min — tap to add session notes`,
+      icon: '/icon-192.png',
+      tag: 'journal-reminder', // collapses duplicates
+    })
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission()
+  }
+}
+
 /**
  * Auto-advance booking statuses based on time:
  * - Confirmed → In Progress: when booking dateTime has passed
@@ -61,6 +74,8 @@ export function useAutoStatusTransitions() {
           if (b.clientId) {
             await db.clients.update(b.clientId, { lastSeen: new Date() })
           }
+          // Nudge to write session notes
+          sendJournalReminder(client?.alias ?? 'Client', b.duration)
         }
 
         // Spawn next recurring booking if this one completed
@@ -121,6 +136,11 @@ export function useAutoStatusTransitions() {
 
     checkAndUpdate()
     const interval = setInterval(checkAndUpdate, 60_000)
+
+    // Request notification permission early so journal reminders work
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
 
     // Also run immediately when the user returns to the app (tab/window becomes visible).
     // Without this, statuses only catch up on the next 60s tick, so a booking that
