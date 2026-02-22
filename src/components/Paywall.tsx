@@ -208,6 +208,11 @@ export async function revalidateActivation(): Promise<boolean> {
     }
     // No email or verification failed — leave activated for now
     // (don't lock out legacy users who can't re-verify)
+    // But if there's no email AND no beta flag, this isn't a real activation
+    if (!activation.email && !activation.isBetaTester) {
+      setActivation({ ...activation, activated: false })
+      return false
+    }
     return true
   }
 
