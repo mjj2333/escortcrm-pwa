@@ -27,6 +27,17 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   const [sortMode, setSortMode] = useState<SortMode>('az')
   const [pinnedToast, setPinnedToast] = useState<{ id: string; pinned: boolean } | null>(null)
   const clients = useLiveQuery(() => db.clients.orderBy('alias').toArray())
+
+  const togglePin = useCallback(async (clientId: string) => {
+    const client = clients?.find(c => c.id === clientId)
+    if (!client) return
+    const newPinned = !client.isPinned
+    await db.clients.update(clientId, { isPinned: newPinned })
+    if (navigator.vibrate) navigator.vibrate(30)
+    setPinnedToast({ id: clientId, pinned: newPinned })
+    setTimeout(() => setPinnedToast(null), 1500)
+  }, [clients])
+
   if (clients === undefined) return <ClientsPageSkeleton />
 
   const blockedCount = clients.filter(c => c.isBlocked).length
@@ -58,15 +69,6 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
       }
     })
 
-  const togglePin = useCallback(async (clientId: string) => {
-    const client = clients.find(c => c.id === clientId)
-    if (!client) return
-    const newPinned = !client.isPinned
-    await db.clients.update(clientId, { isPinned: newPinned })
-    if (navigator.vibrate) navigator.vibrate(30)
-    setPinnedToast({ id: clientId, pinned: newPinned })
-    setTimeout(() => setPinnedToast(null), 1500)
-  }, [clients])
 
   return (
     <div className="pb-20">

@@ -62,8 +62,6 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const bookings    = useLiveQuery(() => db.bookings.orderBy('dateTime').toArray())
   const clients     = useLiveQuery(() => db.clients.toArray()) ?? []
   const availability = useLiveQuery(() => db.availability.toArray()) ?? []
-  if (bookings === undefined) return <SchedulePageSkeleton />
-
   const clientFor = (id?: string) => clients.find(c => c.id === id)
 
   // Shared search + status predicate
@@ -129,6 +127,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
       })
       .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
   }, [bookings, clients, activeStatuses, searchQuery, dateFrom, dateTo])
+
+  if (bookings === undefined) return <SchedulePageSkeleton />
 
   const pastBookings   = listBookings.filter(b => new Date(b.dateTime) < now)
   const futureBookings = listBookings.filter(b => new Date(b.dateTime) >= now)

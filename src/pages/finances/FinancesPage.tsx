@@ -50,14 +50,14 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
   const allBookings = useLiveQuery(() => db.bookings.toArray()) ?? []
   const clients = useLiveQuery(() => db.clients.toArray()) ?? []
   const allPayments = useLiveQuery(() => db.payments.toArray()) ?? []
-  if (allTransactions === undefined) return <FinancesPageSkeleton />
-
   // Settings
   const [taxRate] = useLocalStorage('taxRate', 25)
   const [setAsideRate] = useLocalStorage('setAsideRate', 30)
   const [goalName] = useLocalStorage('goalName', '')
   const [goalTarget] = useLocalStorage('goalTarget', 0)
   const [goalPeriod] = useLocalStorage<'weekly' | 'monthly' | 'quarterly'>('goalPeriod', 'monthly')
+
+  if (allTransactions === undefined) return <FinancesPageSkeleton />
 
   // Filtered by period
   const startDate = periodStart(period)
