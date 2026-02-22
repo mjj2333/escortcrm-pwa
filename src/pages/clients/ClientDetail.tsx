@@ -19,15 +19,18 @@ import { ClientMergeModal } from './ClientMergeModal'
 import { JournalLog } from '../../components/JournalLog'
 import { JournalEntryEditor } from '../../components/JournalEntryEditor'
 import { ScreeningProofManager } from '../../components/ScreeningProofManager'
+import { ProGate, ProBadge } from '../../components/ProGate'
+import { isPro } from '../../components/planLimits'
 import { screeningStatusColors, riskLevelColors, bookingStatusColors } from '../../types'
 
 interface ClientDetailProps {
   clientId: string
   onBack: () => void
   onOpenBooking: (bookingId: string) => void
+  onShowPaywall?: () => void
 }
 
-export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailProps) {
+export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }: ClientDetailProps) {
   const client = useLiveQuery(() => db.clients.get(clientId))
   const bookings = useLiveQuery(() =>
     db.bookings.where('clientId').equals(clientId).toArray()
@@ -429,7 +432,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
           </div>
 
           {/* Screening documents */}
-          <ScreeningProofManager clientId={clientId} />
+          {isPro() && <ScreeningProofManager clientId={clientId} />}
 
           {noShowCount > 0 && (
             <div className="flex items-center justify-between py-1.5">
@@ -603,10 +606,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking }: ClientDetailPr
 
         {/* Session Journal */}
         <Card>
-          <JournalLog
-            clientId={clientId}
-            onEditEntry={(entry, booking) => setJournalEditEntry({ entry, booking })}
-          />
+          {isPro() ? (
+            <JournalLog
+              clientId={clientId}
+              onEditEntry={(entry, booking) => setJournalEditEntry({ entry, booking })}
+            />
+          ) : (
+            <ProGate feature="Session Journal" onUpgrade={onShowPaywall} inline />
+          )}
         </Card>
 
         {/* Actions */}

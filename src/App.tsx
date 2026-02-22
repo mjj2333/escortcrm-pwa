@@ -17,7 +17,8 @@ const AnalyticsPage = lazy(() => import('./pages/finances/AnalyticsPage').then(m
 const SettingsPage = lazy(() => import('./pages/home/SettingsPage').then(m => ({ default: m.SettingsPage })))
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
-import { Paywall, TrialBanner, needsPaywall, isActivated, revalidateActivation, initTrialState } from './components/Paywall'
+import { Paywall, TrialBanner, isActivated, revalidateActivation, initTrialState } from './components/Paywall'
+import { ProGate } from './components/ProGate'
 import { ToastContainer, showToast } from './components/Toast'
 import { seedSampleData, hasSampleDataBeenOffered } from './data/sampleData'
 import { db, migrateToPaymentLedger } from './db'
@@ -74,7 +75,6 @@ export default function App() {
 
   // Paywall
   const [showPaywall, setShowPaywall] = useState(false)
-  const [paywallDismissed, setPaywallDismissed] = useState(false)
   const [deepLinkCode, setDeepLinkCode] = useState<string | undefined>()
 
   // Revalidate activation with server on each app launch
@@ -206,16 +206,15 @@ export default function App() {
     )
   }
 
-  // Paywall — show when trial expired and not activated
-  if ((needsPaywall() && !paywallDismissed) || showPaywall) {
+  // Paywall — shown when user requests upgrade (never blocks app)
+  if (showPaywall) {
     return (
       <Paywall
         onActivated={() => {
           setShowPaywall(false)
-          setPaywallDismissed(true)
           setDeepLinkCode(undefined)
         }}
-        onClose={showPaywall && !needsPaywall() ? () => { setShowPaywall(false); setDeepLinkCode(undefined); } : undefined}
+        onClose={() => { setShowPaywall(false); setDeepLinkCode(undefined); }}
         initialCode={deepLinkCode}
       />
     )
@@ -228,6 +227,7 @@ export default function App() {
           clientId={screen.clientId}
           onBack={goBack}
           onOpenBooking={openBooking}
+          onShowPaywall={() => setShowPaywall(true)}
         />
       )
     }
@@ -237,11 +237,16 @@ export default function App() {
           bookingId={screen.bookingId}
           onBack={goBack}
           onOpenClient={openClient}
+          onShowPaywall={() => setShowPaywall(true)}
         />
       )
     }
     if (screen.type === 'analytics') {
-      return <AnalyticsPage onBack={goBack} />
+      return (
+        <ProGate feature="Analytics" onUpgrade={() => setShowPaywall(true)}>
+          <AnalyticsPage onBack={goBack} />
+        </ProGate>
+      )
     }
 
     switch (activeTab) {
@@ -259,7 +264,11 @@ export default function App() {
       case 2:
         return <ClientsPage onOpenClient={openClient} />
       case 3:
-        return <FinancesPage onOpenAnalytics={() => pushNav(3, { type: 'analytics' })} onOpenBooking={openBooking} />
+        return (
+          <ProGate feature="Finances & Analytics" onUpgrade={() => setShowPaywall(true)}>
+            <FinancesPage onOpenAnalytics={() => pushNav(3, { type: 'analytics' })} onOpenBooking={openBooking} />
+          </ProGate>
+        )
       case 4:
         return <SafetyPage />
       default:
@@ -312,7 +321,7 @@ export default function App() {
       </Suspense>
       {showSettings && (
         <Suspense fallback={null}>
-          <SettingsPage onClose={() => setShowSettings(false)} onRestartTour={restartTour} />
+          <SettingsPage onClose={() => setShowSettings(false)} onRestartTour={restartTour} onShowPaywall={() => setShowPaywall(true)} />
         </Suspense>
       )}
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />

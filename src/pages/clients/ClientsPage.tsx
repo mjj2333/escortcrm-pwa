@@ -10,6 +10,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { ClientEditor } from './ClientEditor'
 import { screeningStatusColors, riskLevelColors } from '../../types'
 import { ClientsPageSkeleton } from '../../components/Skeleton'
+import { usePlanLimits, isPro } from '../../components/planLimits'
 import type { Client } from '../../types'
 
 import { ImportExportModal } from '../../components/ImportExport'
@@ -27,6 +28,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   const [showBlocked, setShowBlocked] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('az')
   const [pinnedToast, setPinnedToast] = useState<{ id: string; pinned: boolean } | null>(null)
+  const limits = usePlanLimits()
   const clients = useLiveQuery(() => db.clients.orderBy('alias').toArray())
 
   const togglePin = useCallback(async (clientId: string) => {
@@ -74,13 +76,25 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   return (
     <div className="pb-20">
       <PageHeader title="Clients">
-        <button onClick={() => setShowImportExport(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
-          <ArrowDownUp size={18} />
-        </button>
-        <button onClick={() => setShowEditor(true)} className="p-2 rounded-lg text-purple-500">
+        {isPro() && (
+          <button onClick={() => setShowImportExport(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
+            <ArrowDownUp size={18} />
+          </button>
+        )}
+        <button onClick={() => setShowEditor(true)}
+          className={`p-2 rounded-lg ${limits.canAddClient ? 'text-purple-500' : ''}`}
+          style={!limits.canAddClient ? { color: 'var(--text-secondary)', opacity: 0.5 } : {}}>
           <Plus size={20} />
         </button>
       </PageHeader>
+
+      {!limits.isPro && (
+        <div className="px-4 pt-2 pb-1">
+          <p className="text-[10px] text-center" style={{ color: 'var(--text-secondary)' }}>
+            {limits.clientCount} / {limits.clientLimit} clients on free plan
+          </p>
+        </div>
+      )}
 
       <div className="px-4 pt-3">
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>

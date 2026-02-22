@@ -13,8 +13,6 @@ const STRIPE_LIFETIME_LINK = 'https://buy.stripe.com/5kQ7sNddveCD2fr2rr0kE00'
 // Netlify function endpoint for purchase verification
 const VERIFY_ENDPOINT = '/.netlify/functions/verify-purchase'
 
-const TRIAL_DAYS = 7
-
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // OBFUSCATED STORAGE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -69,64 +67,18 @@ export function setActivation(state: ActivationState) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TRIAL STATE — stored in Dexie meta table, not localStorage
+// LEGACY TRIAL STUBS — kept for backward compatibility
+// The app now uses a usage-based freemium model, not time-limited trials.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// IndexedDB is much less obvious to find and edit than localStorage.
-// A module-level cache keeps the sync API surface intact.
 
-const TRIAL_META_KEY = 'trial_start'
-let _trialStartCache: Date | null = null
+/** No-op — trial logic removed. Kept so App.tsx init doesn't break. */
+export async function initTrialState(): Promise<void> {}
 
-/** Call on app boot (from App.tsx). Loads the trial start date from the
- *  Dexie meta table into a module-level cache. Also handles one-time
- *  migration from the old localStorage-based trialStarted field. */
-export async function initTrialState(): Promise<void> {
-  try {
-    // 1. Check Dexie meta table first
-    const existing = await db.meta.get(TRIAL_META_KEY)
-    if (existing?.value) {
-      _trialStartCache = new Date(existing.value as string)
-      return
-    }
+/** @deprecated Always returns 0. Use usePlanLimits() instead. */
+export function getTrialDaysRemaining(): number { return 0 }
 
-    // 2. Migrate from localStorage activation state (old format)
-    const activation = getActivation()
-    const legacyTrial = (activation as any).trialStarted
-    if (legacyTrial) {
-      _trialStartCache = new Date(legacyTrial)
-      await db.meta.put({ key: TRIAL_META_KEY, value: legacyTrial })
-      // Clean up the old field from localStorage
-      const { trialStarted: _, ...cleaned } = activation as any
-      setActivation(cleaned)
-      return
-    }
-
-    // 3. First launch — record trial start
-    const now = new Date()
-    _trialStartCache = now
-    await db.meta.put({ key: TRIAL_META_KEY, value: now.toISOString() })
-  } catch (err) {
-    console.warn('[Paywall] Failed to init trial state from Dexie:', err)
-    // Fallback: start trial now (conservative — user gets full trial)
-    _trialStartCache = new Date()
-  }
-}
-
-export function getTrialStart(): Date {
-  // Cache is populated by initTrialState() on boot.
-  // If not yet initialized (very early render), return now as a safe fallback.
-  return _trialStartCache ?? new Date()
-}
-
-export function getTrialDaysRemaining(): number {
-  const start = getTrialStart()
-  const elapsed = (Date.now() - start.getTime()) / (1000 * 60 * 60 * 24)
-  return Math.max(0, Math.ceil(TRIAL_DAYS - elapsed))
-}
-
-export function isTrialActive(): boolean {
-  return getTrialDaysRemaining() > 0
-}
+/** @deprecated Always returns false. Use isPro() or usePlanLimits() instead. */
+export function isTrialActive(): boolean { return false }
 
 export function isActivated(): boolean {
   const activation = getActivation()
@@ -156,8 +108,10 @@ export function isActivated(): boolean {
   return true
 }
 
+/** With freemium model, the app never fully locks out. This always returns false.
+ *  Individual features are gated by ProGate components and usePlanLimits(). */
 export function needsPaywall(): boolean {
-  return !isActivated() && !isTrialActive()
+  return false
 }
 
 export function isBetaTester(): boolean {
@@ -298,12 +252,10 @@ async function matchGiftCode(code: string): Promise<{ expiresAt?: string; token?
 const features = [
   'Unlimited clients & bookings',
   'Financial tracking & analytics',
-  'Safety check-in system',
-  'Encrypted backups',
-  'Recurring bookings',
-  'Push notification reminders',
-  'Import/export to CSV & Excel',
-  'All future updates included',
+  'Session journal & notes',
+  'Screening document uploads',
+  'Export & encrypted backups',
+  'All future Pro features',
 ]
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -386,8 +338,6 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
     setValidating(false)
   }
 
-  const daysLeft = getTrialDaysRemaining()
-
   return (
     <div
       className="fixed inset-0 z-[100] flex flex-col"
@@ -423,13 +373,8 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
               Upgrade to Pro
             </h1>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Support development & unlock everything
+              Unlock unlimited clients, bookings & more
             </p>
-            {daysLeft > 0 && daysLeft <= TRIAL_DAYS && (
-              <p className="text-xs mt-2" style={{ color: '#a855f7' }}>
-                {daysLeft} day{daysLeft !== 1 ? 's' : ''} left in your free trial
-              </p>
-            )}
           </div>
 
           {/* Features */}
@@ -619,14 +564,14 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
             </div>
           )}
 
-          {/* Continue trial */}
-          {daysLeft > 0 && (
+          {/* Dismiss — always available since app is never fully locked */}
+          {onClose && (
             <button
-              onClick={onActivated}
+              onClick={onClose}
               className="w-full text-center text-sm py-4 mt-2 font-medium"
               style={{ color: 'var(--text-secondary)' }}
             >
-              Continue free trial ({daysLeft} day{daysLeft !== 1 ? 's' : ''} left)
+              Maybe later
             </button>
           )}
         </div>
@@ -636,31 +581,30 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TRIAL BANNER (shown inside the app during trial)
+// FREE TIER BANNER (shown inside the app for free users)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+/** @deprecated Renamed to FreeBanner. Kept for backward compatibility. */
 export function TrialBanner({ onUpgrade }: { onUpgrade: () => void }) {
-  const days = getTrialDaysRemaining()
-  if (days <= 0 || isActivated()) return null
+  return <FreeBanner onUpgrade={onUpgrade} />
+}
+
+export function FreeBanner({ onUpgrade }: { onUpgrade: () => void }) {
+  if (isActivated()) return null
 
   return (
     <button
       onClick={onUpgrade}
       className="w-full px-4 text-center text-xs font-semibold flex items-center justify-center gap-1.5"
       style={{
-        background:
-          days <= 2
-            ? 'linear-gradient(90deg, #ef4444, #f97316)'
-            : 'linear-gradient(90deg, #a855f7, #ec4899)',
+        background: 'linear-gradient(90deg, #a855f7, #ec4899)',
         color: '#fff',
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
         paddingBottom: '8px',
       }}
     >
       <Sparkles size={12} />
-      {days <= 2
-        ? `Trial ending ${days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`} — Upgrade now`
-        : `Free trial: ${days} days left — Upgrade to Pro`}
+      Free plan — Upgrade to Pro for unlimited access
     </button>
   )
 }

@@ -17,6 +17,7 @@ import { formatTime12 } from '../../utils/availability'
 import type { Booking, BookingStatus } from '../../types'
 import { bookingStatusColors } from '../../types'
 import { SchedulePageSkeleton } from '../../components/Skeleton'
+import { isPro, usePlanLimits } from '../../components/planLimits'
 
 interface SchedulePageProps {
   onOpenBooking: (bookingId: string) => void
@@ -76,7 +77,9 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
 
   // Journal prompt after completing a booking
   const [journalBooking, setJournalBooking] = useState<Booking | null>(null)
+  const handleBookingCompleted = isPro() ? setJournalBooking : () => {}
 
+  const limits = usePlanLimits()
   const rawBookings = useLiveQuery(() => db.bookings.orderBy('dateTime').toArray())
   const bookings    = rawBookings ?? []
   const clients     = useLiveQuery(() => db.clients.toArray()) ?? []
@@ -256,10 +259,20 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           </button>
         </div>
 
-        <button onClick={() => setShowEditor(true)} className="p-2 rounded-lg text-purple-500">
+        <button onClick={() => setShowEditor(true)}
+          className={`p-2 rounded-lg ${limits.canAddBooking ? 'text-purple-500' : ''}`}
+          style={!limits.canAddBooking ? { color: 'var(--text-secondary)', opacity: 0.5 } : {}}>
           <Plus size={20} />
         </button>
       </PageHeader>
+
+      {!limits.isPro && (
+        <div className="px-4 pt-1 pb-1">
+          <p className="text-[10px] text-center" style={{ color: 'var(--text-secondary)' }}>
+            {limits.bookingCount} / {limits.bookingLimit} bookings this month on free plan
+          </p>
+        </div>
+      )}
 
       {/* ── Collapsible Filter Panel ─────────────────────────────────────── */}
       {filtersOpen && (
@@ -513,7 +526,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                             booking={b}
                             client={clientFor(b.clientId)}
                             onOpen={() => onOpenBooking(b.id)}
-                            onCompleted={setJournalBooking}
+                            onCompleted={handleBookingCompleted}
                             availabilityStatus={availForDay(new Date(b.dateTime))?.status}
                           />
                         ))}
@@ -550,7 +563,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                           booking={b}
                           client={clientFor(b.clientId)}
                           onOpen={() => onOpenBooking(b.id)}
-                          onCompleted={setJournalBooking}
+                          onCompleted={handleBookingCompleted}
                           availabilityStatus={availForDay(new Date(b.dateTime))?.status}
                         />
                       ))}
@@ -569,7 +582,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                           booking={b}
                           client={clientFor(b.clientId)}
                           onOpen={() => onOpenBooking(b.id)}
-                          onCompleted={setJournalBooking}
+                          onCompleted={handleBookingCompleted}
                           availabilityStatus={availForDay(new Date(b.dateTime))?.status}
                         />
                       ))}
@@ -594,7 +607,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           onClose={() => setDayDetailDate(null)}
           onOpenBooking={(id) => { setDayDetailDate(null); onOpenBooking(id) }}
           onSetAvailability={() => setShowAvailPicker(true)}
-          onBookingCompleted={setJournalBooking}
+          onBookingCompleted={handleBookingCompleted}
         />
       )}
 

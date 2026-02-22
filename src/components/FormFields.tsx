@@ -112,7 +112,7 @@ export function FieldCurrency({ label, value, onChange, hint }:
             const v = parseFloat(raw)
             // Clamp to 0 — negative rates/fees/deposits corrupt payment totals
             if (!isNaN(v)) onChange(Math.max(0, v))
-          }}}
+          }}
           placeholder="0"
           className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent"
           style={{ color: 'var(--text-primary)', fontSize: '16px' }}

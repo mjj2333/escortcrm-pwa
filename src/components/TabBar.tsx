@@ -1,4 +1,5 @@
 import { Home, Users, Calendar, DollarSign, Shield } from 'lucide-react'
+import { isPro } from './planLimits'
 
 interface TabBarProps {
   activeTab: number
@@ -9,11 +10,13 @@ const tabs = [
   { icon: Home, label: 'Home' },
   { icon: Calendar, label: 'Schedule' },
   { icon: Users, label: 'Clients' },
-  { icon: DollarSign, label: 'Finances' },
+  { icon: DollarSign, label: 'Finances', proOnly: true },
   { icon: Shield, label: 'Safety' },
 ]
 
 export function TabBar({ activeTab, onTabChange }: TabBarProps) {
+  const pro = isPro()
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t safe-bottom"
       style={{
@@ -29,7 +32,7 @@ export function TabBar({ activeTab, onTabChange }: TabBarProps) {
             <button
               key={tab.label}
               onClick={() => onTabChange(index)}
-              className="flex flex-col items-center gap-0.5 py-2 px-3 min-w-[64px] transition-colors"
+              className="flex flex-col items-center gap-0.5 py-2 px-3 min-w-[64px] transition-colors relative"
             >
               <Icon
                 size={22}
@@ -42,6 +45,12 @@ export function TabBar({ activeTab, onTabChange }: TabBarProps) {
               >
                 {tab.label}
               </span>
+              {tab.proOnly && !pro && (
+                <span
+                  className="absolute top-1.5 right-2 w-2 h-2 rounded-full"
+                  style={{ background: 'linear-gradient(135deg, #a855f7, #ec4899)' }}
+                />
+              )}
             </button>
           )
         })}

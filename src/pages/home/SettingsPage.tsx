@@ -15,7 +15,9 @@ import {
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { BackupRestoreModal } from '../../components/BackupRestore'
 import { AdminPanel } from '../../components/AdminPanel'
-import { getActivation, isActivated, getTrialDaysRemaining, isBetaTester } from '../../components/Paywall'
+import { getActivation, isActivated, isBetaTester } from '../../components/Paywall'
+import { usePlanLimits, isPro } from '../../components/planLimits'
+import { ProBadge } from '../../components/ProGate'
 import { useLocalStorage } from '../../hooks/useSettings'
 import {
   BACKUP_REMINDER_INTERVAL_KEY, DEFAULT_REMINDER_INTERVAL,
@@ -29,6 +31,7 @@ import {
 interface SettingsPageProps {
   onClose: () => void
   onRestartTour: () => void
+  onShowPaywall: () => void
 }
 
 const SUPPORTED_CURRENCIES: { code: string; label: string }[] = [
@@ -56,7 +59,8 @@ const SUPPORTED_CURRENCIES: { code: string; label: string }[] = [
   { code: 'CLP', label: 'CLP — Chilean Peso ($)' },
 ]
 
-export function SettingsPage({ onClose, onRestartTour }: SettingsPageProps) {
+export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: SettingsPageProps) {
+  const planLimits = usePlanLimits()
   const serviceRates = useLiveQuery(() => db.serviceRates.orderBy('sortOrder').toArray()) ?? []
   const [depositPct, setDepositPct] = useLocalStorage('defaultDepositPercentage', 25)
   const [depositType, setDepositType] = useLocalStorage<'percent' | 'flat'>('defaultDepositType', 'percent')
@@ -357,10 +361,11 @@ export function SettingsPage({ onClose, onRestartTour }: SettingsPageProps) {
 
           {/* Data */}
           <SectionLabel label="Data" />
-          <button type="button" onClick={() => setShowBackup(true)}
+          <button type="button" onClick={() => isPro() ? setShowBackup(true) : onShowPaywall()}
             className="flex items-center gap-3 w-full py-2.5 mb-1 active:opacity-70">
             <Database size={16} style={{ color: '#a855f7' }} />
             <span className="text-sm font-medium text-purple-500">Backup & Restore</span>
+            <ProBadge />
           </button>
           {/* Last backup status */}
           <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
@@ -429,12 +434,28 @@ export function SettingsPage({ onClose, onRestartTour }: SettingsPageProps) {
                 )}
               </>
             ) : (
-              <div className="flex items-center justify-between py-1">
-                <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Plan</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-500">
-                  Free Trial — {getTrialDaysRemaining()} day{getTrialDaysRemaining() !== 1 ? 's' : ''} left
-                </span>
-              </div>
+              <>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Plan</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                    Free
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Clients</span>
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{planLimits.clientCount} / {planLimits.clientLimit}</span>
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Bookings this month</span>
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{planLimits.bookingCount} / {planLimits.bookingLimit}</span>
+                </div>
+                <button onClick={onShowPaywall}
+                  className="w-full mt-2 py-2 rounded-lg text-xs font-semibold text-white"
+                  style={{ background: 'linear-gradient(135deg, #a855f7, #ec4899)' }}>
+                  Upgrade to Pro
+                </button>
+              </>
             )}
           </div>
 

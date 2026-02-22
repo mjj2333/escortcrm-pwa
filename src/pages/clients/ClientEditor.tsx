@@ -7,6 +7,7 @@ import { SectionLabel, FieldHint, FieldTextInput, FieldTextArea, FieldDate, fiel
 import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { TagPicker } from '../../components/TagPicker'
 import { ScreeningProofManager } from '../../components/ScreeningProofManager'
+import { isPro, canAddClient } from '../../components/planLimits'
 import type { Client, ClientTag, ContactMethod, ScreeningStatus, ScreeningMethod, RiskLevel } from '../../types'
 
 const contactMethods: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp', 'Other']
@@ -132,6 +133,10 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       showToast('Client updated')
       onClose()
     } else {
+      if (!await canAddClient()) {
+        showToast('Free plan limit reached — upgrade to add more clients')
+        return
+      }
       const newClient = createClient(data)
       await db.clients.add(newClient)
       showToast('Client added')
@@ -251,8 +256,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           </div>
         </div>
 
-        {/* Screening document uploads — only for existing clients */}
-        {isEditing && client && (
+        {/* Screening proof uploads — only for existing Pro clients */}
+        {isEditing && client && isPro() && (
           <div className="mb-3">
             <ScreeningProofManager clientId={client.id} editable />
           </div>

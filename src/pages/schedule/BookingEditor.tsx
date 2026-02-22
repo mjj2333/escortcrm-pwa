@@ -9,6 +9,7 @@ import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, 
 import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../../utils/availability'
+import { canAddClient, canAddBooking } from '../../components/planLimits'
 import type {
   Booking, BookingStatus, LocationType, PaymentMethod, ContactMethod, ScreeningStatus, ScreeningMethod,
   RecurrencePattern
@@ -150,6 +151,10 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
   async function createNewClientInline() {
     if (!newClientAlias.trim()) return
+    if (!await canAddClient()) {
+      showToast('Free plan limit reached — upgrade to add more clients')
+      return
+    }
     const newClient = createClient({
       alias: newClientAlias.trim(),
       phone: newClientPhone.trim() || undefined,
@@ -260,6 +265,10 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         await adjustAvailabilityForBooking(dt, duration, booking.id)
       }
     } else {
+      if (!await canAddBooking()) {
+        showToast('Free plan limit reached — upgrade to add more bookings')
+        return
+      }
       const newBooking = createBooking({
         clientId,
         dateTime: dt,

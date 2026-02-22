@@ -1,14 +1,17 @@
 import { useEffect } from 'react'
 import { addWeeks, addMonths, addMinutes } from 'date-fns'
 import { db, createBooking, completeBookingPayment, newId } from '../db'
+import { isPro } from '../components/planLimits'
 
-function sendJournalReminder(clientAlias: string, durationMin: number) {
+function sendCompletionNotification(clientAlias: string, durationMin: number) {
   if (!('Notification' in window)) return
   if (Notification.permission === 'granted') {
     new Notification('Session completed', {
-      body: `${clientAlias} · ${durationMin} min — tap to add session notes`,
+      body: isPro()
+        ? `${clientAlias} · ${durationMin} min — tap to add session notes`
+        : `${clientAlias} · ${durationMin} min`,
       icon: '/icon-192.png',
-      tag: 'journal-reminder', // collapses duplicates
+      tag: 'session-complete',
     })
   } else if (Notification.permission !== 'denied') {
     Notification.requestPermission()
@@ -75,7 +78,7 @@ export function useAutoStatusTransitions() {
             await db.clients.update(b.clientId, { lastSeen: new Date() })
           }
           // Nudge to write session notes
-          sendJournalReminder(client?.alias ?? 'Client', b.duration)
+          sendCompletionNotification(client?.alias ?? 'Client', b.duration)
         }
 
         // Spawn next recurring booking if this one completed

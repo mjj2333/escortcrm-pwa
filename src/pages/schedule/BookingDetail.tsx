@@ -13,6 +13,8 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Card } from '../../components/Card'
 import { BookingEditor } from './BookingEditor'
 import { JournalEntryEditor } from '../../components/JournalEntryEditor'
+import { ProGate } from '../../components/ProGate'
+import { isPro } from '../../components/planLimits'
 import { showToast, showUndoToast } from '../../components/Toast'
 import { bookingStatusColors, journalTagColors } from '../../types'
 import type { Booking, BookingStatus, PaymentMethod, PaymentLabel, JournalEntry } from '../../types'
@@ -24,6 +26,7 @@ interface BookingDetailProps {
   bookingId: string
   onBack: () => void
   onOpenClient: (clientId: string) => void
+  onShowPaywall?: () => void
 }
 
 // Status progression map
@@ -35,7 +38,7 @@ const nextStatus: Partial<Record<BookingStatus, BookingStatus>> = {
   'In Progress': 'Completed',
 }
 
-export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetailProps) {
+export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }: BookingDetailProps) {
   const booking = useLiveQuery(() => db.bookings.get(bookingId))
   const client = useLiveQuery(
     () => booking?.clientId ? db.clients.get(booking.clientId) : undefined,
@@ -490,56 +493,62 @@ export function BookingDetail({ bookingId, onBack, onOpenClient }: BookingDetail
         )}
 
         {/* Session Journal */}
-        <Card>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Session Journal</p>
-            <button onClick={() => setShowJournal(true)}
-              className="text-xs font-medium text-purple-500 active:opacity-70">
-              {journalEntry ? 'Edit' : '+ Add'}
-            </button>
-          </div>
-          {journalEntry ? (
-            <div>
-              {journalEntry.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {journalEntry.tags.map(tag => {
-                    const colors = journalTagColors[tag]
-                    return (
-                      <span key={tag} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                        style={{ backgroundColor: colors.bg, color: colors.fg }}>
-                        {tag}
-                      </span>
-                    )
-                  })}
-                </div>
-              )}
-              {journalEntry.notes && (
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
-                  {journalEntry.notes}
-                </p>
-              )}
-              {(journalEntry.actualDuration || journalEntry.timingNotes) && (
-                <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  {journalEntry.actualDuration && (
-                    <span className="flex items-center gap-1">
-                      <Clock size={10} />{journalEntry.actualDuration}m
-                      {journalEntry.actualDuration !== booking.duration && (
-                        <span style={{ color: journalEntry.actualDuration > booking.duration ? '#f97316' : '#22c55e' }}>
-                          ({journalEntry.actualDuration > booking.duration ? '+' : ''}{journalEntry.actualDuration - booking.duration}m)
-                        </span>
-                      )}
-                    </span>
-                  )}
-                  {journalEntry.timingNotes && <span>· {journalEntry.timingNotes}</span>}
-                </div>
-              )}
+        {isPro() ? (
+          <Card>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Session Journal</p>
+              <button onClick={() => setShowJournal(true)}
+                className="text-xs font-medium text-purple-500 active:opacity-70">
+                {journalEntry ? 'Edit' : '+ Add'}
+              </button>
             </div>
-          ) : (
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-              {isTerminal ? 'No session notes recorded.' : 'Available after session is completed.'}
-            </p>
-          )}
-        </Card>
+            {journalEntry ? (
+              <div>
+                {journalEntry.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {journalEntry.tags.map(tag => {
+                      const colors = journalTagColors[tag]
+                      return (
+                        <span key={tag} className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                          style={{ backgroundColor: colors.bg, color: colors.fg }}>
+                          {tag}
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+                {journalEntry.notes && (
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                    {journalEntry.notes}
+                  </p>
+                )}
+                {(journalEntry.actualDuration || journalEntry.timingNotes) && (
+                  <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    {journalEntry.actualDuration && (
+                      <span className="flex items-center gap-1">
+                        <Clock size={10} />{journalEntry.actualDuration}m
+                        {journalEntry.actualDuration !== booking.duration && (
+                          <span style={{ color: journalEntry.actualDuration > booking.duration ? '#f97316' : '#22c55e' }}>
+                            ({journalEntry.actualDuration > booking.duration ? '+' : ''}{journalEntry.actualDuration - booking.duration}m)
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    {journalEntry.timingNotes && <span>· {journalEntry.timingNotes}</span>}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                {isTerminal ? 'No session notes recorded.' : 'Available after session is completed.'}
+              </p>
+            )}
+          </Card>
+        ) : (
+          <Card>
+            <ProGate feature="Session Journal" onUpgrade={onShowPaywall} inline />
+          </Card>
+        )}
 
         {/* Cancellation info */}
         {(booking.status === 'Cancelled' || booking.status === 'No Show') && (
