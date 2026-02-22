@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Settings, Clock, CalendarDays, DollarSign, Users,
-  ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Minus, Database, X
+  ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
 import { useState, useRef, useEffect } from 'react'
@@ -12,7 +12,6 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { EmptyState } from '../../components/EmptyState'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
 import { SampleDataBanner } from '../../components/SampleDataBanner'
-import { TransactionEditor } from '../finances/TransactionEditor'
 import { formatTime12 } from '../../utils/availability'
 import { availabilityStatusColors, bookingStatusColors } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
@@ -34,7 +33,6 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const weekStart = startOfWeek(now, { weekStartsOn: 1 })
   const monthStart = startOfMonth(now)
 
-  const [showExpenseEditor, setShowExpenseEditor] = useState(false)
   const [showAllActive, setShowAllActive] = useState(false)
   const [remindersEnabled] = useLocalStorage('remindersEnabled', false)
   const [showBackup, setShowBackup] = useState(false)
@@ -350,16 +348,6 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           </Card>
         )}
 
-        {/* Quick Expense Button — Item 16 */}
-        <button
-          onClick={() => setShowExpenseEditor(true)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
-          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-        >
-          <Minus size={16} className="text-red-500" />
-          Quick Expense
-        </button>
-
         {/* Notification Prompt — Item 17 */}
         {showNotificationPrompt && (
           <div
@@ -428,7 +416,6 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 
       </div>
 
-      <TransactionEditor isOpen={showExpenseEditor} onClose={() => setShowExpenseEditor(false)} initialType="expense" />
       <BackupRestoreModal isOpen={showBackup} onClose={() => { setShowBackup(false); setReminderDismissed(true) }} />
 
       {/* All Active Bookings Modal */}
