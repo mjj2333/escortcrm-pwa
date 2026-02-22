@@ -434,8 +434,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                     <label className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Primary Contact</label>
                     <select value={newClientPrimary}
                       onChange={e => { const v = e.target.value as ContactMethod; setNewClientPrimary(v); if (v === newClientSecondary) setNewClientSecondary('') }}
-                      className="w-full text-sm bg-transparent outline-none py-1"
-                      style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
+                      className="w-full text-sm outline-none py-1 rounded"
+                      style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
                       {contactMethods.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                     {(() => {
@@ -460,8 +460,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                     <label className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Secondary Contact <span style={{ opacity: 0.5 }}>(optional)</span></label>
                     <select value={newClientSecondary}
                       onChange={e => setNewClientSecondary(e.target.value as ContactMethod | '')}
-                      className="w-full text-sm bg-transparent outline-none py-1"
-                      style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
+                      className="w-full text-sm outline-none py-1 rounded"
+                      style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
                       <option value="">— None —</option>
                       {contactMethods.filter(m => m !== newClientPrimary).map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
@@ -488,8 +488,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                     <div>
                       <label className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Screening</label>
                       <select value={newClientScreening} onChange={e => setNewClientScreening(e.target.value as ScreeningStatus)}
-                        className="w-full text-sm bg-transparent outline-none py-1"
-                        style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
+                        className="w-full text-sm outline-none py-1 rounded"
+                        style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
                         {(['Unscreened', 'In Progress', 'Screened'] as ScreeningStatus[]).map(s => (
                           <option key={s} value={s}>{s}</option>
                         ))}
@@ -498,8 +498,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                     <div>
                       <label className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>Method</label>
                       <select value={newClientScreeningMethod} onChange={e => setNewClientScreeningMethod(e.target.value as ScreeningMethod | '')}
-                        className="w-full text-sm bg-transparent outline-none py-1"
-                        style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
+                        className="w-full text-sm outline-none py-1 rounded"
+                        style={{ color: 'var(--text-primary)', backgroundColor: 'var(--bg-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }}>
                         <option value="">—</option>
                         {screeningMethods.map(m => <option key={m} value={m}>{m}</option>)}
                       </select>
