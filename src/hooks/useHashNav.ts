@@ -15,7 +15,7 @@
 //   Replace setActiveTab / setScreen calls with pushNav / replaceNav.
 //   The hook also listens to popstate to drive state from the back button.
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, startTransition } from 'react'
 
 const TAB_HASHES = ['#home', '#clients', '#schedule', '#finances', '#safety']
 
@@ -59,26 +59,32 @@ export function useHashNav(
   useEffect(() => {
     const hash = window.location.hash || '#home'
     const { tab, screen } = hashToState(hash)
-    setActiveTab(tab)
-    setScreen(screen)
     // Replace so the initial state is in history
     const initialHash = stateToHash({ tab, screen })
     history.replaceState({ tab, screen }, '', initialHash)
+    // startTransition prevents React error #310 (Suspense boundary reactivation)
+    // when this state update fires while a lazy component is mid-load
+    startTransition(() => {
+      setActiveTab(tab)
+      setScreen(screen)
+    })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Back/forward button handler
   useEffect(() => {
     function onPopState(e: PopStateEvent) {
       const state = e.state as NavState | null
-      if (state) {
-        setActiveTab(state.tab)
-        setScreen(state.screen)
-      } else {
-        // No state on the entry — parse from hash as fallback
-        const { tab, screen } = hashToState(window.location.hash)
-        setActiveTab(tab)
-        setScreen(screen)
-      }
+      startTransition(() => {
+        if (state) {
+          setActiveTab(state.tab)
+          setScreen(state.screen)
+        } else {
+          // No state on the entry — parse from hash as fallback
+          const { tab, screen } = hashToState(window.location.hash)
+          setActiveTab(tab)
+          setScreen(screen)
+        }
+      })
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
@@ -88,16 +94,20 @@ export function useHashNav(
   const pushNav = useCallback((tab: number, screen: Screen) => {
     const hash = stateToHash({ tab, screen })
     history.pushState({ tab, screen }, '', hash)
-    setActiveTab(tab)
-    setScreen(screen)
+    startTransition(() => {
+      setActiveTab(tab)
+      setScreen(screen)
+    })
   }, [setActiveTab, setScreen])
 
   /** Replace the current history entry (tab switches — don't pollute back stack). */
   const replaceNav = useCallback((tab: number, screen: Screen) => {
     const hash = stateToHash({ tab, screen })
     history.replaceState({ tab, screen }, '', hash)
-    setActiveTab(tab)
-    setScreen(screen)
+    startTransition(() => {
+      setActiveTab(tab)
+      setScreen(screen)
+    })
   }, [setActiveTab, setScreen])
 
   return { pushNav, replaceNav }
