@@ -271,7 +271,7 @@ async function verifyPurchase(
 
 const GIFT_CODE_ENDPOINT = '/.netlify/functions/validate-gift-code'
 
-async function matchGiftCode(code: string): Promise<{ expiresAt?: string; token?: string; identifier?: string } | null> {
+async function matchGiftCode(code: string): Promise<{ expiresAt?: string; token?: string; identifier?: string } | 'network_error' | null> {
   try {
     const res = await fetch(GIFT_CODE_ENDPOINT, {
       method: 'POST',
@@ -282,7 +282,7 @@ async function matchGiftCode(code: string): Promise<{ expiresAt?: string; token?
     if (data.valid) return { expiresAt: data.expiresAt ?? undefined, token: data.token ?? undefined, identifier: data.identifier ?? undefined }
     return null
   } catch {
-    return null
+    return 'network_error'
   }
 }
 
@@ -337,6 +337,11 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
     // Gift code path
     if (isGiftMode) {
       const giftCode = await matchGiftCode(input)
+      if (giftCode === 'network_error') {
+        setError('Network error — check your connection and try again')
+        setValidating(false)
+        return
+      }
       if (giftCode) {
         setActivation({
           activated: true,
