@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Shield, Delete } from 'lucide-react'
+import { Shield, Delete, Fingerprint } from 'lucide-react'
+import { isBiometricEnabled, assertBiometric } from '../hooks/useBiometric'
 
 /** SHA-256 hash a PIN string → hex. Used for storage and comparison so
  *  the plaintext PIN never lives in localStorage. */
@@ -71,11 +72,30 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
   const [phase, setPhase] = useState<'enter' | 'confirm'>(isSetup ? 'enter' : 'enter')
   const [error, setError] = useState('')
   const [shake, setShake] = useState(false)
+  const [biometricFailed, setBiometricFailed] = useState(false)
 
   // Rate limiting state
   const [lockedOut, setLockedOut] = useState(false)
   const [countdown, setCountdown] = useState('')
   const [wiping, setWiping] = useState(false)
+
+  const showBiometric = !isSetup && isBiometricEnabled() && !biometricFailed
+
+  // Auto-trigger biometric on mount when it's available and not in setup mode
+  useEffect(() => {
+    if (!showBiometric) return
+    attemptBiometric()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function attemptBiometric() {
+    const pin = await assertBiometric()
+    if (pin !== null) {
+      clearAttempts()
+      onUnlock(pin)
+    } else {
+      setBiometricFailed(true) // fall back to PIN UI
+    }
+  }
 
   const maxLength = 4
   const currentPin = phase === 'confirm' ? confirmPin : pin
@@ -218,11 +238,6 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
         <div className="text-center">
           <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>{title}</h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
-          {isSetup && phase === 'enter' && (
-            <p className="text-xs mt-2" style={{ color: '#f97316' }}>
-              ⚠️ 10 failed attempts will permanently erase all data
-            </p>
-          )}
         </div>
 
         {/* PIN Dots */}
@@ -245,8 +260,22 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin }: PinLockProp
 
         {/* Keypad */}
         <div className="grid grid-cols-3 gap-3 w-full" style={{ opacity: isDisabled ? 0.3 : 1, pointerEvents: isDisabled ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((key, i) => {
-            if (key === '') return <div key={i} />
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'bio', '0', 'del'].map((key, i) => {
+            if (key === 'bio') {
+              if (showBiometric) {
+                return (
+                  <button
+                    key={i}
+                    onClick={attemptBiometric}
+                    className="h-16 rounded-2xl flex items-center justify-center active:bg-white/10 transition-colors"
+                    aria-label="Use biometrics"
+                  >
+                    <Fingerprint size={26} style={{ color: 'var(--text-secondary)' }} />
+                  </button>
+                )
+              }
+              return <div key={i} />
+            }
             if (key === 'del') {
               return (
                 <button

@@ -21,6 +21,10 @@ import {
   BACKUP_REMINDER_INTERVAL_KEY, DEFAULT_REMINDER_INTERVAL,
   daysSinceBackup, LAST_BACKUP_KEY,
 } from '../../hooks/useBackupReminder'
+import {
+  isBiometricEnabled, registerBiometric, clearBiometric,
+  reWrapBiometricPin, useBiometricAvailable,
+} from '../../hooks/useBiometric'
 
 interface SettingsPageProps {
   isOpen: boolean
@@ -75,6 +79,8 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
   // PIN setup
   const [showPinSetup, setShowPinSetup] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
+  const [biometricOn, setBiometricOn] = useState(() => isBiometricEnabled())
+  const biometricAvailable = useBiometricAvailable()
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [showSampleConfirm, setShowSampleConfirm] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
@@ -128,6 +134,8 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
     } else {
       // Decrypt all data before disabling PIN
       await disableFieldEncryption()
+      clearBiometric()
+      setBiometricOn(false)
       setPinEnabled(false)
       setPinCode('')
     }
@@ -255,6 +263,25 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
               className="text-sm text-purple-500 font-medium mb-3 active:opacity-70">
               Change PIN
             </button>
+          )}
+          {pinEnabled && biometricAvailable && (
+            <FieldToggle
+              label="Biometric Unlock"
+              value={biometricOn}
+              onChange={async (val) => {
+                if (val) {
+                  // We need the plaintext PIN to register — trigger PIN setup flow
+                  // which calls onSetPin with plaintextPin
+                  setShowPinSetup(true)
+                } else {
+                  clearBiometric()
+                  setBiometricOn(false)
+                }
+              }}
+              hint={biometricOn
+                ? 'Face ID / Touch ID unlocks the app. PIN remains as fallback.'
+                : 'Use Face ID, Touch ID, or fingerprint instead of your PIN.'}
+            />
           )}
 
           {/* Appearance */}
@@ -455,11 +482,16 @@ export function SettingsPage({ isOpen, onClose, onRestartTour }: SettingsPagePro
             setPinCode(hash)
             setPinEnabled(true)
             if (isFieldEncryptionReady()) {
-              // PIN change — just re-wrap the master key
               await reWrapMasterKey(plaintextPin)
+              await reWrapBiometricPin(plaintextPin)
             } else {
-              // First-time setup or re-enable — generate key + encrypt data
               await initFieldEncryption(plaintextPin)
+            }
+            // If biometric toggle is queued, register the credential now
+            if (biometricAvailable && biometricOn && !isBiometricEnabled()) {
+              const ok = await registerBiometric(plaintextPin)
+              setBiometricOn(ok)
+              if (!ok) clearBiometric()
             }
           }}
         />
