@@ -1,7 +1,11 @@
 import { useState, useRef } from 'react'
 import { Upload, X, FileSpreadsheet, FileText, CheckCircle, AlertCircle } from 'lucide-react'
 import { db, newId } from '../db'
-import type { Client, Transaction, ClientTag, ContactMethod, ScreeningStatus, RiskLevel, TransactionType, TransactionCategory, PaymentMethod } from '../types'
+import type {
+  Client, Transaction, ClientTag, SafetyContact,
+  ContactMethod, ScreeningStatus, RiskLevel,
+  TransactionType, TransactionCategory, PaymentMethod,
+} from '../types'
 
 // Lazy-load exceljs to avoid bloating initial bundle
 let ExcelJS: typeof import('exceljs') | null = null
@@ -10,7 +14,7 @@ async function getExcelJS() {
   return ExcelJS
 }
 
-type DataType = 'clients' | 'bookings' | 'transactions'
+type DataType = 'clients' | 'bookings' | 'transactions' | 'safety_contacts' | 'incidents' | 'safety_checks'
 type Format = 'csv' | 'xlsx'
 
 interface ImportExportProps {
@@ -124,6 +128,60 @@ async function exportTransactions(format: Format) {
   downloadSheet(rows, 'transactions', format)
 }
 
+async function exportSafetyContacts(format: Format) {
+  const contacts = await db.safetyContacts.toArray()
+  const rows = contacts.map(c => ({
+    Name: c.name,
+    Phone: c.phone,
+    Relationship: c.relationship,
+    Primary: c.isPrimary ? 'Yes' : 'No',
+    Active: c.isActive ? 'Yes' : 'No',
+  }))
+  downloadSheet(rows, 'safety_contacts', format)
+}
+
+async function exportIncidents(format: Format) {
+  const incidents = await db.incidents.orderBy('date').toArray()
+  const clients = await db.clients.toArray()
+  const bookings = await db.bookings.toArray()
+  const clientMap = Object.fromEntries(clients.map(c => [c.id, c.alias]))
+  const bookingMap = Object.fromEntries(bookings.map(b => [b.id, b]))
+
+  const rows = incidents.map(i => ({
+    Date: fmtDate(i.date),
+    Severity: i.severity,
+    Description: i.description,
+    'Action Taken': i.actionTaken,
+    Client: i.clientId ? clientMap[i.clientId] ?? '' : '',
+    'Booking Date': i.bookingId && bookingMap[i.bookingId] ? fmtDateTime(bookingMap[i.bookingId].dateTime) : '',
+  }))
+  downloadSheet(rows, 'incidents', format)
+}
+
+async function exportSafetyChecks(format: Format) {
+  const checks = await db.safetyChecks.orderBy('scheduledTime').toArray()
+  const contacts = await db.safetyContacts.toArray()
+  const bookings = await db.bookings.toArray()
+  const clients = await db.clients.toArray()
+  const contactMap = Object.fromEntries(contacts.map(c => [c.id, c.name]))
+  const bookingMap = Object.fromEntries(bookings.map(b => [b.id, b]))
+  const clientMap = Object.fromEntries(clients.map(c => [c.id, c.alias]))
+
+  const rows = checks.map(sc => {
+    const booking = sc.bookingId ? bookingMap[sc.bookingId] : undefined
+    return {
+      'Scheduled Time': fmtDateTime(sc.scheduledTime),
+      Status: sc.status,
+      'Checked In At': fmtDateTime(sc.checkedInAt),
+      'Buffer (min)': sc.bufferMinutes,
+      'Safety Contact': sc.safetyContactId ? contactMap[sc.safetyContactId] ?? '' : '',
+      Client: booking?.clientId ? clientMap[booking.clientId] ?? '' : '',
+      'Booking Date': booking ? fmtDateTime(booking.dateTime) : '',
+    }
+  })
+  downloadSheet(rows, 'safety_checks', format)
+}
+
 async function downloadSheet(rows: Record<string, unknown>[], name: string, format: Format) {
   if (rows.length === 0) return
   const headers = Object.keys(rows[0])
@@ -145,7 +203,6 @@ async function downloadSheet(rows: Record<string, unknown>[], name: string, form
       key: h,
       width: Math.min(Math.max(h.length + 2, ...rows.slice(0, 50).map(r => String(r[h] ?? '').length + 2)), 40),
     }))
-    // Bold header row
     ws.getRow(1).font = { bold: true }
     for (const row of rows) ws.addRow(row)
     const buf = await wb.xlsx.writeBuffer()
@@ -177,7 +234,6 @@ function parseDate(val: unknown): Date | undefined {
 function parseTags(val: unknown): ClientTag[] {
   if (!val || typeof val !== 'string') return []
   return val.split(';').map(s => s.trim()).filter(Boolean).map(s => {
-    // Check if first char is emoji
     const match = s.match(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/u)
     const icon = match ? match[1] : undefined
     const name = match ? s.slice(match[0].length) : s
@@ -189,10 +245,6 @@ function yesNo(val: unknown): boolean {
   if (!val) return false
   return String(val).toLowerCase().trim() === 'yes'
 }
-
-// ─── Enum validation for imported data ──────────────────────────────────────
-// Ensures imported values match the allowed union types. Falls back to defaults
-// for invalid values rather than storing garbage that breaks badge colors, etc.
 
 const VALID_CONTACT_METHODS: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp', 'Other']
 const VALID_SCREENING_STATUSES: ScreeningStatus[] = ['Pending', 'In Progress', 'Verified', 'Declined']
@@ -265,6 +317,34 @@ async function importTransactions(rows: Record<string, unknown>[]): Promise<numb
   return count
 }
 
+async function importSafetyContacts(rows: Record<string, unknown>[]): Promise<number> {
+  let count = 0
+  for (const row of rows) {
+    const name = String(row['Name'] ?? row['name'] ?? '').trim()
+    const phone = String(row['Phone'] ?? row['phone'] ?? '').trim()
+    if (!name || !phone) continue
+
+    const isPrimary = yesNo(row['Primary'] ?? row['isPrimary'])
+
+    // Enforce single-primary constraint: clear any existing primary if this one is marked primary
+    if (isPrimary) {
+      await db.safetyContacts.where('isPrimary').equals(1 as unknown as boolean).modify({ isPrimary: false })
+    }
+
+    const contact: SafetyContact = {
+      id: newId(),
+      name,
+      phone,
+      relationship: String(row['Relationship'] ?? row['relationship'] ?? '').trim(),
+      isPrimary,
+      isActive: row['Active'] !== undefined ? yesNo(row['Active'] ?? row['isActive']) : true,
+    }
+    await db.safetyContacts.add(contact)
+    count++
+  }
+  return count
+}
+
 async function readFile(file: File): Promise<Record<string, unknown>[]> {
   const buf = await file.arrayBuffer()
 
@@ -273,7 +353,6 @@ async function readFile(file: File): Promise<Record<string, unknown>[]> {
     return parseCSV(text)
   }
 
-  // xlsx via exceljs
   const { Workbook } = await getExcelJS()
   const wb = new Workbook()
   await wb.xlsx.load(buf)
@@ -341,6 +420,20 @@ function parseCSV(text: string): Record<string, unknown>[] {
 // COMPONENT
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+// Export-only data types — import is not meaningful for these
+const EXPORT_ONLY: DataType[] = ['bookings', 'incidents', 'safety_checks']
+
+interface TabDef { key: DataType; label: string }
+
+const DATA_TABS: TabDef[] = [
+  { key: 'clients',         label: 'Clients' },
+  { key: 'bookings',        label: 'Bookings' },
+  { key: 'transactions',    label: 'Finances' },
+  { key: 'safety_contacts', label: 'Contacts' },
+  { key: 'incidents',       label: 'Incidents' },
+  { key: 'safety_checks',   label: 'Checks' },
+]
+
 export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: ImportExportProps) {
   const [dataType, setDataType] = useState<DataType>(initialTab)
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
@@ -349,19 +442,18 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
 
   if (!isOpen) return null
 
-  const dataTypes: { key: DataType; label: string }[] = [
-    { key: 'clients', label: 'Clients' },
-    { key: 'bookings', label: 'Bookings' },
-    { key: 'transactions', label: 'Finances' },
-  ]
+  const isExportOnly = EXPORT_ONLY.includes(dataType)
 
   async function handleExport(format: Format) {
     try {
       setStatus(null)
-      if (dataType === 'clients') await exportClients(format)
-      else if (dataType === 'bookings') await exportBookings(format)
-      else await exportTransactions(format)
-      setStatus({ type: 'success', msg: `Exported ${dataType} as ${format.toUpperCase()}` })
+      if (dataType === 'clients')          await exportClients(format)
+      else if (dataType === 'bookings')    await exportBookings(format)
+      else if (dataType === 'transactions') await exportTransactions(format)
+      else if (dataType === 'safety_contacts') await exportSafetyContacts(format)
+      else if (dataType === 'incidents')   await exportIncidents(format)
+      else if (dataType === 'safety_checks') await exportSafetyChecks(format)
+      setStatus({ type: 'success', msg: `Exported ${dataType.replace('_', ' ')} as ${format.toUpperCase()}` })
     } catch (err) {
       setStatus({ type: 'error', msg: `Export failed: ${(err as Error).message}` })
     }
@@ -386,20 +478,27 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
         count = await importClients(rows)
       } else if (dataType === 'transactions') {
         count = await importTransactions(rows)
+      } else if (dataType === 'safety_contacts') {
+        count = await importSafetyContacts(rows)
       } else {
-        setStatus({ type: 'error', msg: 'Booking import not yet supported — use client and finance import' })
+        setStatus({ type: 'error', msg: 'This data type does not support import.' })
         setImporting(false)
         return
       }
 
-      setStatus({ type: 'success', msg: `Imported ${count} ${dataType} from ${file.name}` })
+      setStatus({ type: 'success', msg: `Imported ${count} ${dataType.replace('_', ' ')} from ${file.name}` })
     } catch (err) {
       setStatus({ type: 'error', msg: `Import failed: ${(err as Error).message}` })
     }
 
     setImporting(false)
-    // Reset file input
     if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const exportOnlyReason: Record<string, string> = {
+    bookings: 'Booking import is not available — bookings have complex relationships with clients. Import clients and finances separately.',
+    incidents: 'Incident records are export-only. They are sensitive safety logs that should only be created within the app.',
+    safety_checks: 'Safety check records are export-only. They are generated automatically when bookings are created.',
   }
 
   return (
@@ -418,18 +517,18 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
         </div>
 
         <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 60px)' }}>
-          {/* Data type selector */}
+          {/* Data type selector — scrollable row to fit all 6 tabs */}
           <div
-            className="flex rounded-xl overflow-hidden mb-5"
-            style={{ backgroundColor: 'var(--bg-secondary)' }}
+            className="flex overflow-x-auto gap-1 mb-5 pb-0.5"
+            style={{ scrollbarWidth: 'none' }}
           >
-            {dataTypes.map(dt => (
+            {DATA_TABS.map(dt => (
               <button
                 key={dt.key}
                 onClick={() => { setDataType(dt.key); setStatus(null) }}
-                className="flex-1 py-2 text-xs font-semibold transition-colors"
+                className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
                 style={{
-                  backgroundColor: dataType === dt.key ? '#a855f7' : 'transparent',
+                  backgroundColor: dataType === dt.key ? '#a855f7' : 'var(--bg-secondary)',
                   color: dataType === dt.key ? '#fff' : 'var(--text-secondary)',
                 }}
               >
@@ -441,7 +540,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
           {/* Export section */}
           <div className="mb-5">
             <p className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-              Export {dataType}
+              Export {dataType.replace('_', ' ')}
             </p>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -472,11 +571,11 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
           {/* Import section */}
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-              Import {dataType}
+              Import {dataType.replace('_', ' ')}
             </p>
-            {dataType === 'bookings' ? (
+            {isExportOnly ? (
               <p className="text-xs p-3 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                Booking import is not available — bookings have complex relationships with clients. Import clients and finances separately.
+                {exportOnlyReason[dataType]}
               </p>
             ) : (
               <>
@@ -537,8 +636,21 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
                   <p><strong style={{ color: 'var(--text-primary)' }}>Optional:</strong> Date, Type (income/expense), Category (booking/tip/gift/supplies/travel/advertising/clothing/health/rent/phone/other), Payment Method, Notes</p>
                 </>
               )}
+              {dataType === 'safety_contacts' && (
+                <>
+                  <p><strong style={{ color: 'var(--text-primary)' }}>Required:</strong> Name, Phone</p>
+                  <p><strong style={{ color: 'var(--text-primary)' }}>Optional:</strong> Relationship, Primary (Yes/No), Active (Yes/No — defaults to Yes)</p>
+                  <p className="mt-1 opacity-75">Only one contact can be Primary. If multiple rows have Primary=Yes, the last one wins.</p>
+                </>
+              )}
               {dataType === 'bookings' && (
                 <p>Export-only. Bookings can be exported for record-keeping but not imported.</p>
+              )}
+              {dataType === 'incidents' && (
+                <p>Export-only. Incident logs are sensitive safety records and must be created within the app.</p>
+              )}
+              {dataType === 'safety_checks' && (
+                <p>Export-only. Safety check records are generated automatically by the app.</p>
               )}
             </div>
           </details>
