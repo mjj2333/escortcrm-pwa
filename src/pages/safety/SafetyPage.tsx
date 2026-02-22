@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Plus, ShieldCheck, ShieldAlert, UserPlus, AlertTriangle,
-  Phone, CheckCircle, XCircle, Clock, Siren
+  Phone, CheckCircle, XCircle, Clock, Siren, Edit2
 } from 'lucide-react'
 import { useState } from 'react'
 import { format } from 'date-fns'
@@ -12,6 +12,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { EmptyState } from '../../components/EmptyState'
 import { SafetyContactEditor } from './SafetyContactEditor'
 import { IncidentEditor } from './IncidentEditor'
+import { SafetyCheckEditor } from './SafetyCheckEditor'
 import { showToast, showUndoToast } from '../../components/Toast'
 import type { SafetyCheckStatus } from '../../types'
 
@@ -40,6 +41,7 @@ export function SafetyPage() {
   const [tab, setTab] = useState<'checkins' | 'contacts' | 'incidents'>('checkins')
   const [showContactEditor, setShowContactEditor] = useState(false)
   const [showIncidentEditor, setShowIncidentEditor] = useState(false)
+  const [editingCheck, setEditingCheck] = useState<typeof safetyChecks[0] | null>(null)
   
 
   const safetyChecks = useLiveQuery(() => db.safetyChecks.orderBy('scheduledTime').reverse().toArray()) ?? []
@@ -257,6 +259,14 @@ export function SafetyPage() {
                             <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                               {format(new Date(check.scheduledTime), 'MMM d, h:mm a')}
                             </span>
+                            <button
+                              onClick={() => setEditingCheck(check)}
+                              className="ml-auto p-1 rounded opacity-50 active:opacity-100"
+                              style={{ color: 'var(--text-secondary)' }}
+                              aria-label="Edit check"
+                            >
+                              <Edit2 size={13} />
+                            </button>
                           </div>
                           {client && (
                             <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -434,6 +444,13 @@ export function SafetyPage() {
 
       <SafetyContactEditor isOpen={showContactEditor} onClose={() => setShowContactEditor(false)} />
       <IncidentEditor isOpen={showIncidentEditor} onClose={() => setShowIncidentEditor(false)} />
+      {editingCheck && (
+        <SafetyCheckEditor
+          isOpen={!!editingCheck}
+          onClose={() => setEditingCheck(null)}
+          check={editingCheck}
+        />
+      )}
     </div>
   )
 }
