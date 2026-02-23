@@ -13,7 +13,6 @@ import { useLocalStorage } from './hooks/useSettings'
 // Lazy-load secondary screens — only fetched when the user navigates to them
 const ClientDetail = lazy(() => import('./pages/clients/ClientDetail').then(m => ({ default: m.ClientDetail })))
 const BookingDetail = lazy(() => import('./pages/schedule/BookingDetail').then(m => ({ default: m.BookingDetail })))
-const AnalyticsPage = lazy(() => import('./pages/finances/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
 const SettingsPage = lazy(() => import('./pages/home/SettingsPage').then(m => ({ default: m.SettingsPage })))
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
@@ -31,7 +30,6 @@ type Screen =
   | { type: 'tab' }
   | { type: 'clientDetail'; clientId: string }
   | { type: 'bookingDetail'; bookingId: string }
-  | { type: 'analytics' }
 
 export default function App() {
   // Initialize nav state directly from hash — avoids a post-mount setState
@@ -240,13 +238,6 @@ export default function App() {
         />
       )
     }
-    if (screen.type === 'analytics') {
-      return (
-        <ProGate feature="Analytics" onUpgrade={() => setShowPaywall(true)}>
-          <AnalyticsPage onBack={goBack} />
-        </ProGate>
-      )
-    }
 
     switch (activeTab) {
       case 0:
@@ -265,7 +256,7 @@ export default function App() {
       case 3:
         return (
           <ProGate feature="Finances & Analytics" onUpgrade={() => setShowPaywall(true)}>
-            <FinancesPage onOpenAnalytics={() => pushNav(3, { type: 'analytics' })} onOpenBooking={openBooking} />
+            <FinancesPage onOpenBooking={openBooking} />
           </ProGate>
         )
       case 4:
