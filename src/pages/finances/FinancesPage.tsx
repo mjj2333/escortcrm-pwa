@@ -10,7 +10,7 @@ import {
   subMonths, getDay, getHours, eachMonthOfInterval,
   differenceInDays, endOfMonth, endOfWeek, endOfQuarter
 } from 'date-fns'
-import { db, formatCurrency, formatNumber, bookingTotal, removeBookingPayment } from '../../db'
+import { db, formatCurrency, bookingTotal, removeBookingPayment } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card } from '../../components/Card'
 import { Modal } from '../../components/Modal'

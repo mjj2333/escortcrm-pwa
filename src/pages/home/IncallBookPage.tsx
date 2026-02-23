@@ -589,7 +589,7 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
   )
 }
 
-function CopyRow({ icon, label, text, copied, onCopy }: {
+function CopyRow({ icon, label: _label, text, copied, onCopy }: {
   icon: React.ReactNode; label: string; text: string; copied: boolean; onCopy: () => void
 }) {
   return (
@@ -610,7 +610,7 @@ function CopyRow({ icon, label, text, copied, onCopy }: {
 // SEND DIRECTIONS SHEET
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function buildDirectionsMessage(venueName: string, directions: string, address: string): string {
+function buildDirectionsMessage(_venueName: string, directions: string, address: string): string {
   const workingName = localStorage.getItem('profileWorkingName')?.replace(/^"|"$/g, '') || ''
   const raw = localStorage.getItem('directionsTemplate')
   const defaultTemplate = 'Hi! Here are the directions:\n\n📍 {address}\n\n{directions}\n\n— {name}'
@@ -982,7 +982,7 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
       )}
 
       <SectionLabel label="Directions for Client" />
-      <FieldHint>These can be quickly copied and sent to the client from the venue detail page.</FieldHint>
+      <FieldHint text="These can be quickly copied and sent to the client from the venue detail page." />
       <textarea
         value={directions}
         onChange={e => setDirections(e.target.value)}

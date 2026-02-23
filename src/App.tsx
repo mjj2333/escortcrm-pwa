@@ -20,7 +20,7 @@ import { Paywall, TrialBanner, isActivated, revalidateActivation, initTrialState
 import { ProGate } from './components/ProGate'
 import { ToastContainer, showToast } from './components/Toast'
 
-import { db, migrateToPaymentLedger } from './db'
+import { migrateToPaymentLedger } from './db'
 import { initFieldEncryption } from './db/fieldCrypto'
 import { useServiceWorker } from './hooks/useServiceWorker'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
@@ -30,6 +30,7 @@ type Screen =
   | { type: 'tab' }
   | { type: 'clientDetail'; clientId: string }
   | { type: 'bookingDetail'; bookingId: string }
+  | { type: 'analytics' }
 
 export default function App() {
   // Initialize nav state directly from hash — avoids a post-mount setState
