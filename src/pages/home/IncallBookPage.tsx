@@ -616,11 +616,16 @@ const contactMethodLabels: Record<ContactMethod, { icon: typeof Phone; label: st
 
 function buildDirectionsMessage(venueName: string, directions: string, address: string): string {
   const workingName = localStorage.getItem('profileWorkingName')?.replace(/^"|"$/g, '') || ''
-  let msg = `Hi! Here are the directions:\n\n`
-  if (address) msg += `📍 ${address}\n\n`
-  msg += directions
-  if (workingName) msg += `\n\n— ${workingName}`
-  return msg
+  const raw = localStorage.getItem('directionsTemplate')
+  const defaultTemplate = 'Hi! Here are the directions:\n\n📍 {address}\n\n{directions}\n\n— {name}'
+  let template = defaultTemplate
+  if (raw) {
+    try { template = JSON.parse(raw) } catch { template = raw }
+  }
+  return template
+    .replace(/\{name\}/g, workingName)
+    .replace(/\{address\}/g, address)
+    .replace(/\{directions\}/g, directions)
 }
 
 function getContactValue(client: Client, method: ContactMethod): string | undefined {

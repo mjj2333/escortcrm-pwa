@@ -21,6 +21,11 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
   const [currency, setCurrency] = useLocalStorage(CURRENCY_KEY, DEFAULT_CURRENCY)
   const [, setProfileSetupDone] = useLocalStorage('profileSetupDone', false)
 
+  // Directions template
+  const [directionsTemplate, setDirectionsTemplate] = useLocalStorage('directionsTemplate',
+    'Hi! Here are the directions:\n\n📍 {address}\n\n{directions}\n\n— {name}'
+  )
+
   // Service rates
   const serviceRates = useLiveQuery(() => db.serviceRates.orderBy('sortOrder').toArray()) ?? []
   const [showAddRate, setShowAddRate] = useState(false)
@@ -214,6 +219,23 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
             </>
           )}
         </div>
+
+        {/* Directions Template */}
+        <SectionLabel label="Directions Template" />
+        <FieldHint text="Used when sending directions from the Incall Book. Placeholders: {name}, {address}, {directions}" />
+        <textarea
+          value={directionsTemplate}
+          onChange={e => setDirectionsTemplate(e.target.value)}
+          rows={6}
+          className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
+          style={{ ...fieldInputStyle, fontSize: '16px' }}
+        />
+        <button
+          onClick={() => setDirectionsTemplate('Hi! Here are the directions:\n\n📍 {address}\n\n{directions}\n\n— {name}')}
+          className="text-xs text-purple-500 mb-3 px-1"
+        >
+          Reset to default
+        </button>
 
         <div className="h-8" />
       </div>
