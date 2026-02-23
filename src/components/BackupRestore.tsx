@@ -81,7 +81,7 @@ interface BackupPayload {
   }
 }
 
-async function createBackup(): Promise<BackupPayload> {
+export async function createBackup(): Promise<BackupPayload> {
   return {
     version: CURRENT_BACKUP_VERSION,
     created: new Date().toISOString(),

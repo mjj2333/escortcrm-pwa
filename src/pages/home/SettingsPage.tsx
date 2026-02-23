@@ -5,6 +5,7 @@ import { seedSampleData, clearSampleData } from '../../data/sampleData'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldToggle } from '../../components/FormFields'
 import { PinLock } from '../../components/PinLock'
+import { showToast } from '../../components/Toast'
 import {
   initFieldEncryption,
   reWrapMasterKey,
@@ -12,7 +13,7 @@ import {
   isFieldEncryptionReady,
 } from '../../db/fieldCrypto'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { BackupRestoreModal } from '../../components/BackupRestore'
+import { BackupRestoreModal, createBackup } from '../../components/BackupRestore'
 import { AdminPanel } from '../../components/AdminPanel'
 import { getActivation, isActivated, isBetaTester } from '../../components/Paywall'
 import { usePlanLimits, isPro } from '../../components/planLimits'
@@ -20,7 +21,7 @@ import { ProBadge } from '../../components/ProGate'
 import { useLocalStorage } from '../../hooks/useSettings'
 import {
   BACKUP_REMINDER_INTERVAL_KEY, DEFAULT_REMINDER_INTERVAL,
-  daysSinceBackup, LAST_BACKUP_KEY,
+  daysSinceBackup, LAST_BACKUP_KEY, recordBackupTimestamp,
 } from '../../hooks/useBackupReminder'
 import {
   isBiometricEnabled, registerBiometric, clearBiometric,
@@ -82,16 +83,88 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
     }
   }
 
+  const [resetting, setResetting] = useState(false)
+
   async function resetAllData() {
-    await db.delete()
-    // Clear all localStorage EXCEPT activation/trial keys
-    const preserveKeys = ['_cstate_v2', '_cstate_rv', LAST_BACKUP_KEY, BACKUP_REMINDER_INTERVAL_KEY]
-    const saved = preserveKeys.map(k => [k, localStorage.getItem(k)] as const)
-    localStorage.clear()
-    for (const [k, v] of saved) {
-      if (v !== null) localStorage.setItem(k, v)
+    setResetting(true)
+    setShowResetConfirm(false)
+
+    try {
+      // 1. Create backup
+      const payload = await createBackup()
+      const json = JSON.stringify(payload, null, 2)
+      const date = new Date().toISOString().split('T')[0]
+      const filename = `companion-backup-${date}.json`
+      const file = new File([json], filename, { type: 'application/json' })
+
+      // 2. Get email from profile
+      const raw = localStorage.getItem('profileWorkEmail')
+      const email = raw ? raw.replace(/^"|"$/g, '') : ''
+
+      // 3. Try Web Share API (works great on mobile — lets user pick email app)
+      let shared = false
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: 'Companion Backup',
+            text: `Companion data backup — ${date}`,
+            files: [file],
+          })
+          shared = true
+        } catch (err) {
+          // User cancelled share — fall through to download+mailto
+          if ((err as Error).name === 'AbortError') {
+            setResetting(false)
+            showToast('Reset cancelled')
+            return
+          }
+        }
+      }
+
+      // 4. Fallback: download file + open mailto
+      if (!shared) {
+        // Download backup file
+        const blob = new Blob([json], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+
+        // Open mailto with instructions
+        if (email) {
+          const subject = encodeURIComponent(`Companion Backup — ${date}`)
+          const body = encodeURIComponent(
+            `Your Companion data backup is attached.\n\nFile: ${filename}\nDate: ${date}\n\nIMPORTANT: Attach the downloaded backup file (${filename}) to this email before sending.`
+          )
+          window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank')
+          showToast('Backup downloaded — attach it to the email')
+        } else {
+          showToast('Backup downloaded (no email set in Profile)')
+        }
+
+        // Brief pause so user sees the download / mailto
+        await new Promise(r => setTimeout(r, 1500))
+      }
+
+      recordBackupTimestamp()
+
+      // 5. Wipe everything
+      await db.delete()
+      const preserveKeys = ['_cstate_v2', '_cstate_rv', LAST_BACKUP_KEY, BACKUP_REMINDER_INTERVAL_KEY]
+      const saved = preserveKeys.map(k => [k, localStorage.getItem(k)] as const)
+      localStorage.clear()
+      for (const [k, v] of saved) {
+        if (v !== null) localStorage.setItem(k, v)
+      }
+      window.location.reload()
+    } catch (err) {
+      setResetting(false)
+      showToast(`Reset failed: ${(err as Error).message}`)
     }
-    window.location.reload()
   }
 
   async function restoreSampleData() {
@@ -314,8 +387,9 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
           {/* Danger Zone */}
           <div className="py-4">
             <button type="button" onClick={() => setShowResetConfirm(true)}
-              className="w-full py-3 rounded-xl text-sm font-semibold text-red-500 border border-red-500/30">
-              Reset All Data
+              disabled={resetting}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-red-500 border border-red-500/30 disabled:opacity-50">
+              {resetting ? 'Backing up & resetting...' : 'Reset All Data'}
             </button>
           </div>
 
@@ -354,8 +428,14 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
       <ConfirmDialog
         isOpen={showResetConfirm}
         title="Reset All Data"
-        message="This will permanently delete ALL your data. This cannot be undone."
-        confirmLabel="Erase Everything"
+        message={(() => {
+          const raw = localStorage.getItem('profileWorkEmail')
+          const email = raw ? raw.replace(/^"|"$/g, '') : ''
+          return email
+            ? `A full backup will be created and sent to ${email} before wiping. This cannot be undone.`
+            : 'A backup file will be downloaded before wiping. Set an email in Profile to have it emailed automatically. This cannot be undone.'
+        })()}
+        confirmLabel="Backup & Erase"
         onConfirm={resetAllData}
         onCancel={() => setShowResetConfirm(false)}
       />
