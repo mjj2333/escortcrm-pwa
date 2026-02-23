@@ -218,11 +218,11 @@ function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToast
   function triggerFire() {
     setIsBurning(true)
     setBurnPhase(1)
-    setTimeout(() => setBurnPhase(2), 800)
-    setTimeout(() => setBurnPhase(3), 2200)
+    setTimeout(() => setBurnPhase(2), 1800)
+    setTimeout(() => setBurnPhase(3), 4500)
     setTimeout(() => {
       onFire()
-    }, 3000)
+    }, 6000)
   }
 
   function handlePointerDown(e: React.PointerEvent) {
@@ -258,7 +258,7 @@ function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToast
         backgroundColor: 'var(--bg-card)',
         borderColor: isBurning ? 'transparent' : 'var(--border)',
         touchAction: 'pan-y',
-        animation: burnPhase === 3 ? 'fireCollapse 0.8s ease-in forwards' : undefined,
+        animation: burnPhase === 3 ? 'fireCollapse 1.5s ease-in forwards' : undefined,
       }}
       onPointerDown={isBurning ? undefined : handlePointerDown}
       onPointerMove={isBurning ? undefined : handlePointerMove}
@@ -311,31 +311,31 @@ function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToast
       {isBurning && (
         <>
           {/* Flames from bottom */}
-          <div className="absolute inset-0 z-30 pointer-events-none" style={{ animation: 'fireRise 2.5s ease-in forwards' }}>
+          <div className="absolute inset-0 z-30 pointer-events-none" style={{ animation: 'fireRise 4s ease-in forwards' }}>
             <div className="absolute bottom-0 left-0 right-0" style={{ height: '200%' }}>
               {/* Multiple flame layers for depth */}
               <div className="absolute inset-0" style={{
                 background: 'linear-gradient(to top, #ff4500 0%, #ff6a00 20%, #ff8c00 40%, #ffa500 55%, #ffcc00 70%, transparent 100%)',
-                animation: 'flameFlicker 0.15s infinite alternate',
+                animation: 'flameFlicker 0.25s infinite alternate',
                 opacity: 0.9,
               }} />
               <div className="absolute inset-0" style={{
                 background: 'linear-gradient(to top, #ff2200 0%, #ff4500 25%, #ff6a00 45%, transparent 80%)',
-                animation: 'flameFlicker2 0.2s infinite alternate',
+                animation: 'flameFlicker2 0.35s infinite alternate',
                 opacity: 0.7,
               }} />
               {/* Ember particles */}
               <div className="absolute w-2 h-2 rounded-full" style={{
                 backgroundColor: '#ffcc00', left: '20%', bottom: '60%', boxShadow: '0 0 6px #ff6a00',
-                animation: 'emberFloat 1s ease-out infinite',
+                animation: 'emberFloat 1.5s ease-out infinite',
               }} />
               <div className="absolute w-1.5 h-1.5 rounded-full" style={{
                 backgroundColor: '#ff8c00', left: '55%', bottom: '50%', boxShadow: '0 0 4px #ff4500',
-                animation: 'emberFloat 0.8s 0.3s ease-out infinite',
+                animation: 'emberFloat 1.2s 0.3s ease-out infinite',
               }} />
               <div className="absolute w-1 h-1 rounded-full" style={{
                 backgroundColor: '#ffdd00', left: '75%', bottom: '55%', boxShadow: '0 0 5px #ff6a00',
-                animation: 'emberFloat 1.2s 0.5s ease-out infinite',
+                animation: 'emberFloat 1.8s 0.5s ease-out infinite',
               }} />
             </div>
           </div>
@@ -346,25 +346,25 @@ function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToast
               background: burnPhase >= 2
                 ? 'radial-gradient(ellipse at center, rgba(0,0,0,0.85) 0%, rgba(20,0,0,0.95) 100%)'
                 : 'transparent',
-              transition: 'background 0.5s ease-in',
+              transition: 'background 0.8s ease-in',
             }}
           />
 
           {/* YOU'RE FIRED text */}
           {burnPhase >= 2 && (
             <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
-              <div style={{ animation: 'fireTextSlam 0.4s cubic-bezier(0.17, 0.67, 0.35, 1.3) forwards' }}>
+              <div style={{ animation: 'fireTextSlam 0.7s cubic-bezier(0.17, 0.67, 0.35, 1.3) forwards' }}>
                 <p className="text-2xl font-black tracking-wider text-center" style={{
                   color: '#ff4500',
                   textShadow: '0 0 20px #ff6a00, 0 0 40px #ff4500, 0 0 60px #ff2200, 0 2px 4px rgba(0,0,0,0.8)',
-                  animation: 'fireTextGlow 0.3s infinite alternate',
+                  animation: 'fireTextGlow 0.5s infinite alternate',
                 }}>
                   YOU'RE FIRED
                 </p>
                 <p className="text-center text-xs mt-1 font-semibold" style={{
                   color: '#ffcc00',
                   textShadow: '0 0 10px #ff8c00',
-                  animation: 'fadeIn 0.3s 0.2s both',
+                  animation: 'fadeIn 0.5s 0.4s both',
                 }}>
                   🔥🔥🔥
                 </p>
@@ -385,7 +385,8 @@ if (typeof document !== 'undefined' && !document.getElementById(fireStyleId)) {
   style.textContent = `
     @keyframes fireRise {
       0% { transform: translateY(100%); }
-      40% { transform: translateY(20%); }
+      30% { transform: translateY(40%); }
+      60% { transform: translateY(10%); }
       100% { transform: translateY(-10%); }
     }
     @keyframes flameFlicker {
@@ -398,11 +399,12 @@ if (typeof document !== 'undefined' && !document.getElementById(fireStyleId)) {
     }
     @keyframes emberFloat {
       0% { transform: translateY(0) scale(1); opacity: 1; }
-      100% { transform: translateY(-40px) scale(0); opacity: 0; }
+      100% { transform: translateY(-50px) scale(0); opacity: 0; }
     }
     @keyframes fireTextSlam {
       0% { transform: scale(3); opacity: 0; }
-      60% { transform: scale(0.9); opacity: 1; }
+      50% { transform: scale(0.85); opacity: 1; }
+      70% { transform: scale(1.05); opacity: 1; }
       100% { transform: scale(1); opacity: 1; }
     }
     @keyframes fireTextGlow {
@@ -411,7 +413,7 @@ if (typeof document !== 'undefined' && !document.getElementById(fireStyleId)) {
     }
     @keyframes fireCollapse {
       0% { transform: scaleY(1); opacity: 1; max-height: 100px; margin-bottom: 8px; }
-      50% { transform: scaleY(0.5); opacity: 0.5; }
+      60% { transform: scaleY(0.6); opacity: 0.6; }
       100% { transform: scaleY(0); opacity: 0; max-height: 0; margin-bottom: 0; padding: 0; overflow: hidden; }
     }
     @keyframes fadeIn {
