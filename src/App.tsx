@@ -19,7 +19,7 @@ import { useBookingReminders } from './hooks/useBookingReminders'
 import { Paywall, TrialBanner, isActivated, revalidateActivation, initTrialState } from './components/Paywall'
 import { ProGate } from './components/ProGate'
 import { ToastContainer, showToast } from './components/Toast'
-import { seedSampleData, hasSampleDataBeenOffered } from './data/sampleData'
+
 import { db, migrateToPaymentLedger } from './db'
 import { initFieldEncryption } from './db/fieldCrypto'
 import { useServiceWorker } from './hooks/useServiceWorker'
@@ -132,15 +132,6 @@ export default function App() {
     if (!pinEnabled) setIsLocked(false)
   }, [pinEnabled])
 
-  // Seed sample data if DB is empty and never offered
-  useEffect(() => {
-    if (!hasSampleDataBeenOffered()) {
-      db.clients.count().then(count => {
-        if (count === 0) seedSampleData()
-      })
-    }
-  }, [])
-
   // Migrate existing bookings to payment ledger (one-time)
   useEffect(() => {
     migrateToPaymentLedger()
@@ -174,10 +165,6 @@ export default function App() {
     setShowSplash(false)
     setShowSetup(false)
     setHasSeenTour(true)
-    // Seed sample data on first completion if never offered before
-    if (!hasSampleDataBeenOffered()) {
-      seedSampleData()
-    }
   }
 
   function startSetupGuide() {
