@@ -294,6 +294,7 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
 
         {/* Stats Grid */}
         {isCardVisible('stats') && (
+        <>
         <div className="grid grid-cols-2 gap-3">
           <StatCard icon={<ArrowDownCircle size={18} />} color="#22c55e" label="Income" value={formatCurrency(totalIncome)} />
           <StatCard icon={<ArrowUpCircle size={18} />} color="#ef4444" label="Expenses" value={formatCurrency(totalExpenses)} />
@@ -314,6 +315,7 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
             <BarChart3 size={14} /> Full Analytics
           </button>
         )}
+        </>
         )}
 
         {/* Tax Estimate */}
