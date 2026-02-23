@@ -5,6 +5,7 @@ import { db, bookingDurationFormatted } from '../db'
  * Booking Reminders using the Web Notifications API.
  * 
  * Fires notifications at:
+ * - 8 hours before an incall booking with a linked venue (send directions reminder)
  * - 1 hour before a confirmed/in-progress booking
  * - 15 minutes before a confirmed booking
  * 
@@ -61,6 +62,23 @@ export function useBookingReminders(enabled: boolean) {
 
         const client = b.clientId ? clientMap[b.clientId] : undefined
         const name = client?.alias ?? 'Client'
+
+        // 8 hour reminder — send directions for incall bookings with a venue
+        const key8h = `${b.id}-8h-directions`
+        if (
+          b.locationType === 'Incall' && b.venueId &&
+          msBefore > 0 && msBefore <= 8 * 60 * 60_000 && msBefore > (8 * 60 - 1.5) * 60_000 &&
+          !notifiedRef.current.has(key8h)
+        ) {
+          addNotified(key8h)
+          // Look up venue name
+          const venue = await db.incallVenues.get(b.venueId)
+          new Notification('📍 Send directions to client', {
+            body: `${name} — ${venue?.name ?? 'Incall'} · Booking at ${new Date(b.dateTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`,
+            icon: '/icon-192.png',
+            tag: key8h,
+          })
+        }
 
         // 1 hour reminder (fire within a 90-second window around 60 min before to survive
         // browser timer jitter — tabs in the background may defer setInterval by 30s+)
