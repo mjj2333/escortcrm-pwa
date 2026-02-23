@@ -53,6 +53,9 @@ export interface Client {
 
 export type RecurrencePattern = 'none' | 'weekly' | 'biweekly' | 'monthly'
 
+export type CancelledBy = 'client' | 'provider'
+export type DepositOutcome = 'forfeited' | 'returned' | 'credit'
+
 export interface Booking {
   id: string
   clientId?: string
@@ -76,6 +79,8 @@ export interface Booking {
   completedAt?: Date
   cancelledAt?: Date
   cancellationReason?: string
+  cancelledBy?: CancelledBy
+  depositOutcome?: DepositOutcome
   requiresSafetyCheck: boolean
   safetyCheckMinutesAfter: number
   safetyContactId?: string

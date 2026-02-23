@@ -105,6 +105,8 @@ async function exportBookings(format: Format) {
     'Completed At': fmtDateTime(b.completedAt),
     'Cancelled At': fmtDateTime(b.cancelledAt),
     'Cancellation Reason': b.cancellationReason ?? '',
+    'Cancelled By': b.cancelledBy ?? '',
+    'Deposit Outcome': b.depositOutcome ?? '',
   }))
   downloadSheet(rows, 'bookings', format)
 }
