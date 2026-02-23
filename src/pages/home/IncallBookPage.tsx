@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   X, Plus, ArrowLeft, Star, Copy, Check, MapPin, Phone, Mail, User,
-  Key, Globe, DollarSign, Edit, Trash2, Archive, ArchiveRestore,
-  Search, Building2, Hotel, Home, Warehouse, HelpCircle, FileText,
+  Key, Globe, Edit, Trash2, Archive, ArchiveRestore,
+  Search, Building2, Hotel, Home, Warehouse, HelpCircle, Send,
+  MessageSquare,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, newId, formatCurrency } from '../../db'
@@ -12,7 +13,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { SectionLabel, FieldTextInput, FieldSelect, FieldCurrency, FieldHint, fieldInputStyle } from '../../components/FormFields'
 import { VenueDocManager } from '../../components/VenueDocManager'
 import { showToast } from '../../components/Toast'
-import type { IncallVenue, VenueType, AccessMethod } from '../../types'
+import type { IncallVenue, VenueType, AccessMethod, Client, ContactMethod } from '../../types'
 import { venueTypeColors } from '../../types'
 
 const venueTypes: VenueType[] = ['Apartment', 'Hotel', 'Studio', 'Airbnb', 'Other']
@@ -322,6 +323,7 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
   const venue = useLiveQuery(() => db.incallVenues.get(venueId), [venueId])
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [showSendDirections, setShowSendDirections] = useState(false)
 
   if (!venue) return null
 
@@ -398,24 +400,35 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
           copied={copiedField === 'address'} onCopy={() => copyText(venue.address, 'address')} />
       </Card>
 
-      {/* Directions — prominent copy button */}
+      {/* Directions — copy + send to client */}
       {venue.directions && (
         <Card>
           <div className="flex items-start justify-between gap-2 mb-2">
             <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>
               Directions for Client
             </p>
-            <button
-              onClick={() => copyText(venue.directions!, 'directions')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0"
-              style={{
-                backgroundColor: copiedField === 'directions' ? 'rgba(34,197,94,0.15)' : 'rgba(168,85,247,0.15)',
-                color: copiedField === 'directions' ? '#22c55e' : '#a855f7',
-              }}
-            >
-              {copiedField === 'directions' ? <Check size={12} /> : <Copy size={12} />}
-              {copiedField === 'directions' ? 'Copied!' : 'Copy'}
-            </button>
+            <div className="flex gap-1.5 shrink-0">
+              <button
+                onClick={() => copyText(venue.directions!, 'directions')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+                style={{
+                  backgroundColor: copiedField === 'directions' ? 'rgba(34,197,94,0.15)' : 'var(--bg-secondary)',
+                  color: copiedField === 'directions' ? '#22c55e' : 'var(--text-secondary)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                {copiedField === 'directions' ? <Check size={11} /> : <Copy size={11} />}
+                {copiedField === 'directions' ? 'Copied' : 'Copy'}
+              </button>
+              <button
+                onClick={() => setShowSendDirections(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+                style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
+              >
+                <Send size={11} />
+                Send
+              </button>
+            </div>
           </div>
           <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>
             {venue.directions}
@@ -556,6 +569,16 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(false)}
       />
+
+      {venue.directions && (
+        <SendDirectionsSheet
+          isOpen={showSendDirections}
+          onClose={() => setShowSendDirections(false)}
+          venueName={venue.name}
+          directions={venue.directions}
+          address={venue.address}
+        />
+      )}
     </div>
   )
 }
@@ -576,6 +599,315 @@ function CopyRow({ icon, label, text, copied, onCopy }: {
   )
 }
 
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SEND DIRECTIONS SHEET
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const contactMethodLabels: Record<ContactMethod, { icon: typeof Phone; label: string; color: string }> = {
+  'Phone':    { icon: Phone, label: 'Phone', color: '#6b7280' },
+  'Text':     { icon: MessageSquare, label: 'Text', color: '#22c55e' },
+  'Email':    { icon: Mail, label: 'Email', color: '#3b82f6' },
+  'Telegram': { icon: Send, label: 'Telegram', color: '#0088cc' },
+  'Signal':   { icon: MessageSquare, label: 'Signal', color: '#3a76f0' },
+  'WhatsApp': { icon: Phone, label: 'WhatsApp', color: '#25d366' },
+  'Other':    { icon: MessageSquare, label: 'Other', color: '#6b7280' },
+}
+
+function buildDirectionsMessage(venueName: string, directions: string, address: string): string {
+  const workingName = localStorage.getItem('profileWorkingName')?.replace(/^"|"$/g, '') || ''
+  let msg = `Hi! Here are the directions:\n\n`
+  if (address) msg += `📍 ${address}\n\n`
+  msg += directions
+  if (workingName) msg += `\n\n— ${workingName}`
+  return msg
+}
+
+function getContactValue(client: Client, method: ContactMethod): string | undefined {
+  switch (method) {
+    case 'Phone': case 'Text': return client.phone
+    case 'Email': return client.email
+    case 'Telegram': return client.telegram || client.phone
+    case 'Signal': return client.signal || client.phone
+    case 'WhatsApp': return client.whatsapp || client.phone
+    case 'Other': return client.phone || client.email
+  }
+}
+
+function openChannel(method: ContactMethod, contactValue: string, message: string): 'opened' | 'copied' {
+  const encoded = encodeURIComponent(message)
+
+  switch (method) {
+    case 'Text':
+    case 'Phone': {
+      // sms: URI — iOS uses &body=, Android uses ?body=
+      const sep = /iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?'
+      window.open(`sms:${contactValue}${sep}body=${encoded}`, '_blank')
+      return 'opened'
+    }
+    case 'Email': {
+      window.open(`mailto:${contactValue}?subject=${encodeURIComponent('Directions')}&body=${encoded}`, '_blank')
+      return 'opened'
+    }
+    case 'WhatsApp': {
+      const phone = contactValue.replace(/[^0-9]/g, '')
+      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank')
+      return 'opened'
+    }
+    case 'Telegram': {
+      // If it looks like a username (no digits only), use t.me/username
+      if (contactValue.startsWith('@') || !/^\+?\d+$/.test(contactValue)) {
+        const username = contactValue.replace('@', '')
+        window.open(`https://t.me/${username}?text=${encoded}`, '_blank')
+      } else {
+        window.open(`https://t.me/+${contactValue.replace(/[^0-9]/g, '')}?text=${encoded}`, '_blank')
+      }
+      return 'opened'
+    }
+    default: {
+      // Signal & Other: no universal deep link — copy to clipboard
+      navigator.clipboard.writeText(message)
+      return 'copied'
+    }
+  }
+}
+
+function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }: {
+  isOpen: boolean
+  onClose: () => void
+  venueName: string
+  directions: string
+  address: string
+}) {
+  const clients = useLiveQuery(() => db.clients.where('isBlocked').equals(0).toArray()) ?? []
+  const [search, setSearch] = useState('')
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [message, setMessage] = useState('')
+  const [sent, setSent] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      setSearch('')
+      setSelectedClient(null)
+      setMessage('')
+      setSent(false)
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (selectedClient) {
+      setMessage(buildDirectionsMessage(venueName, directions, address))
+    }
+  }, [selectedClient, venueName, directions, address])
+
+  if (!isOpen) return null
+
+  const filtered = clients
+    .filter(c => !c.isBlocked)
+    .filter(c => {
+      if (!search) return true
+      const q = search.toLowerCase()
+      return c.alias.toLowerCase().includes(q) ||
+        (c.nickname?.toLowerCase().includes(q)) ||
+        (c.phone?.includes(q)) ||
+        (c.email?.toLowerCase().includes(q))
+    })
+    .sort((a, b) => a.alias.localeCompare(b.alias))
+
+  function handleSend() {
+    if (!selectedClient || !message) return
+    const method = selectedClient.preferredContact
+    const contactVal = getContactValue(selectedClient, method)
+
+    if (!contactVal) {
+      // Fallback: copy message
+      navigator.clipboard.writeText(message)
+      showToast('No contact info for this method — message copied to clipboard')
+      setSent(true)
+      return
+    }
+
+    const result = openChannel(method, contactVal, message)
+    if (result === 'copied') {
+      showToast('Message copied — paste it into your conversation')
+    } else {
+      showToast(`Opening ${contactMethodLabels[method].label}...`)
+    }
+    setSent(true)
+  }
+
+  const methodInfo = selectedClient ? contactMethodLabels[selectedClient.preferredContact] : null
+  const MethodIcon = methodInfo?.icon ?? MessageSquare
+  const contactVal = selectedClient ? getContactValue(selectedClient, selectedClient.preferredContact) : undefined
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div
+        className="relative w-full max-w-lg rounded-t-2xl safe-bottom flex flex-col"
+        style={{ backgroundColor: 'var(--bg-card)', maxHeight: '85vh' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+            {selectedClient ? 'Send Directions' : 'Choose Client'}
+          </h3>
+          {selectedClient && !sent ? (
+            <button onClick={() => setSelectedClient(null)} className="text-sm text-purple-500">Back</button>
+          ) : (
+            <button onClick={onClose} className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {sent ? 'Done' : 'Cancel'}
+            </button>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {!selectedClient ? (
+            /* ── Client picker ── */
+            <div className="p-4">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-3" style={{ backgroundColor: 'var(--bg-base)', border: '1px solid var(--border)' }}>
+                <Search size={14} style={{ color: 'var(--text-secondary)' }} />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search clients..."
+                  className="flex-1 bg-transparent text-sm outline-none"
+                  style={{ color: 'var(--text-primary)', fontSize: '16px' }}
+                  autoFocus
+                />
+              </div>
+
+              {filtered.length === 0 ? (
+                <p className="text-center text-sm py-6" style={{ color: 'var(--text-secondary)' }}>
+                  No clients found
+                </p>
+              ) : (
+                <div className="space-y-0.5">
+                  {filtered.map(c => {
+                    const cm = contactMethodLabels[c.preferredContact]
+                    const CmIcon = cm.icon
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => setSelectedClient(c)}
+                        className="w-full text-left flex items-center gap-3 py-2.5 px-2 rounded-lg active:bg-white/5"
+                      >
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                          style={{ backgroundColor: '#a855f7' }}
+                        >
+                          {c.alias.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium truncate block" style={{ color: 'var(--text-primary)' }}>
+                            {c.alias}
+                          </span>
+                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            {getContactValue(c, c.preferredContact) || 'No contact info'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <CmIcon size={12} style={{ color: cm.color }} />
+                          <span className="text-[10px] font-medium" style={{ color: cm.color }}>{cm.label}</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* ── Message preview & send ── */
+            <div className="p-4 space-y-3">
+              {/* Client + method header */}
+              <div className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+                  style={{ backgroundColor: '#a855f7' }}
+                >
+                  {selectedClient.alias.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {selectedClient.alias}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <MethodIcon size={12} style={{ color: methodInfo?.color }} />
+                    <span className="text-xs" style={{ color: methodInfo?.color }}>
+                      via {methodInfo?.label}
+                    </span>
+                    {contactVal && (
+                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        · {contactVal}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Editable message */}
+              <div>
+                <p className="text-xs font-semibold uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>Message</p>
+                <textarea
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  rows={8}
+                  className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none"
+                  style={{ ...fieldInputStyle, fontSize: '16px' }}
+                />
+              </div>
+
+              {/* No contact warning */}
+              {!contactVal && (
+                <p className="text-xs text-orange-500 px-1">
+                  No {methodInfo?.label.toLowerCase()} contact info on file — message will be copied to clipboard instead.
+                </p>
+              )}
+
+              {/* Send button */}
+              {!sent ? (
+                <button
+                  onClick={handleSend}
+                  className="w-full py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
+                  style={{ backgroundColor: methodInfo?.color || '#a855f7' }}
+                >
+                  <Send size={15} />
+                  {contactVal
+                    ? `Send via ${methodInfo?.label}`
+                    : 'Copy to Clipboard'
+                  }
+                </button>
+              ) : (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(message)
+                      showToast('Message copied')
+                    }}
+                    className="flex-1 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                  >
+                    <Copy size={14} />
+                    Copy
+                  </button>
+                  <button
+                    onClick={handleSend}
+                    className="flex-1 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
+                    style={{ backgroundColor: methodInfo?.color || '#a855f7' }}
+                  >
+                    <Send size={14} />
+                    Resend
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // VENUE EDITOR
