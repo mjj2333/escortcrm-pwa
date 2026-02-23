@@ -120,8 +120,10 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   // Settings
   const [taxRate] = useLocalStorage('taxRate', 25)
   const [setAsideRate] = useLocalStorage('setAsideRate', 30)
-  const [goalTarget] = useLocalStorage('goalTarget', 0)
-  const [goalPeriod] = useLocalStorage<'weekly' | 'monthly' | 'quarterly' | 'yearly'>('goalPeriod', 'monthly')
+  const [goalWeekly] = useLocalStorage('goalWeekly', 0)
+  const [goalMonthly] = useLocalStorage('goalMonthly', 0)
+  const [goalQuarterly] = useLocalStorage('goalQuarterly', 0)
+  const [goalYearly] = useLocalStorage('goalYearly', 0)
 
   // Filtered by period
   const startDate = periodStart(period)
@@ -144,21 +146,18 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   const estimatedTax = netIncome > 0 ? Math.round(netIncome * taxRate / 100) : 0
   const suggestedSetAside = totalIncome > 0 ? Math.round(totalIncome * setAsideRate / 100) : 0
 
-  // Goal
-  const hasGoal = goalTarget > 0
-  const goalStart = goalPeriod === 'weekly'
-    ? startOfWeek(new Date(), { weekStartsOn: 1 })
-    : goalPeriod === 'quarterly' ? startOfQuarter(new Date())
-    : goalPeriod === 'yearly' ? startOfYear(new Date()) : startOfMonth(new Date())
-  const goalEnd = goalPeriod === 'weekly'
-    ? endOfWeek(new Date(), { weekStartsOn: 1 })
-    : goalPeriod === 'quarterly' ? endOfQuarter(new Date())
-    : goalPeriod === 'yearly' ? endOfYear(new Date()) : endOfMonth(new Date())
-  const goalIncome = allTransactions
-    .filter(t => t.type === 'income' && new Date(t.date) >= goalStart)
-    .reduce((s, t) => s + t.amount, 0)
+  // Goal — tied to the active period tab
+  const goalTarget = period === 'Week' ? goalWeekly
+    : period === 'Month' ? goalMonthly
+    : period === 'Quarter' ? goalQuarterly
+    : period === 'Year' ? goalYearly : 0
+  const hasGoal = goalTarget > 0 && period !== 'All'
+  const goalIncome = totalIncome
   const goalProgress = goalTarget > 0 ? Math.min(1, goalIncome / goalTarget) : 0
   const goalRemaining = Math.max(0, goalTarget - goalIncome)
+  const goalEnd = period === 'Week' ? endOfWeek(new Date(), { weekStartsOn: 1 })
+    : period === 'Quarter' ? endOfQuarter(new Date())
+    : period === 'Year' ? endOfYear(new Date()) : endOfMonth(new Date())
   const goalDaysLeft = Math.max(0, differenceInDays(goalEnd, new Date()))
 
   // Outstanding balances — use payment ledger for accurate amounts (only Pending Deposit+ stages)
@@ -388,11 +387,11 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
         )}
 
         {/* Goal Progress */}
-        {isCardVisible('goal') && (hasGoal ? (
+        {isCardVisible('goal') && period !== 'All' && (hasGoal ? (
           <Card onClick={() => setShowGoalEditor(true)}>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="text-sm font-semibold capitalize" style={{ color: 'var(--text-primary)' }}>{goalPeriod} Income Goal</p>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{period}ly Income Goal</p>
               </div>
               {goalProgress >= 1 ? (
                 <span className="text-lg">✅</span>
@@ -439,7 +438,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-medium text-purple-500"
             style={{ backgroundColor: 'rgba(168,85,247,0.1)' }}
           >
-            <Target size={16} /> Set an Income Goal
+            <Target size={16} /> Set {period}ly Income Goal
           </button>
         ))}
 
@@ -1193,35 +1192,56 @@ function CardSettingsModal({ isOpen, onClose, visible, onChange }: {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const [goalTarget, setGoalTarget] = useLocalStorage('goalTarget', 0)
-  const [goalPeriod, setGoalPeriod] = useLocalStorage<'weekly' | 'monthly' | 'quarterly' | 'yearly'>('goalPeriod', 'monthly')
-  const [target, setTarget] = useState(goalTarget.toString())
-  const [period, setPeriod] = useState(goalPeriod)
+  const [storedWeekly, setStoredWeekly] = useLocalStorage('goalWeekly', 0)
+  const [storedMonthly, setStoredMonthly] = useLocalStorage('goalMonthly', 0)
+  const [storedQuarterly, setStoredQuarterly] = useLocalStorage('goalQuarterly', 0)
+  const [storedYearly, setStoredYearly] = useLocalStorage('goalYearly', 0)
+
+  const [weekly, setWeekly] = useState('')
+  const [monthly, setMonthly] = useState('')
+  const [quarterly, setQuarterly] = useState('')
+  const [yearly, setYearly] = useState('')
 
   // Sync when opening
   const [wasOpen, setWasOpen] = useState(false)
   if (isOpen && !wasOpen) {
-    setTarget(goalTarget > 0 ? goalTarget.toString() : '')
-    setPeriod(goalPeriod)
+    setWeekly(storedWeekly > 0 ? storedWeekly.toString() : '')
+    setMonthly(storedMonthly > 0 ? storedMonthly.toString() : '')
+    setQuarterly(storedQuarterly > 0 ? storedQuarterly.toString() : '')
+    setYearly(storedYearly > 0 ? storedYearly.toString() : '')
   }
   if (isOpen !== wasOpen) setWasOpen(isOpen)
 
   function save() {
-    setGoalTarget(parseInt(target) || 0)
-    setGoalPeriod(period)
+    setStoredWeekly(parseInt(weekly) || 0)
+    setStoredMonthly(parseInt(monthly) || 0)
+    setStoredQuarterly(parseInt(quarterly) || 0)
+    setStoredYearly(parseInt(yearly) || 0)
     onClose()
   }
 
-  function remove() {
-    setGoalTarget(0)
+  function clearAll() {
+    setStoredWeekly(0)
+    setStoredMonthly(0)
+    setStoredQuarterly(0)
+    setStoredYearly(0)
     onClose()
   }
+
+  const hasAny = storedWeekly > 0 || storedMonthly > 0 || storedQuarterly > 0 || storedYearly > 0
+
+  const fields = [
+    { label: 'Weekly', value: weekly, set: setWeekly },
+    { label: 'Monthly', value: monthly, set: setMonthly },
+    { label: 'Quarterly', value: quarterly, set: setQuarterly },
+    { label: 'Yearly', value: yearly, set: setYearly },
+  ]
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Income Goal"
+      title="Income Goals"
       actions={
         <button onClick={save} className="p-1 text-purple-500">
           <Check size={20} />
@@ -1229,34 +1249,29 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
       }
     >
       <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-        <SectionLabel label="Target Amount" />
-        <div className="mb-3">
-          <input type="text" inputMode="numeric"
-            value={target ? Number(target).toLocaleString() : ''} onChange={e => setTarget(e.target.value.replace(/[^0-9]/g, ''))}
-            placeholder="5,000" className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-            style={fieldInputStyle} />
-        </div>
-        <SectionLabel label="Period" />
-        <div className="mb-3">
-          <div className="grid grid-cols-2 gap-2">
-            {(['weekly', 'monthly', 'quarterly', 'yearly'] as const).map(p => (
-              <button key={p} type="button" onClick={() => setPeriod(p)}
-                className={`py-2.5 rounded-lg text-sm font-bold text-center ${period === p ? 'bg-purple-600 text-white' : ''}`}
-                style={period !== p ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' } : { WebkitTapHighlightColor: 'transparent' }}>
-                {p.charAt(0).toUpperCase() + p.slice(1)}
-              </button>
-            ))}
-          </div>
+        <FieldHint text="Set a target for any period. The matching goal appears when you switch tabs on the Finances page." />
+        <div className="space-y-3 mt-3">
+          {fields.map(f => (
+            <div key={f.label}>
+              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>{f.label}</label>
+              <input type="text" inputMode="numeric"
+                value={f.value ? Number(f.value).toLocaleString() : ''}
+                onChange={e => f.set(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="0"
+                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+                style={fieldInputStyle} />
+            </div>
+          ))}
         </div>
 
         <div className="py-4 space-y-3">
-          <button onClick={save} disabled={!target || parseInt(target) <= 0}
-            className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 text-white active:bg-purple-700 disabled:opacity-40">
-            Save Goal
+          <button onClick={save}
+            className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 text-white active:bg-purple-700">
+            Save Goals
           </button>
-          {goalTarget > 0 && (
-            <button onClick={remove} className="w-full py-2 text-sm text-red-500 font-medium">
-              Delete Goal
+          {hasAny && (
+            <button onClick={clearAll} className="w-full py-2 text-sm text-red-500 font-medium">
+              Clear All Goals
             </button>
           )}
         </div>
