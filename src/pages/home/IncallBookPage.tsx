@@ -679,7 +679,7 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
   directions: string
   address: string
 }) {
-  const clients = useLiveQuery(() => db.clients.where('isBlocked').equals(0).toArray()) ?? []
+  const clients = useLiveQuery(() => db.clients.toArray()) ?? []
   const [search, setSearch] = useState('')
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [message, setMessage] = useState('')
