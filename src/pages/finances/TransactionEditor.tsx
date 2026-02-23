@@ -7,7 +7,7 @@ import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldCurrency, FieldSelect, FieldDate, FieldTextArea } from '../../components/FormFields'
 import type { TransactionType, TransactionCategory, PaymentMethod } from '../../types'
 
-const categories: TransactionCategory[] = ['booking', 'tip', 'gift', 'supplies', 'travel', 'advertising', 'clothing', 'health', 'rent', 'phone', 'other']
+const categories: TransactionCategory[] = ['booking', 'tip', 'gift', 'refund', 'supplies', 'travel', 'advertising', 'clothing', 'health', 'rent', 'phone', 'other']
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 

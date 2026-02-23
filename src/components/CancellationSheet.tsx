@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, formatCurrency, recordBookingPayment } from '../db'
+import { db, formatCurrency, recordBookingPayment, newId } from '../db'
 import { showToast } from './Toast'
 import type { Booking, BookingStatus, PaymentMethod, CancelledBy, DepositOutcome } from '../types'
 
@@ -88,6 +88,20 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
         notes: mode === 'noshow'
           ? 'No-show fee'
           : cancelReason.trim() ? `Cancellation fee — ${cancelReason.trim()}` : 'Cancellation fee',
+      })
+    }
+
+    // Financial adjustments based on deposit outcome
+    if (depOut === 'returned' && totalDeposits > 0) {
+      // Create an expense transaction to offset the original deposit income
+      await db.transactions.add({
+        id: newId(),
+        bookingId: booking.id,
+        amount: totalDeposits,
+        type: 'expense',
+        category: 'refund',
+        date: new Date(),
+        notes: `Deposit returned — ${client?.alias ?? 'client'}`,
       })
     }
 

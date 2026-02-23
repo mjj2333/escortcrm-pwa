@@ -257,7 +257,7 @@ const VALID_CONTACT_METHODS: ContactMethod[] = ['Phone', 'Text', 'Email', 'Teleg
 const VALID_SCREENING_STATUSES: ScreeningStatus[] = ['Unscreened', 'In Progress', 'Screened']
 const VALID_RISK_LEVELS: RiskLevel[] = ['Unknown', 'Low Risk', 'Medium Risk', 'High Risk']
 const VALID_TRANSACTION_TYPES: TransactionType[] = ['income', 'expense']
-const VALID_TRANSACTION_CATEGORIES: TransactionCategory[] = ['booking', 'tip', 'gift', 'supplies', 'travel', 'advertising', 'clothing', 'health', 'rent', 'phone', 'other']
+const VALID_TRANSACTION_CATEGORIES: TransactionCategory[] = ['booking', 'tip', 'gift', 'refund', 'supplies', 'travel', 'advertising', 'clothing', 'health', 'rent', 'phone', 'other']
 const VALID_PAYMENT_METHODS: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 
 function validateEnum<T extends string>(value: string, allowed: T[], fallback: T): T {
@@ -647,7 +647,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
               {dataType === 'transactions' && (
                 <>
                   <p><strong style={{ color: 'var(--text-primary)' }}>Required:</strong> Amount</p>
-                  <p><strong style={{ color: 'var(--text-primary)' }}>Optional:</strong> Date, Type (income/expense), Category (booking/tip/gift/supplies/travel/advertising/clothing/health/rent/phone/other), Payment Method, Notes</p>
+                  <p><strong style={{ color: 'var(--text-primary)' }}>Optional:</strong> Date, Type (income/expense), Category (booking/tip/gift/refund/supplies/travel/advertising/clothing/health/rent/phone/other), Payment Method, Notes</p>
                 </>
               )}
               {dataType === 'safety_contacts' && (
