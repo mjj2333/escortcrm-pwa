@@ -26,6 +26,11 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
     'Hi! Here are the directions:\n\n📍 {address}\n\n{directions}\n\n— {name}'
   )
 
+  // Intro template
+  const [introTemplate, setIntroTemplate] = useLocalStorage('introTemplate',
+    'Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}'
+  )
+
   // Service rates
   const serviceRates = useLiveQuery(() => db.serviceRates.orderBy('sortOrder').toArray()) ?? []
   const [showAddRate, setShowAddRate] = useState(false)
@@ -232,6 +237,23 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
         />
         <button
           onClick={() => setDirectionsTemplate('Hi! Here are the directions:\n\n📍 {address}\n\n{directions}\n\n— {name}')}
+          className="text-xs text-purple-500 mb-3 px-1"
+        >
+          Reset to default
+        </button>
+
+        {/* Intro Template */}
+        <SectionLabel label="Intro Message Template" />
+        <FieldHint text="Sent to new clients after an inquiry. Placeholders: {client}, {name}, {rates}, {deposit}, {email}, {phone}, {website}" />
+        <textarea
+          value={introTemplate}
+          onChange={e => setIntroTemplate(e.target.value)}
+          rows={8}
+          className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
+          style={{ ...fieldInputStyle, fontSize: '16px' }}
+        />
+        <button
+          onClick={() => setIntroTemplate('Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}')}
           className="text-xs text-purple-500 mb-3 px-1"
         >
           Reset to default

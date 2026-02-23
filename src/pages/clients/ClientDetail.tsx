@@ -4,7 +4,7 @@ import {
   ArrowLeft, Edit, Phone, MessageSquare, Mail, Copy, Check,
   Pin, PinOff, Gift, Heart, ChevronRight, Shield,
   ThumbsUp, ShieldAlert, Plus, RotateCcw, Trash2, Merge,
-  ChevronDown, MapPin
+  ChevronDown, MapPin, Send
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted } from '../../db'
@@ -18,6 +18,7 @@ import { ClientEditor } from './ClientEditor'
 import { BookingEditor } from '../schedule/BookingEditor'
 import { ClientMergeModal } from './ClientMergeModal'
 import { JournalLog } from '../../components/JournalLog'
+import { SendIntroSheet } from '../../components/SendIntroSheet'
 import { JournalEntryEditor } from '../../components/JournalEntryEditor'
 import { ScreeningProofManager } from '../../components/ScreeningProofManager'
 import { ProGate } from '../../components/ProGate'
@@ -48,6 +49,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [showBlockConfirm, setShowBlockConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showMerge, setShowMerge] = useState(false)
+  const [showSendIntro, setShowSendIntro] = useState(false)
   const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: any; booking: any } | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const toggle = (key: string) => setExpanded(prev => {
@@ -369,6 +371,15 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           </div>
         )}
 
+        {/* Send Intro */}
+        <button
+          onClick={() => setShowSendIntro(true)}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
+          style={{ backgroundColor: 'rgba(59,130,246,0.12)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)' }}
+        >
+          <Send size={14} /> Send Intro Message
+        </button>
+
         {/* Upcoming Bookings (always visible if present) */}
         {upcomingBookings.length > 0 && (
           <Card>
@@ -594,6 +605,11 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           existingEntry={journalEditEntry.entry}
         />
       )}
+      <SendIntroSheet
+        isOpen={showSendIntro}
+        onClose={() => setShowSendIntro(false)}
+        client={client}
+      />
     </div>
   )
 }

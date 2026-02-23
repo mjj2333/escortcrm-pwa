@@ -15,6 +15,12 @@ import { VenueDocManager } from '../../components/VenueDocManager'
 import { showToast } from '../../components/Toast'
 import type { IncallVenue, VenueType, AccessMethod, Client, ContactMethod } from '../../types'
 import { venueTypeColors } from '../../types'
+import { contactMethodMeta, getContactValue, openChannel } from '../../utils/contactChannel'
+
+const contactMethodIcons: Record<ContactMethod, typeof Phone> = {
+  'Phone': Phone, 'Text': MessageSquare, 'Email': Mail, 'Telegram': Send,
+  'Signal': MessageSquare, 'WhatsApp': Phone, 'Other': MessageSquare,
+}
 
 const venueTypes: VenueType[] = ['Apartment', 'Hotel', 'Studio', 'Airbnb', 'Other']
 const accessMethods: AccessMethod[] = ['Key Cafe', 'Lockbox', 'Front Desk', 'Doorman', 'Code', 'Key Handoff', 'App', 'Other']
@@ -604,16 +610,6 @@ function CopyRow({ icon, label, text, copied, onCopy }: {
 // SEND DIRECTIONS SHEET
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-const contactMethodLabels: Record<ContactMethod, { icon: typeof Phone; label: string; color: string }> = {
-  'Phone':    { icon: Phone, label: 'Phone', color: '#6b7280' },
-  'Text':     { icon: MessageSquare, label: 'Text', color: '#22c55e' },
-  'Email':    { icon: Mail, label: 'Email', color: '#3b82f6' },
-  'Telegram': { icon: Send, label: 'Telegram', color: '#0088cc' },
-  'Signal':   { icon: MessageSquare, label: 'Signal', color: '#3a76f0' },
-  'WhatsApp': { icon: Phone, label: 'WhatsApp', color: '#25d366' },
-  'Other':    { icon: MessageSquare, label: 'Other', color: '#6b7280' },
-}
-
 function buildDirectionsMessage(venueName: string, directions: string, address: string): string {
   const workingName = localStorage.getItem('profileWorkingName')?.replace(/^"|"$/g, '') || ''
   const raw = localStorage.getItem('directionsTemplate')
@@ -626,55 +622,6 @@ function buildDirectionsMessage(venueName: string, directions: string, address: 
     .replace(/\{name\}/g, workingName)
     .replace(/\{address\}/g, address)
     .replace(/\{directions\}/g, directions)
-}
-
-function getContactValue(client: Client, method: ContactMethod): string | undefined {
-  switch (method) {
-    case 'Phone': case 'Text': return client.phone
-    case 'Email': return client.email
-    case 'Telegram': return client.telegram || client.phone
-    case 'Signal': return client.signal || client.phone
-    case 'WhatsApp': return client.whatsapp || client.phone
-    case 'Other': return client.phone || client.email
-  }
-}
-
-function openChannel(method: ContactMethod, contactValue: string, message: string): 'opened' | 'copied' {
-  const encoded = encodeURIComponent(message)
-
-  switch (method) {
-    case 'Text':
-    case 'Phone': {
-      // sms: URI — iOS uses &body=, Android uses ?body=
-      const sep = /iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?'
-      window.open(`sms:${contactValue}${sep}body=${encoded}`, '_blank')
-      return 'opened'
-    }
-    case 'Email': {
-      window.open(`mailto:${contactValue}?subject=${encodeURIComponent('Directions')}&body=${encoded}`, '_blank')
-      return 'opened'
-    }
-    case 'WhatsApp': {
-      const phone = contactValue.replace(/[^0-9]/g, '')
-      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank')
-      return 'opened'
-    }
-    case 'Telegram': {
-      // If it looks like a username (no digits only), use t.me/username
-      if (contactValue.startsWith('@') || !/^\+?\d+$/.test(contactValue)) {
-        const username = contactValue.replace('@', '')
-        window.open(`https://t.me/${username}?text=${encoded}`, '_blank')
-      } else {
-        window.open(`https://t.me/+${contactValue.replace(/[^0-9]/g, '')}?text=${encoded}`, '_blank')
-      }
-      return 'opened'
-    }
-    default: {
-      // Signal & Other: no universal deep link — copy to clipboard
-      navigator.clipboard.writeText(message)
-      return 'copied'
-    }
-  }
 }
 
 function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }: {
@@ -736,13 +683,13 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
     if (result === 'copied') {
       showToast('Message copied — paste it into your conversation')
     } else {
-      showToast(`Opening ${contactMethodLabels[method].label}...`)
+      showToast(`Opening ${contactMethodMeta[method].label}...`)
     }
     setSent(true)
   }
 
-  const methodInfo = selectedClient ? contactMethodLabels[selectedClient.preferredContact] : null
-  const MethodIcon = methodInfo?.icon ?? MessageSquare
+  const methodInfo = selectedClient ? contactMethodMeta[selectedClient.preferredContact] : null
+  const MethodIcon = selectedClient ? contactMethodIcons[selectedClient.preferredContact] : MessageSquare
   const contactVal = selectedClient ? getContactValue(selectedClient, selectedClient.preferredContact) : undefined
 
   return (
@@ -790,8 +737,8 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
               ) : (
                 <div className="space-y-0.5">
                   {filtered.map(c => {
-                    const cm = contactMethodLabels[c.preferredContact]
-                    const CmIcon = cm.icon
+                    const cm = contactMethodMeta[c.preferredContact]
+                    const CmIcon = contactMethodIcons[c.preferredContact]
                     return (
                       <button
                         key={c.id}
