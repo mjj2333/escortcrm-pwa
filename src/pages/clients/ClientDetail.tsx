@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Phone, MessageSquare, Mail, Copy, Check,
-  UserX, Pin, PinOff, Gift, Heart, ChevronRight, Shield,
-  ThumbsUp, ShieldAlert, Plus, RotateCcw, Trash2, Merge
+  Pin, PinOff, Gift, Heart, ChevronRight, Shield,
+  ThumbsUp, ShieldAlert, Plus, RotateCcw, Trash2, Merge,
+  ChevronDown, MapPin
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted } from '../../db'
@@ -48,6 +49,12 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showMerge, setShowMerge] = useState(false)
   const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: any; booking: any } | null>(null)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const toggle = (key: string) => setExpanded(prev => {
+    const next = new Set(prev)
+    next.has(key) ? next.delete(key) : next.add(key)
+    return next
+  })
 
   if (!client) return null
 
@@ -149,9 +156,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
       {/* Header */}
       <header
         className="sticky top-0 z-30 border-b backdrop-blur-xl header-frosted"
-        style={{
-          borderColor: 'var(--border)',
-        }}
+        style={{ borderColor: 'var(--border)' }}
       >
         <div className="flex items-center justify-between px-4 h-12 max-w-lg mx-auto">
           <button onClick={onBack} className="flex items-center gap-1 text-purple-500">
@@ -169,49 +174,74 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         </div>
       </header>
 
-      <div className="px-4 py-4 max-w-lg mx-auto space-y-4">
-        {/* Profile Header */}
-        <div className="flex flex-col items-center py-4">
-          <div
-            className="w-20 h-20 rounded-full flex items-center justify-center mb-3"
-            style={{ backgroundColor: 'rgba(168,85,247,0.15)' }}
-          >
-            <span className="text-2xl font-bold text-purple-500">
-              {client.alias.slice(0, 2).toUpperCase()}
-            </span>
-          </div>
-          <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            {client.nickname ?? client.alias}<VerifiedBadge client={client} size={18} />
-          </h2>
-          {client.nickname && client.nickname !== client.alias && (
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>({client.alias})</p>
-          )}
-          <div className="flex items-center gap-2 mt-2">
-            <StatusBadge text={client.screeningStatus} color={screeningStatusColors[client.screeningStatus]} size="md" />
-            {client.riskLevel !== 'Unknown' && (
-              <StatusBadge text={client.riskLevel} color={riskLevelColors[client.riskLevel]} size="md" />
-            )}
-          </div>
+      <div className="px-4 py-4 max-w-lg mx-auto space-y-3">
 
-          {/* Quick Contact Actions */}
-          <ContactActionBar client={client} />
+        {/* ── COMPACT PROFILE HEADER ── */}
+        <div className="flex items-start gap-3">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: 'rgba(168,85,247,0.15)' }}>
+            <span className="text-lg font-bold text-purple-500">{client.alias.slice(0, 2).toUpperCase()}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+              {client.nickname ?? client.alias}<VerifiedBadge client={client} size={16} />
+            </h2>
+            {client.nickname && client.nickname !== client.alias && (
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>({client.alias})</p>
+            )}
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <StatusBadge text={client.screeningStatus} color={screeningStatusColors[client.screeningStatus]} size="sm" />
+              {client.riskLevel !== 'Unknown' && (
+                <StatusBadge text={client.riskLevel} color={riskLevelColors[client.riskLevel]} size="sm" />
+              )}
+              {noShowCount > 0 && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-500">
+                  {noShowCount} no-show{noShowCount !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="text-center">
-            <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{completedBookings.length}</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Bookings</p>
+        {/* Inline contact/address summary */}
+        <div className="space-y-0.5 -mt-1">
+          {client.phone && (
+            <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+              <Phone size={11} /> {client.phone}
+            </p>
+          )}
+          {client.email && (
+            <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+              <Mail size={11} /> {client.email}
+            </p>
+          )}
+          {client.address && (
+            <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+              <MapPin size={11} /> {client.address}
+            </p>
+          )}
+        </div>
+
+        {/* Contact Action Bar */}
+        <ContactActionBar client={client} />
+
+        {/* Compact Stats Row */}
+        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+          <div className="text-center flex-1">
+            <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{completedBookings.length}</p>
+            <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Bookings</p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-green-500">{formatCurrency(totalRevenue)}</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Revenue</p>
+          <div className="w-px h-8" style={{ backgroundColor: 'var(--border)' }} />
+          <div className="text-center flex-1">
+            <p className="text-lg font-bold text-green-500">{formatCurrency(totalRevenue)}</p>
+            <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Revenue</p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+          <div className="w-px h-8" style={{ backgroundColor: 'var(--border)' }} />
+          <div className="text-center flex-1">
+            <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
               {client.lastSeen ? format(new Date(client.lastSeen), 'MMM d') : '—'}
             </p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Last Seen</p>
+            <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Last Seen</p>
           </div>
         </div>
 
@@ -228,182 +258,15 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                   const bTotal = bookingTotal(b)
                   const bPaid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
                   return bTotal - bPaid > 0
-                }).length} booking{activeBookings.filter(b => {
-                  const bTotal = bookingTotal(b)
-                  const bPaid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
-                  return bTotal - bPaid > 0
-                }).length !== 1 ? 's' : ''}
+                }).length} booking{activeBookings.filter(b => bookingTotal(b) - allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0) > 0).length !== 1 ? 's' : ''}
               </span>
             </div>
           </Card>
         )}
 
-        {/* Tags */}
-        {client.tags.length > 0 && (
-          <Card>
-            <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Tags</p>
-            <div className="flex flex-wrap gap-2">
-              {client.tags.map(tag => (
-                <span
-                  key={tag.id}
-                  className="text-xs px-2.5 py-1 rounded-full font-medium"
-                  style={{ backgroundColor: `${tag.color}25`, color: tag.color }}
-                >
-                  {tag.icon && <span className="mr-1">{tag.icon}</span>}
-                  {tag.name}
-                </span>
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {/* Important Dates */}
-        {(client.birthday || client.clientSince) && (
-          <Card>
-            <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Important Dates</p>
-            {client.birthday && (
-              <div className="flex items-center gap-3 py-1.5">
-                <Gift size={16} className="text-pink-500" />
-                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>Birthday</span>
-                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  {format(new Date(client.birthday), 'MMM d')}
-                </span>
-              </div>
-            )}
-            {client.clientSince && (
-              <div className="flex items-center gap-3 py-1.5">
-                <Heart size={16} className="text-purple-500" />
-                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>Client Since</span>
-                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  {format(new Date(client.clientSince), 'MMM d, yyyy')}
-                </span>
-              </div>
-            )}
-          </Card>
-        )}
-
-        {/* Contact Info */}
-        {(client.phone || client.email || client.telegram || client.signal || client.whatsapp) && (
-          <Card>
-            <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Contact</p>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}>
-                Primary: {client.preferredContact}
-              </span>
-              {client.secondaryContact && (
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                  Secondary: {client.secondaryContact}
-                </span>
-              )}
-            </div>
-            {client.phone && (
-              <div className="flex items-center gap-3 py-1.5">
-                <Phone size={14} style={{ color: 'var(--text-secondary)' }} />
-                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{client.phone}</span>
-                <button
-                  onClick={() => copyToClipboard(client.phone!, 'phone')}
-                  className="p-1.5 rounded-lg"
-                  style={{ color: copiedField === 'phone' ? '#22c55e' : 'var(--text-secondary)' }}
-                >
-                  {copiedField === 'phone' ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-              </div>
-            )}
-            {client.email && (
-              <div className="flex items-center gap-3 py-1.5">
-                <Mail size={14} style={{ color: 'var(--text-secondary)' }} />
-                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{client.email}</span>
-                <button
-                  onClick={() => copyToClipboard(client.email!, 'email')}
-                  className="p-1.5 rounded-lg"
-                  style={{ color: copiedField === 'email' ? '#22c55e' : 'var(--text-secondary)' }}
-                >
-                  {copiedField === 'email' ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-              </div>
-            )}
-            {client.telegram && (
-              <div className="flex items-center gap-3 py-1.5">
-                <span className="text-[10px] font-bold w-[14px] text-center" style={{ color: 'var(--text-secondary)' }}>TG</span>
-                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{client.telegram}</span>
-                <button
-                  onClick={() => copyToClipboard(client.telegram!, 'telegram')}
-                  className="p-1.5 rounded-lg"
-                  style={{ color: copiedField === 'telegram' ? '#22c55e' : 'var(--text-secondary)' }}
-                >
-                  {copiedField === 'telegram' ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-              </div>
-            )}
-            {client.signal && (
-              <div className="flex items-center gap-3 py-1.5">
-                <span className="text-[10px] font-bold w-[14px] text-center" style={{ color: 'var(--text-secondary)' }}>SG</span>
-                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{client.signal}</span>
-                <button
-                  onClick={() => copyToClipboard(client.signal!, 'signal')}
-                  className="p-1.5 rounded-lg"
-                  style={{ color: copiedField === 'signal' ? '#22c55e' : 'var(--text-secondary)' }}
-                >
-                  {copiedField === 'signal' ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-              </div>
-            )}
-            {client.whatsapp && (
-              <div className="flex items-center gap-3 py-1.5">
-                <span className="text-[10px] font-bold w-[14px] text-center" style={{ color: 'var(--text-secondary)' }}>WA</span>
-                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{client.whatsapp}</span>
-                <button
-                  onClick={() => copyToClipboard(client.whatsapp!, 'whatsapp')}
-                  className="p-1.5 rounded-lg"
-                  style={{ color: copiedField === 'whatsapp' ? '#22c55e' : 'var(--text-secondary)' }}
-                >
-                  {copiedField === 'whatsapp' ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-              </div>
-            )}
-          </Card>
-        )}
-
-        {/* Preferences & Boundaries */}
-        {(client.preferences || client.boundaries) && (
-          <Card>
-            <p className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>
-              Preferences & Boundaries
-            </p>
-            {client.preferences && (
-              <div className="flex gap-3 py-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: 'rgba(34,197,94,0.12)' }}>
-                  <ThumbsUp size={15} style={{ color: '#22c55e' }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#22c55e' }}>Likes & Preferences</p>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{client.preferences}</p>
-                </div>
-              </div>
-            )}
-            {client.preferences && client.boundaries && (
-              <div className="my-1" style={{ borderTop: '1px solid var(--border)' }} />
-            )}
-            {client.boundaries && (
-              <div className="flex gap-3 py-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: 'rgba(239,68,68,0.12)' }}>
-                  <ShieldAlert size={15} style={{ color: '#ef4444' }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#ef4444' }}>Boundaries — Do Not Cross</p>
-                  <p className="text-sm leading-relaxed" style={{ color: '#f87171' }}>{client.boundaries}</p>
-                </div>
-              </div>
-            )}
-          </Card>
-        )}
-
-        {/* Screening & Risk */}
+        {/* ── SCREENING & RISK (always visible, interactive) ── */}
         <Card>
-          {/* Screening Status */}
-          <div className="flex items-center justify-between py-2">
+          <div className="flex items-center justify-between py-1">
             <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Screening</span>
             <div className="flex items-center gap-2">
               {client.screeningMethod && (
@@ -431,34 +294,20 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
             </div>
           </div>
 
-          {/* Screening documents */}
           {isPro() && <ScreeningProofManager clientId={clientId} />}
 
-          {noShowCount > 0 && (
-            <div className="flex items-center justify-between py-1.5">
-              <span className="text-sm flex items-center gap-2 text-red-500">
-                <UserX size={14} /> No-Shows
-              </span>
-              <span className="text-sm font-bold text-red-500">{noShowCount}</span>
-            </div>
-          )}
-
-          {/* Interactive Risk Level Bar */}
-          <div className="py-3">
+          <div className="py-2">
             <RiskLevelBar
               value={client.riskLevel}
               onChange={async (level) => {
-                // Update risk level
                 await db.clients.update(client.id, { riskLevel: level })
-                // Auto-set safety check-in: High Risk / Unknown = on, Low / Medium = off
                 const shouldRequireSafety = level === 'High Risk' || level === 'Unknown'
                 await db.clients.update(client.id, { requiresSafetyCheck: shouldRequireSafety })
               }}
             />
           </div>
 
-          {/* Safety Check-In Required Toggle */}
-          <div className="flex items-center justify-between py-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="flex items-center justify-between py-1.5" style={{ borderTop: '1px solid var(--border)' }}>
             <span className="text-sm flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
               <Shield size={14} className="text-blue-500" /> Safety Check-In
             </span>
@@ -472,43 +321,22 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                   <button
                     onClick={() => {
                       if (forcedOn) return
-                      db.clients.update(client.id, {
-                        requiresSafetyCheck: !client.requiresSafetyCheck
-                      })
+                      db.clients.update(client.id, { requiresSafetyCheck: !client.requiresSafetyCheck })
                     }}
                     className={`w-10 h-6 rounded-full relative transition-colors ${
-                      (client.requiresSafetyCheck || forcedOn)
-                        ? 'bg-green-500'
-                        : 'bg-zinc-600'
+                      (client.requiresSafetyCheck || forcedOn) ? 'bg-green-500' : 'bg-zinc-600'
                     } ${forcedOn ? 'opacity-60' : ''}`}
                   >
-                    <div
-                      className="w-4 h-4 rounded-full bg-white absolute top-1 transition-transform"
-                      style={{
-                        transform: (client.requiresSafetyCheck || forcedOn)
-                          ? 'translateX(20px)' : 'translateX(4px)'
-                      }}
-                    />
+                    <div className="w-4 h-4 rounded-full bg-white absolute top-1 transition-transform"
+                      style={{ transform: (client.requiresSafetyCheck || forcedOn) ? 'translateX(20px)' : 'translateX(4px)' }} />
                   </button>
                 </div>
               )
             })()}
           </div>
-          {client.referenceSource && (
-            <div className="flex items-center justify-between py-1.5">
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Reference</span>
-              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{client.referenceSource}</span>
-            </div>
-          )}
-          {client.verificationNotes && (
-            <div className="py-1.5">
-              <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Verification Notes</p>
-              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{client.verificationNotes}</p>
-            </div>
-          )}
         </Card>
 
-        {/* Quick Booking Actions — Items 7 + 12 */}
+        {/* ── BOOKING ACTIONS (always visible) ── */}
         {client.screeningStatus === 'Screened' ? (
           <div className="flex gap-2">
             <button
@@ -541,16 +369,13 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           </div>
         )}
 
-        {/* Upcoming Bookings */}
+        {/* Upcoming Bookings (always visible if present) */}
         {upcomingBookings.length > 0 && (
           <Card>
             <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Upcoming</p>
             {upcomingBookings.map(b => (
-              <button
-                key={b.id}
-                onClick={() => onOpenBooking(b.id)}
-                className="flex items-center justify-between py-2 w-full text-left"
-              >
+              <button key={b.id} onClick={() => onOpenBooking(b.id)}
+                className="flex items-center justify-between py-2 w-full text-left">
                 <div>
                   <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
                     {format(new Date(b.dateTime), 'EEE, MMM d · h:mm a')}
@@ -571,41 +396,137 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           </Card>
         )}
 
+        {/* ══════════════════════════════════════════ */}
+        {/* COLLAPSIBLE SECTIONS                      */}
+        {/* ══════════════════════════════════════════ */}
+
+        {/* Contact Details */}
+        {(client.phone || client.email || client.telegram || client.signal || client.whatsapp) && (
+          <CollapsibleCard label="Contact Details" id="contact" expanded={expanded} toggle={toggle}
+            badge={<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}>
+              Pref: {client.preferredContact}
+            </span>}>
+            {client.secondaryContact && (
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full mb-2 inline-block"
+                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                Secondary: {client.secondaryContact}
+              </span>
+            )}
+            {client.phone && <CopyRow icon={<Phone size={14} />} text={client.phone} field="phone" copiedField={copiedField} onCopy={copyToClipboard} />}
+            {client.email && <CopyRow icon={<Mail size={14} />} text={client.email} field="email" copiedField={copiedField} onCopy={copyToClipboard} />}
+            {client.telegram && <CopyRow icon={<span className="text-[10px] font-bold w-[14px] text-center">TG</span>} text={client.telegram} field="telegram" copiedField={copiedField} onCopy={copyToClipboard} />}
+            {client.signal && <CopyRow icon={<span className="text-[10px] font-bold w-[14px] text-center">SG</span>} text={client.signal} field="signal" copiedField={copiedField} onCopy={copyToClipboard} />}
+            {client.whatsapp && <CopyRow icon={<span className="text-[10px] font-bold w-[14px] text-center">WA</span>} text={client.whatsapp} field="whatsapp" copiedField={copiedField} onCopy={copyToClipboard} />}
+          </CollapsibleCard>
+        )}
+
+        {/* Tags */}
+        {client.tags.length > 0 && (
+          <CollapsibleCard label="Tags" id="tags" expanded={expanded} toggle={toggle}
+            preview={<div className="flex gap-1 flex-wrap">{client.tags.slice(0, 3).map(t => (
+              <span key={t.id} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${t.color}25`, color: t.color }}>
+                {t.icon}{t.name}
+              </span>
+            ))}{client.tags.length > 3 && <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>+{client.tags.length - 3}</span>}</div>}>
+            <div className="flex flex-wrap gap-2">
+              {client.tags.map(tag => (
+                <span key={tag.id} className="text-xs px-2.5 py-1 rounded-full font-medium"
+                  style={{ backgroundColor: `${tag.color}25`, color: tag.color }}>
+                  {tag.icon && <span className="mr-1">{tag.icon}</span>}{tag.name}
+                </span>
+              ))}
+            </div>
+          </CollapsibleCard>
+        )}
+
+        {/* Dates & Details */}
+        {(client.birthday || client.clientSince || client.referenceSource || client.verificationNotes) && (
+          <CollapsibleCard label="Dates & Details" id="dates" expanded={expanded} toggle={toggle}>
+            {client.birthday && (
+              <div className="flex items-center gap-3 py-1.5">
+                <Gift size={16} className="text-pink-500" />
+                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>Birthday</span>
+                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{format(new Date(client.birthday), 'MMM d')}</span>
+              </div>
+            )}
+            {client.clientSince && (
+              <div className="flex items-center gap-3 py-1.5">
+                <Heart size={16} className="text-purple-500" />
+                <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>Client Since</span>
+                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{format(new Date(client.clientSince), 'MMM d, yyyy')}</span>
+              </div>
+            )}
+            {client.referenceSource && (
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Reference</span>
+                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{client.referenceSource}</span>
+              </div>
+            )}
+            {client.verificationNotes && (
+              <div className="py-1.5">
+                <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Verification Notes</p>
+                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{client.verificationNotes}</p>
+              </div>
+            )}
+          </CollapsibleCard>
+        )}
+
+        {/* Preferences & Boundaries */}
+        {(client.preferences || client.boundaries) && (
+          <CollapsibleCard label="Preferences & Boundaries" id="prefs" expanded={expanded} toggle={toggle}>
+            {client.preferences && (
+              <div className="flex gap-3 py-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: 'rgba(34,197,94,0.12)' }}>
+                  <ThumbsUp size={15} style={{ color: '#22c55e' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#22c55e' }}>Likes & Preferences</p>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{client.preferences}</p>
+                </div>
+              </div>
+            )}
+            {client.preferences && client.boundaries && (
+              <div className="my-1" style={{ borderTop: '1px solid var(--border)' }} />
+            )}
+            {client.boundaries && (
+              <div className="flex gap-3 py-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: 'rgba(239,68,68,0.12)' }}>
+                  <ShieldAlert size={15} style={{ color: '#ef4444' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#ef4444' }}>Boundaries — Do Not Cross</p>
+                  <p className="text-sm leading-relaxed" style={{ color: '#f87171' }}>{client.boundaries}</p>
+                </div>
+              </div>
+            )}
+          </CollapsibleCard>
+        )}
+
         {/* Booking History */}
         {pastBookings.length > 0 && (
-          <Card>
-            <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>
-              History ({pastBookings.length})
-            </p>
+          <CollapsibleCard label={`History (${pastBookings.length})`} id="history" expanded={expanded} toggle={toggle}>
             {pastBookings.slice(0, 10).map(b => (
-              <button
-                key={b.id}
-                onClick={() => onOpenBooking(b.id)}
-                className="flex items-center justify-between py-2 w-full text-left"
-              >
+              <button key={b.id} onClick={() => onOpenBooking(b.id)}
+                className="flex items-center justify-between py-2 w-full text-left">
                 <div>
-                  <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {format(new Date(b.dateTime), 'MMM d, yyyy')}
-                  </p>
+                  <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{format(new Date(b.dateTime), 'MMM d, yyyy')}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                       {bookingDurationFormatted(b.duration)} · {b.locationType}
                     </p>
-                    {b.status !== 'Completed' && (
-                      <StatusBadge text={b.status} color={bookingStatusColors[b.status]} />
-                    )}
+                    {b.status !== 'Completed' && <StatusBadge text={b.status} color={bookingStatusColors[b.status]} />}
                   </div>
                 </div>
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {formatCurrency(bookingTotal(b))}
-                </span>
+                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{formatCurrency(bookingTotal(b))}</span>
               </button>
             ))}
-          </Card>
+          </CollapsibleCard>
         )}
 
         {/* Session Journal */}
-        <Card>
+        <CollapsibleCard label="Session Journal" id="journal" expanded={expanded} toggle={toggle}>
           {isPro() ? (
             <JournalLog
               clientId={clientId}
@@ -614,33 +535,27 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           ) : (
             <ProGate feature="Session Journal" onUpgrade={onShowPaywall} inline />
           )}
-        </Card>
+        </CollapsibleCard>
 
         {/* Actions */}
-        <Card>
-          <button
-            onClick={toggleBlock}
-            className={`w-full py-2 text-sm font-medium text-center ${client.isBlocked ? 'text-green-500' : 'text-red-500'}`}
-          >
+        <CollapsibleCard label="Actions" id="actions" expanded={expanded} toggle={toggle}>
+          <button onClick={toggleBlock}
+            className={`w-full py-2 text-sm font-medium text-center ${client.isBlocked ? 'text-green-500' : 'text-red-500'}`}>
             {client.isBlocked ? 'Remove from Blacklist' : 'Blacklist Client'}
           </button>
           <div style={{ borderTop: '1px solid var(--border)' }} />
-          <button
-            onClick={() => setShowMerge(true)}
+          <button onClick={() => setShowMerge(true)}
             className="w-full py-2 text-sm font-medium text-center flex items-center justify-center gap-2"
-            style={{ color: '#a855f7' }}
-          >
+            style={{ color: '#a855f7' }}>
             <Merge size={14} /> Merge with Duplicate
           </button>
           <div style={{ borderTop: '1px solid var(--border)' }} />
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
+          <button onClick={() => setShowDeleteConfirm(true)}
             className="w-full py-2 text-sm font-medium text-center flex items-center justify-center gap-2"
-            style={{ color: '#ef4444' }}
-          >
+            style={{ color: '#ef4444' }}>
             <Trash2 size={14} /> Delete Client
           </button>
-        </Card>
+        </CollapsibleCard>
       </div>
 
       <ConfirmDialog
@@ -679,6 +594,69 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           existingEntry={journalEditEntry.entry}
         />
       )}
+    </div>
+  )
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Collapsible Card
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function CollapsibleCard({ label, id, expanded, toggle, children, badge, preview }: {
+  label: string
+  id: string
+  expanded: Set<string>
+  toggle: (id: string) => void
+  children: React.ReactNode
+  badge?: React.ReactNode
+  preview?: React.ReactNode
+}) {
+  const isOpen = expanded.has(id)
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+      <button
+        onClick={() => toggle(id)}
+        className="flex items-center justify-between w-full px-3 py-2.5 active:opacity-70"
+      >
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>{label}</p>
+          {badge}
+        </div>
+        {!isOpen && preview && <div className="flex-shrink-0 ml-2">{preview}</div>}
+        <ChevronDown
+          size={14}
+          className="ml-1 shrink-0 transition-transform"
+          style={{ color: 'var(--text-secondary)', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        />
+      </button>
+      {isOpen && (
+        <div className="px-3 pb-3" style={{ borderTop: '1px solid var(--border)' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Copy Row
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function CopyRow({ icon, text, field, copiedField, onCopy }: {
+  icon: React.ReactNode
+  text: string
+  field: string
+  copiedField: string | null
+  onCopy: (text: string, field: string) => void
+}) {
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      <span style={{ color: 'var(--text-secondary)' }}>{icon}</span>
+      <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{text}</span>
+      <button onClick={() => onCopy(text, field)} className="p-1.5 rounded-lg"
+        style={{ color: copiedField === field ? '#22c55e' : 'var(--text-secondary)' }}>
+        {copiedField === field ? <Check size={14} /> : <Copy size={14} />}
+      </button>
     </div>
   )
 }

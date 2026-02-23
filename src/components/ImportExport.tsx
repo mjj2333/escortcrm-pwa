@@ -57,6 +57,7 @@ async function exportClients(format: Format) {
     Telegram: c.telegram ?? '',
     Signal: c.signal ?? '',
     WhatsApp: c.whatsapp ?? '',
+    Address: c.address ?? '',
     'Preferred Contact': c.preferredContact,
     'Secondary Contact': c.secondaryContact ?? '',
     'Screening Status': c.screeningStatus,
@@ -276,6 +277,7 @@ async function importClients(rows: Record<string, unknown>[]): Promise<number> {
       telegram: String(row['Telegram'] ?? row['telegram'] ?? '').trim() || undefined,
       signal: String(row['Signal'] ?? row['signal'] ?? '').trim() || undefined,
       whatsapp: String(row['WhatsApp'] ?? row['whatsapp'] ?? '').trim() || undefined,
+      address: String(row['Address'] ?? row['address'] ?? '').trim() || undefined,
       preferredContact: validateEnum(String(row['Preferred Contact'] ?? row['preferredContact'] ?? 'Text'), VALID_CONTACT_METHODS, 'Text'),
       secondaryContact: (() => { const v = String(row['Secondary Contact'] ?? row['secondaryContact'] ?? '').trim(); return v && VALID_CONTACT_METHODS.includes(v as any) ? v as ContactMethod : undefined })(),
       screeningStatus: validateEnum(

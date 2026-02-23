@@ -254,6 +254,7 @@ export function createClient(data: Partial<Client> & { alias: string }): Client 
     telegram: data.telegram,
     signal: data.signal,
     whatsapp: data.whatsapp,
+    address: data.address,
     preferredContact: data.preferredContact ?? 'Text',
     secondaryContact: data.secondaryContact,
     screeningStatus: data.screeningStatus ?? 'Unscreened',

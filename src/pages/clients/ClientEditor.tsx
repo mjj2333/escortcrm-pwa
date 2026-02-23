@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Check, User, UserCheck, ShieldCheck, Heart, ShieldAlert, Share2, Cake, CalendarDays } from 'lucide-react'
+import { Check, User, UserCheck, ShieldCheck, Heart, ShieldAlert, Share2, Cake, CalendarDays, MapPin } from 'lucide-react'
 import { db, createClient } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
@@ -56,6 +56,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
   const [telegram, setTelegram] = useState('')
   const [signal, setSignal] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
+  const [address, setAddress] = useState('')
 
   // Screening
   const [screeningStatus, setScreeningStatus] = useState<ScreeningStatus>('Unscreened')
@@ -88,6 +89,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       setTelegram(client?.telegram ?? '')
       setSignal(client?.signal ?? '')
       setWhatsapp(client?.whatsapp ?? '')
+      setAddress(client?.address ?? '')
       setScreeningStatus(client?.screeningStatus ?? 'Unscreened')
       setScreeningMethod(client?.screeningMethod ?? '')
       setRiskLevel(client?.riskLevel ?? 'Unknown')
@@ -114,6 +116,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       telegram: telegram.trim() || undefined,
       signal: signal.trim() || undefined,
       whatsapp: whatsapp.trim() || undefined,
+      address: address.trim() || undefined,
       preferredContact: primaryContact,
       secondaryContact: secondaryContact || undefined,
       screeningStatus,
@@ -199,6 +202,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           <FieldDate label="Birthday" value={birthday} onChange={setBirthday} icon={<Cake size={12} />} />
           <FieldDate label="Client Since" value={clientSince} onChange={setClientSince} icon={<CalendarDays size={12} />} />
         </div>
+        <FieldTextInput label="Address" value={address} onChange={setAddress}
+          placeholder="Physical address (for outcalls)" icon={<MapPin size={12} />} />
 
         {/* ━━━ Contact ━━━ */}
         <SectionLabel label="Contact" />

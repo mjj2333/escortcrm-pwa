@@ -30,6 +30,7 @@ export interface Client {
   telegram?: string
   signal?: string
   whatsapp?: string
+  address?: string
   preferredContact: ContactMethod
   secondaryContact?: ContactMethod
   screeningStatus: ScreeningStatus
