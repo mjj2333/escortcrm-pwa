@@ -1,149 +1,193 @@
 import { useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import {
+  Users, Calendar, DollarSign, Shield, Lock, MapPin,
+  Bell, BookOpen
+} from 'lucide-react'
 
 interface WelcomeSplashProps {
-  onComplete: () => void
-  onStartSetup: () => void
+  onComplete: (dontShowAgain: boolean) => void
+  onStartSetup: (dontShowAgain: boolean) => void
 }
 
-const pages = [
+const features = [
   {
-    icon: '💜',
-    title: 'Welcome to Companion',
-    subtitle: 'Your private booking & client manager',
-    features: [
-      { icon: '🔒', text: 'Completely offline — your data never leaves your device' },
-      { icon: '📱', text: 'Install as an app from your browser for the best experience' },
-      { icon: '🌙', text: 'Built for discretion with OLED dark mode' },
-    ],
+    icon: Users,
+    color: '#a855f7',
+    bg: 'rgba(168,85,247,0.12)',
+    title: 'Clients',
+    desc: 'Screening, risk levels, tags, preferences & contact management',
   },
   {
-    icon: '👥',
-    title: 'Client Management',
-    subtitle: 'Everything about your clients in one place',
-    features: [
-      { icon: '📋', text: 'Track screening status, risk level, and verification' },
-      { icon: '📌', text: 'Pin regulars, add tags, record preferences & boundaries' },
-      { icon: '📞', text: 'Quick contact — call, text, or email with one tap' },
-    ],
+    icon: Calendar,
+    color: '#3b82f6',
+    bg: 'rgba(59,130,246,0.12)',
+    title: 'Bookings',
+    desc: 'Scheduling, deposits, extras, payments & double-booking detection',
   },
   {
-    icon: '📅',
-    title: 'Scheduling & Bookings',
-    subtitle: 'Calendar views, availability, and booking management',
-    features: [
-      { icon: '🟢', text: 'Set daily availability with granular working hours' },
-      { icon: '💰', text: 'Track rates, deposits, extras, tips, and payments' },
-      { icon: '⚠️', text: 'Double-booking detection and availability conflict warnings' },
-    ],
+    icon: DollarSign,
+    color: '#22c55e',
+    bg: 'rgba(34,197,94,0.12)',
+    title: 'Finances',
+    desc: 'Income & expense tracking, analytics, goals & tax estimates',
   },
   {
-    icon: '🛡️',
-    title: 'Safety & Finances',
-    subtitle: 'Stay safe and keep your finances organized',
-    features: [
-      { icon: '✅', text: 'Safety check-ins with trusted contacts' },
-      { icon: '📊', text: 'Income & expense tracking with tax estimates' },
-      { icon: '🎯', text: 'Set income goals and track your progress' },
-    ],
+    icon: Shield,
+    color: '#f59e0b',
+    bg: 'rgba(245,158,11,0.12)',
+    title: 'Safety',
+    desc: 'Check-ins with trusted contacts, incident log & blacklist',
+  },
+  {
+    icon: MapPin,
+    color: '#ec4899',
+    bg: 'rgba(236,72,153,0.12)',
+    title: 'Incall Book',
+    desc: 'Venue management with directions you can send to clients',
+  },
+  {
+    icon: BookOpen,
+    color: '#06b6d4',
+    bg: 'rgba(6,182,212,0.12)',
+    title: 'Session Journal',
+    desc: 'Private post-session notes, tags & timing records',
   },
 ]
 
 export function WelcomeSplash({ onComplete, onStartSetup }: WelcomeSplashProps) {
-  const [page, setPage] = useState(0)
-  const isLast = page === pages.length - 1
-  const current = pages[page]
+  const [dontShow, setDontShow] = useState(false)
 
   return (
     <div
-      className="fixed inset-0 flex flex-col items-center justify-center p-6"
+      className="fixed inset-0 flex flex-col"
       style={{ backgroundColor: 'var(--bg-primary)', zIndex: 100 }}
     >
-      <div className="w-full max-w-sm flex flex-col items-center flex-1 justify-center">
-        {/* Icon */}
-        <div
-          className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
-          style={{ backgroundColor: 'rgba(168,85,247,0.15)' }}
-        >
-          <span className="text-4xl">{current.icon}</span>
-        </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="w-full max-w-md mx-auto px-5 py-8">
 
-        {/* Title */}
-        <h1 className="text-2xl font-bold text-center mb-2" style={{ color: 'var(--text-primary)' }}>
-          {current.title}
-        </h1>
-        <p className="text-sm text-center mb-8" style={{ color: 'var(--text-secondary)' }}>
-          {current.subtitle}
-        </p>
-
-        {/* Feature list */}
-        <div className="w-full space-y-3 mb-8">
-          {current.features.map((f, i) => (
+          {/* Logo + branding */}
+          <div className="flex flex-col items-center mb-6">
             <div
-              key={i}
-              className="flex items-start gap-3 p-3 rounded-xl"
-              style={{ backgroundColor: 'var(--bg-secondary)' }}
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+              style={{
+                background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                boxShadow: '0 8px 32px rgba(168,85,247,0.3)',
+              }}
             >
-              <span className="text-lg shrink-0">{f.icon}</span>
-              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{f.text}</p>
+              <span className="text-3xl">💜</span>
             </div>
-          ))}
+            <h1
+              className="text-2xl font-bold tracking-tight text-center"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              Companion
+            </h1>
+            <p className="text-sm text-center mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+              Private booking & client management
+            </p>
+          </div>
+
+          {/* Privacy banner */}
+          <div
+            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl mb-5"
+            style={{ backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.15)' }}
+          >
+            <Lock size={15} className="text-green-500 shrink-0" />
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              <span className="font-semibold text-green-500">100% offline & encrypted.</span>{' '}
+              Your data never leaves your device.
+            </p>
+          </div>
+
+          {/* Feature grid */}
+          <div className="space-y-2">
+            {features.map(f => {
+              const Icon = f.icon
+              return (
+                <div
+                  key={f.title}
+                  className="flex items-start gap-3 px-3.5 py-3 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                    style={{ backgroundColor: f.bg }}
+                  >
+                    <Icon size={17} style={{ color: f.color }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold" style={{ color: f.color }}>
+                      {f.title}
+                    </p>
+                    <p className="text-xs leading-relaxed mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {f.desc}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Install hint */}
+          <div className="flex items-center gap-2 mt-5 px-1">
+            <Bell size={13} style={{ color: 'var(--text-secondary)' }} />
+            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+              Tip: Install as an app from your browser menu for the best experience
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Bottom section */}
-      <div className="w-full max-w-sm pb-4">
-        {/* Dots */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          {pages.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setPage(i)}
-              className="rounded-full transition-all"
-              style={{
-                width: i === page ? '24px' : '8px',
-                height: '8px',
-                backgroundColor: i === page ? '#a855f7' : 'var(--border)',
-              }}
-            />
-          ))}
-        </div>
+      {/* Bottom section — fixed */}
+      <div
+        className="shrink-0 px-5 pt-3 pb-6 safe-bottom"
+        style={{ backgroundColor: 'var(--bg-primary)', borderTop: '1px solid var(--border)' }}
+      >
+        <div className="w-full max-w-md mx-auto">
 
-        {isLast ? (
-          <div className="space-y-2">
-            <button
-              onClick={onStartSetup}
-              className="w-full py-3.5 rounded-xl font-bold text-sm text-white active:opacity-80 flex items-center justify-center gap-2"
-              style={{ backgroundColor: '#a855f7' }}
+          {/* Don't show again */}
+          <button
+            type="button"
+            className="flex items-center gap-2.5 mb-4 select-none"
+            onClick={() => setDontShow(!dontShow)}
+          >
+            <div
+              className="w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors"
+              style={{
+                backgroundColor: dontShow ? '#a855f7' : 'transparent',
+                border: dontShow ? '2px solid #a855f7' : '2px solid var(--border)',
+              }}
             >
-              Set Up My Account <ChevronRight size={16} />
-            </button>
-            <button
-              onClick={onComplete}
-              className="w-full py-3 text-sm font-medium active:opacity-70"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Skip — I'll explore on my own
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-3">
-            <button
-              onClick={onComplete}
-              className="flex-1 py-3 rounded-xl text-sm font-medium active:opacity-70"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Skip
-            </button>
-            <button
-              onClick={() => setPage(page + 1)}
-              className="flex-[2] py-3 rounded-xl font-bold text-sm text-white active:opacity-80 flex items-center justify-center gap-1"
-              style={{ backgroundColor: '#a855f7' }}
-            >
-              Next <ChevronRight size={16} />
-            </button>
-          </div>
-        )}
+              {dontShow && (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Don't show this again
+            </span>
+          </button>
+
+          {/* Buttons */}
+          <button
+            onClick={() => onStartSetup(dontShow)}
+            className="w-full py-3.5 rounded-xl font-bold text-sm text-white active:opacity-80 mb-2"
+            style={{
+              background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+              boxShadow: '0 4px 16px rgba(168,85,247,0.3)',
+            }}
+          >
+            Get Started
+          </button>
+          <button
+            onClick={() => onComplete(dontShow)}
+            className="w-full py-2.5 text-xs font-medium active:opacity-70"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            Skip — I'll explore on my own
+          </button>
+        </div>
       </div>
     </div>
   )

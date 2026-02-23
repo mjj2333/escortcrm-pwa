@@ -161,15 +161,16 @@ export default function App() {
     }
   }
 
-  function finishOnboarding() {
+  function finishOnboarding(dontShowAgain = true) {
     setShowSplash(false)
     setShowSetup(false)
-    setHasSeenTour(true)
+    if (dontShowAgain) setHasSeenTour(true)
   }
 
-  function startSetupGuide() {
+  function startSetupGuide(dontShowAgain = true) {
     setShowSplash(false)
     setShowSetup(true)
+    if (dontShowAgain) setHasSeenTour(true)
   }
 
   function restartTour() {
