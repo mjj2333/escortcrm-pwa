@@ -62,6 +62,8 @@ const PAYMENT_COLORS: Record<string, string> = {
   Other: '#6b7280',
 }
 
+const EXPENSE_COLORS = ['#ef4444', '#f97316', '#eab308', '#6366f1', '#ec4899', '#14b8a6', '#8b5cf6']
+
 function periodStart(p: TimePeriod): Date {
   switch (p) {
     case 'Week': return startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -211,8 +213,6 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
       .map(([type, data]) => ({ type: type as LocationType, ...data }))
       .sort((a, b) => b.revenue - a.revenue)
   }, [allBookings, filtered, startDate.getTime()])
-
-  const maxTypeRevenue = Math.max(1, ...bookingTypeBreakdown.map(d => d.revenue))
 
   // Payment method breakdown (income only)
   const paymentMethodBreakdown = useMemo(() => {
@@ -463,37 +463,39 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
         )}
 
         {/* Revenue by Booking Type */}
-        {isCardVisible('bookingTypes') && bookingTypeBreakdown.length > 0 && (
+        {isCardVisible('bookingTypes') && bookingTypeBreakdown.length > 0 && (() => {
+          const totalTypeRevenue = bookingTypeBreakdown.reduce((s, d) => s + d.revenue, 0)
+          return (
           <Card>
             <div className="flex items-center gap-2 mb-3">
               <MapPin size={16} className="text-purple-500" />
               <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Revenue by Booking Type</p>
             </div>
-            <div className="space-y-3">
-              {bookingTypeBreakdown.map(item => (
-                <div key={item.type}>
-                  <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-4">
+              {/* Donut */}
+              <DonutChart
+                slices={bookingTypeBreakdown.map(d => ({
+                  value: d.revenue,
+                  color: LOCATION_COLORS[d.type] ?? '#6b7280',
+                }))}
+                centerLabel={formatCurrency(totalTypeRevenue)}
+                centerSub="total"
+              />
+              {/* Legend */}
+              <div className="flex-1 space-y-2">
+                {bookingTypeBreakdown.map(item => (
+                  <div key={item.type} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: LOCATION_COLORS[item.type] ?? '#6b7280' }} />
                       <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{item.type}</span>
-                      <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                        {item.count}
-                      </span>
                     </div>
-                    <span className="text-sm font-semibold text-green-500">{formatCurrency(item.revenue)}</span>
+                    <div className="text-right">
+                      <span className="text-sm font-medium text-green-500">{formatCurrency(item.revenue)}</span>
+                      <span className="text-xs ml-1" style={{ color: 'var(--text-secondary)' }}>({item.count})</span>
+                    </div>
                   </div>
-                  <div className="w-full h-2 rounded-full" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${(item.revenue / maxTypeRevenue) * 100}%`,
-                        backgroundColor: LOCATION_COLORS[item.type] ?? '#6b7280',
-                        opacity: 0.7,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
             {/* Per-booking averages */}
             <div className="flex gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
@@ -507,73 +509,79 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
               ))}
             </div>
           </Card>
-        )}
+          )
+        })()}
 
         {/* Payment Methods */}
-        {isCardVisible('paymentMethods') && paymentMethodBreakdown.length > 0 && (
+        {isCardVisible('paymentMethods') && paymentMethodBreakdown.length > 0 && (() => {
+          const totalPaymentIncome = paymentMethodBreakdown.reduce((s, d) => s + d.amount, 0)
+          return (
           <Card>
             <div className="flex items-center gap-2 mb-3">
               <CreditCard size={16} className="text-blue-500" />
               <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Payment Methods</p>
             </div>
-            {/* Stacked bar */}
-            <div className="w-full h-4 rounded-full overflow-hidden flex" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-              {paymentMethodBreakdown.map(item => (
-                <div
-                  key={item.method}
-                  className="h-full"
-                  style={{
-                    width: `${item.pct}%`,
-                    backgroundColor: PAYMENT_COLORS[item.method] ?? '#6b7280',
-                    minWidth: item.pct > 0 ? '4px' : '0',
-                  }}
-                />
-              ))}
-            </div>
-            {/* Legend + amounts */}
-            <div className="space-y-2 mt-3">
-              {paymentMethodBreakdown.map(item => (
-                <div key={item.method} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: PAYMENT_COLORS[item.method] ?? '#6b7280' }} />
-                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{item.method}</span>
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.pct}%</span>
-                  </div>
-                  <div className="text-right">
+            <div className="flex items-center gap-4">
+              {/* Donut */}
+              <DonutChart
+                slices={paymentMethodBreakdown.map(d => ({
+                  value: d.amount,
+                  color: PAYMENT_COLORS[d.method] ?? '#6b7280',
+                }))}
+                centerLabel={formatCurrency(totalPaymentIncome)}
+                centerSub="income"
+              />
+              {/* Legend */}
+              <div className="flex-1 space-y-2">
+                {paymentMethodBreakdown.map(item => (
+                  <div key={item.method} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: PAYMENT_COLORS[item.method] ?? '#6b7280' }} />
+                      <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{item.method}</span>
+                      <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{item.pct}%</span>
+                    </div>
                     <span className="text-sm font-medium text-green-500">{formatCurrency(item.amount)}</span>
-                    <span className="text-xs ml-1.5" style={{ color: 'var(--text-secondary)' }}>({item.count})</span>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </Card>
-        )}
+          )
+        })()}
 
         {/* Expense Breakdown */}
-        {isCardVisible('expenses') && expenseBreakdown.length > 0 && (
+        {isCardVisible('expenses') && expenseBreakdown.length > 0 && (() => {
+          const totalExpenseAmount = expenseBreakdown.reduce((s, d) => s + d.amount, 0)
+          return (
           <Card>
             <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Top Expenses</p>
-            <div className="space-y-2.5">
-              {expenseBreakdown.map(item => (
-                <div key={item.category}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm capitalize" style={{ color: 'var(--text-primary)' }}>{item.category}</span>
+            <div className="flex items-center gap-4">
+              {/* Donut */}
+              <DonutChart
+                slices={expenseBreakdown.map((d, i) => ({
+                  value: d.amount,
+                  color: EXPENSE_COLORS[i % EXPENSE_COLORS.length],
+                }))}
+                centerLabel={formatCurrency(totalExpenseAmount)}
+                centerSub="spent"
+              />
+              {/* Legend */}
+              <div className="flex-1 space-y-2">
+                {expenseBreakdown.map((item, i) => (
+                  <div key={item.category} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.pct}%</span>
-                      <span className="text-sm font-medium text-red-500">{formatCurrency(item.amount)}</span>
+                      <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: EXPENSE_COLORS[i % EXPENSE_COLORS.length] }} />
+                      <span className="text-sm capitalize" style={{ color: 'var(--text-primary)' }}>{item.category}</span>
+                      <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{item.pct}%</span>
                     </div>
+                    <span className="text-sm font-medium text-red-500">{formatCurrency(item.amount)}</span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                    <div
-                      className="h-full rounded-full bg-red-500/50"
-                      style={{ width: `${item.pct}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </Card>
-        )}
+          )
+        })()}
 
         {/* Outstanding Balances */}
         {isCardVisible('outstanding') && bookingsWithBalance.length > 0 && (
@@ -692,6 +700,71 @@ function StatCard({ icon, color, label, value }: {
       <div style={{ color }} className="mb-2">{icon}</div>
       <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{value}</p>
       <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{label}</p>
+    </div>
+  )
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DONUT CHART — reusable SVG pie/donut
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function DonutChart({ slices, centerLabel, centerSub, size = 110, stroke = 20 }: {
+  slices: { value: number; color: string }[]
+  centerLabel: string
+  centerSub?: string
+  size?: number
+  stroke?: number
+}) {
+  const total = slices.reduce((s, d) => s + d.value, 0)
+  if (total === 0) return null
+
+  const r = (size - stroke) / 2
+  const cx = size / 2
+  const cy = size / 2
+  const circumference = 2 * Math.PI * r
+
+  let accumulated = 0
+  const arcs = slices.map(s => {
+    const pct = s.value / total
+    const offset = circumference * (1 - accumulated) + circumference * 0.25 // start at top
+    accumulated += pct
+    return {
+      ...s,
+      dashArray: `${circumference * pct} ${circumference * (1 - pct)}`,
+      dashOffset: offset,
+    }
+  })
+
+  return (
+    <div className="shrink-0 relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {/* Background ring */}
+        <circle cx={cx} cy={cy} r={r} fill="none"
+          stroke="var(--bg-secondary)" strokeWidth={stroke} />
+        {/* Slices */}
+        {arcs.map((arc, i) => (
+          <circle
+            key={i}
+            cx={cx} cy={cy} r={r}
+            fill="none"
+            stroke={arc.color}
+            strokeWidth={stroke}
+            strokeDasharray={arc.dashArray}
+            strokeDashoffset={arc.dashOffset}
+            strokeLinecap="butt"
+            style={{ transition: 'stroke-dasharray 0.4s ease, stroke-dashoffset 0.4s ease' }}
+          />
+        ))}
+      </svg>
+      {/* Center text */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-xs font-bold" style={{ color: 'var(--text-primary)', lineHeight: 1.2 }}>
+          {centerLabel}
+        </span>
+        {centerSub && (
+          <span className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>{centerSub}</span>
+        )}
+      </div>
     </div>
   )
 }
