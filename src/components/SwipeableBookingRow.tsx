@@ -78,10 +78,12 @@ interface Props {
   client?: Client
   onOpen: () => void
   onCompleted?: (booking: Booking) => void
+  onCancel?: (booking: Booking) => void
+  onNoShow?: (booking: Booking) => void
   availabilityStatus?: AvailabilityStatus
 }
 
-export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, availabilityStatus }: Props) {
+export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCancel, onNoShow, availabilityStatus }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const startX = useRef(0)
   const currentX = useRef(0)
@@ -195,6 +197,12 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, avai
     }
 
     if (newStatus === 'Cancelled') {
+      // Delegate to parent's cancellation sheet
+      if (onCancel) {
+        closePanel()
+        setTimeout(() => onCancel(booking), 300)
+        return
+      }
       updates.cancelledAt = new Date()
     }
 
@@ -208,11 +216,17 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, avai
   }
 
   async function markNoShow() {
+    // Delegate to parent's cancellation sheet
+    if (onNoShow) {
+      closePanel()
+      setTimeout(() => onNoShow(booking), 300)
+      return
+    }
+    // Fallback: direct update (shouldn't happen if callbacks are wired)
     await db.bookings.update(booking.id, {
       status: 'No Show' as BookingStatus,
       cancelledAt: new Date(),
     })
-    // Escalate client risk level based on no-show count
     if (booking.clientId) {
       const clientBookings = await db.bookings.where('clientId').equals(booking.clientId).toArray()
       const noShows = clientBookings.filter(b => b.status === 'No Show').length

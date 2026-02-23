@@ -16,8 +16,9 @@ import { JournalEntryEditor } from '../../components/JournalEntryEditor'
 import { ProGate } from '../../components/ProGate'
 import { isPro } from '../../components/planLimits'
 import { showToast, showUndoToast } from '../../components/Toast'
+import { CancellationSheet } from '../../components/CancellationSheet'
 import { bookingStatusColors, journalTagColors } from '../../types'
-import type { Booking, BookingStatus, PaymentMethod, PaymentLabel, CancelledBy, DepositOutcome } from '../../types'
+import type { Booking, BookingStatus, PaymentMethod, PaymentLabel } from '../../types'
 
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const paymentLabels: PaymentLabel[] = ['Deposit', 'Payment', 'Tip', 'Adjustment']
@@ -64,12 +65,6 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const [payLabel, setPayLabel] = useState<PaymentLabel>('Payment')
   const [payNotes, setPayNotes] = useState('')
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null)
-  // Cancellation fee sheet state
-  const [cancelFeeAmount, setCancelFeeAmount] = useState('')
-  const [cancelFeeMethod, setCancelFeeMethod] = useState<PaymentMethod | ''>('')
-  const [cancelReason, setCancelReason] = useState('')
-  const [cancelledBy, setCancelledBy] = useState<CancelledBy>('client')
-  const [depositOutcome, setDepositOutcome] = useState<DepositOutcome | ''>('')
 
   if (!booking) return null
 
@@ -101,75 +96,6 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
     if (status === 'Completed') {
       setTimeout(() => setShowJournal(true), 400)
     }
-  }
-
-  async function markNoShow(feeAmount?: number, feeMethod?: PaymentMethod, depOutcome?: DepositOutcome) {
-    await db.bookings.update(bookingId, {
-      status: 'No Show' as BookingStatus,
-      cancelledAt: new Date(),
-      cancelledBy: 'client' as CancelledBy,
-      depositOutcome: depOutcome || undefined,
-    })
-    // Update client risk
-    if (booking!.clientId) {
-      const clientBookings = await db.bookings.where('clientId').equals(booking!.clientId).toArray()
-      const noShows = clientBookings.filter(b => b.status === 'No Show').length
-      const currentClient = await db.clients.get(booking!.clientId)
-      if (currentClient) {
-        let riskLevel = currentClient.riskLevel
-        if (noShows >= 2) riskLevel = 'High Risk'
-        else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
-        await db.clients.update(booking!.clientId, { riskLevel })
-      }
-    }
-    if (feeAmount && feeAmount > 0) {
-      await recordBookingPayment({
-        bookingId,
-        amount: feeAmount,
-        method: feeMethod || undefined,
-        label: 'Cancellation Fee',
-        clientAlias: client?.alias,
-        notes: 'No-show fee',
-      })
-    }
-    setConfirmAction(null)
-    setCancelFeeAmount('')
-    setCancelFeeMethod('')
-    setCancelReason('')
-    setCancelledBy('client')
-    setDepositOutcome('')
-    showToast(feeAmount && feeAmount > 0
-      ? `Marked no-show · ${formatCurrency(feeAmount)} fee recorded`
-      : 'Marked as no-show')
-  }
-
-  async function cancelBooking(reason?: string, feeAmount?: number, feeMethod?: PaymentMethod, by?: CancelledBy, depOutcome?: DepositOutcome) {
-    await db.bookings.update(bookingId, {
-      status: 'Cancelled' as BookingStatus,
-      cancelledAt: new Date(),
-      cancellationReason: reason?.trim() || undefined,
-      cancelledBy: by || undefined,
-      depositOutcome: depOutcome || undefined,
-    })
-    if (feeAmount && feeAmount > 0) {
-      await recordBookingPayment({
-        bookingId,
-        amount: feeAmount,
-        method: feeMethod || undefined,
-        label: 'Cancellation Fee',
-        clientAlias: client?.alias,
-        notes: reason?.trim() ? `Cancellation fee — ${reason.trim()}` : 'Cancellation fee',
-      })
-    }
-    setConfirmAction(null)
-    setCancelFeeAmount('')
-    setCancelFeeMethod('')
-    setCancelReason('')
-    setCancelledBy('client')
-    setDepositOutcome('')
-    showToast(feeAmount && feeAmount > 0
-      ? `Booking cancelled · ${formatCurrency(feeAmount)} fee recorded`
-      : 'Booking cancelled')
   }
 
   async function deleteBooking() {
@@ -712,178 +638,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       />
 
       {/* Cancellation / No-Show Sheet */}
-      {(confirmAction === 'cancel' || confirmAction === 'noshow') && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setConfirmAction(null)} />
-          <div
-            className="relative w-full max-w-lg rounded-t-2xl p-5 safe-bottom"
-            style={{ backgroundColor: 'var(--bg-card)', maxHeight: '85vh', overflowY: 'auto' }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
-                {confirmAction === 'noshow' ? 'Mark as No-Show' : 'Cancel Booking'}
-              </h3>
-              <button
-                onClick={() => setConfirmAction(null)}
-                className="text-sm"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Dismiss
-              </button>
-            </div>
-
-            {/* Cancelled by (cancel only — no-shows are always client) */}
-            {confirmAction === 'cancel' && (
-              <div className="mb-4">
-                <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>
-                  Cancelled by
-                </label>
-                <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                  {(['client', 'provider'] as CancelledBy[]).map(who => (
-                    <button
-                      key={who}
-                      onClick={() => setCancelledBy(who)}
-                      className="flex-1 py-2 text-xs font-semibold transition-colors"
-                      style={{
-                        backgroundColor: cancelledBy === who ? (who === 'client' ? '#ef4444' : '#f59e0b') : 'transparent',
-                        color: cancelledBy === who ? '#fff' : 'var(--text-secondary)',
-                      }}
-                    >
-                      {who === 'client' ? 'Client' : 'Me (Provider)'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Reason (cancel only) */}
-            {confirmAction === 'cancel' && (
-              <div className="mb-4">
-                <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-                  Reason (optional)
-                </label>
-                <input
-                  type="text"
-                  value={cancelReason}
-                  onChange={e => setCancelReason(e.target.value)}
-                  placeholder={cancelledBy === 'client' ? 'e.g. Client cancelled last minute' : 'e.g. Schedule conflict'}
-                  className="w-full py-2 px-3 rounded-lg text-sm outline-none"
-                  style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '16px' }}
-                />
-              </div>
-            )}
-
-            {/* Deposit outcome — only when deposit was received */}
-            {totalDeposits > 0 && (
-              <div
-                className="rounded-xl p-4 mb-4"
-                style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-              >
-                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
-                  Deposit received: {formatCurrency(totalDeposits)}
-                </p>
-                <p className="text-[10px] mb-3" style={{ color: 'var(--text-secondary)' }}>
-                  What happened to the deposit?
-                </p>
-                <div className="flex gap-2">
-                  {([
-                    { value: 'forfeited', label: 'Forfeited', color: '#22c55e' },
-                    { value: 'returned', label: 'Returned', color: '#f59e0b' },
-                    { value: 'credit', label: 'Credit', color: '#3b82f6' },
-                  ] as { value: DepositOutcome; label: string; color: string }[]).map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setDepositOutcome(prev => prev === opt.value ? '' : opt.value)}
-                      className="flex-1 py-2 rounded-lg text-xs font-semibold transition-colors"
-                      style={{
-                        backgroundColor: depositOutcome === opt.value ? `${opt.color}20` : 'var(--bg-base)',
-                        color: depositOutcome === opt.value ? opt.color : 'var(--text-secondary)',
-                        border: depositOutcome === opt.value ? `1px solid ${opt.color}40` : '1px solid var(--border)',
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] mt-2" style={{ color: 'var(--text-secondary)' }}>
-                  {depositOutcome === 'forfeited' && 'You keep the deposit as compensation.'}
-                  {depositOutcome === 'returned' && 'Deposit was returned to the client.'}
-                  {depositOutcome === 'credit' && 'Deposit applied as credit toward a future booking.'}
-                  {!depositOutcome && 'Select an option, or skip if not applicable.'}
-                </p>
-              </div>
-            )}
-
-            {/* Fee section */}
-            <div
-              className="rounded-xl p-4 mb-4"
-              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-            >
-              <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
-                {confirmAction === 'noshow' ? 'No-show fee (optional)' : 'Cancellation fee (optional)'}
-              </p>
-              <div className="flex gap-3 mb-3">
-                <div className="flex-1">
-                  <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount</label>
-                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--bg-base)' }}>
-                    <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>$</span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={cancelFeeAmount ? Number(cancelFeeAmount).toLocaleString() : ''}
-                      onChange={e => {
-                        const raw = e.target.value.replace(/[^0-9.]/g, '')
-                        setCancelFeeAmount(raw)
-                      }}
-                      placeholder="0"
-                      className="flex-1 bg-transparent text-sm font-bold outline-none"
-                      style={{ color: 'var(--text-primary)', fontSize: '16px' }}
-                    />
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Method</label>
-                  <select
-                    value={cancelFeeMethod}
-                    onChange={e => setCancelFeeMethod(e.target.value as PaymentMethod | '')}
-                    className="w-full py-2 px-3 rounded-lg text-sm outline-none"
-                    style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '16px' }}
-                  >
-                    <option value="">Any method</option>
-                    {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-              </div>
-              {cancelFeeAmount && parseFloat(cancelFeeAmount) > 0 && (
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                  Fee will be recorded as income and appear in your finance ledger.
-                </p>
-              )}
-            </div>
-
-            {/* Confirm button */}
-            <button
-              onClick={() => {
-                const fee = parseFloat(cancelFeeAmount) || 0
-                const method = cancelFeeMethod as PaymentMethod | undefined
-                const depOut = depositOutcome || undefined
-                if (confirmAction === 'noshow') {
-                  markNoShow(fee > 0 ? fee : undefined, fee > 0 ? method : undefined, depOut as DepositOutcome | undefined)
-                } else {
-                  cancelBooking(cancelReason, fee > 0 ? fee : undefined, fee > 0 ? method : undefined, cancelledBy, depOut as DepositOutcome | undefined)
-                }
-              }}
-              className="w-full py-3 rounded-xl text-sm font-semibold text-white"
-              style={{ backgroundColor: confirmAction === 'noshow' ? '#ef4444' : '#6b7280' }}
-            >
-              {confirmAction === 'noshow'
-                ? `Mark No-Show${cancelFeeAmount && parseFloat(cancelFeeAmount) > 0 ? ` · Record ${formatCurrency(parseFloat(cancelFeeAmount))} Fee` : ''}`
-                : `Cancel Booking${cancelFeeAmount && parseFloat(cancelFeeAmount) > 0 ? ` · Record ${formatCurrency(parseFloat(cancelFeeAmount))} Fee` : ''}`
-              }
-            </button>
-          </div>
-        </div>
-      )}
+      <CancellationSheet
+        booking={(confirmAction === 'cancel' || confirmAction === 'noshow') ? booking : null}
+        mode={confirmAction === 'noshow' ? 'noshow' : 'cancel'}
+        onClose={() => setConfirmAction(null)}
+      />
 
       {/* Editors */}
       <BookingEditor isOpen={showEditor} onClose={() => setShowEditor(false)} booking={booking} />

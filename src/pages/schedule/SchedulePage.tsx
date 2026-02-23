@@ -12,6 +12,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { BookingEditor } from './BookingEditor'
 import { AvailabilityPicker } from './AvailabilityPicker'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
+import { CancellationSheet } from '../../components/CancellationSheet'
 import { JournalEntryEditor } from '../../components/JournalEntryEditor'
 import { formatTime12 } from '../../utils/availability'
 import type { Booking, BookingStatus } from '../../types'
@@ -78,6 +79,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   // Journal prompt after completing a booking
   const [journalBooking, setJournalBooking] = useState<Booking | null>(null)
   const handleBookingCompleted = isPro() ? setJournalBooking : () => {}
+  const [cancelTarget, setCancelTarget] = useState<{ booking: Booking; mode: 'cancel' | 'noshow' } | null>(null)
 
   const limits = usePlanLimits()
   const rawBookings = useLiveQuery(() => db.bookings.orderBy('dateTime').toArray())
@@ -527,6 +529,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                             client={clientFor(b.clientId)}
                             onOpen={() => onOpenBooking(b.id)}
                             onCompleted={handleBookingCompleted}
+                            onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
+                            onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
                             availabilityStatus={availForDay(new Date(b.dateTime))?.status}
                           />
                         ))}
@@ -564,6 +568,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                           client={clientFor(b.clientId)}
                           onOpen={() => onOpenBooking(b.id)}
                           onCompleted={handleBookingCompleted}
+                            onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
+                            onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
                           availabilityStatus={availForDay(new Date(b.dateTime))?.status}
                         />
                       ))}
@@ -583,6 +589,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                           client={clientFor(b.clientId)}
                           onOpen={() => onOpenBooking(b.id)}
                           onCompleted={handleBookingCompleted}
+                            onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
+                            onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
                           availabilityStatus={availForDay(new Date(b.dateTime))?.status}
                         />
                       ))}
@@ -608,6 +616,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           onOpenBooking={(id) => { setDayDetailDate(null); onOpenBooking(id) }}
           onSetAvailability={() => setShowAvailPicker(true)}
           onBookingCompleted={handleBookingCompleted}
+          onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
+          onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
         />
       )}
 
@@ -619,6 +629,13 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           onClose={() => setShowAvailPicker(false)}
         />
       )}
+
+      {/* Cancellation sheet (shared across swipe rows + day detail) */}
+      <CancellationSheet
+        booking={cancelTarget?.booking ?? null}
+        mode={cancelTarget?.mode ?? 'cancel'}
+        onClose={() => setCancelTarget(null)}
+      />
 
       {/* Journal prompt after booking completion */}
       {journalBooking && (
@@ -649,11 +666,13 @@ interface DayDetailModalProps {
   onOpenBooking: (id: string) => void
   onSetAvailability: () => void
   onBookingCompleted?: (booking: import('../../types').Booking) => void
+  onCancel?: (booking: import('../../types').Booking) => void
+  onNoShow?: (booking: import('../../types').Booking) => void
 }
 
 function DayDetailModal({
   date, bookings, clientFor, availForDay, availColor, filtersActive,
-  onClose, onOpenBooking, onSetAvailability, onBookingCompleted,
+  onClose, onOpenBooking, onSetAvailability, onBookingCompleted, onCancel, onNoShow,
 }: DayDetailModalProps) {
   const backdropRef = useRef<HTMLDivElement>(null)
   const avail = availForDay(date)
@@ -750,6 +769,8 @@ function DayDetailModal({
                   client={clientFor(b.clientId)}
                   onOpen={() => onOpenBooking(b.id)}
                   onCompleted={onBookingCompleted}
+                  onCancel={onCancel}
+                  onNoShow={onNoShow}
                   availabilityStatus={avail?.status}
                 />
               ))}

@@ -11,9 +11,11 @@ import { Card, CardHeader } from '../../components/Card'
 import { StatusBadge } from '../../components/StatusBadge'
 import { EmptyState } from '../../components/EmptyState'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
+import { CancellationSheet } from '../../components/CancellationSheet'
 import { SampleDataBanner } from '../../components/SampleDataBanner'
 import { formatTime12 } from '../../utils/availability'
 import { availabilityStatusColors, bookingStatusColors } from '../../types'
+import type { Booking } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { useBackupReminder } from '../../hooks/useBackupReminder'
 import { BackupRestoreModal } from '../../components/BackupRestore'
@@ -39,6 +41,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const [remindersEnabled] = useLocalStorage('remindersEnabled', false)
   const [showBackup, setShowBackup] = useState(false)
   const [reminderDismissed, setReminderDismissed] = useState(false)
+  const [cancelTarget, setCancelTarget] = useState<{ booking: Booking; mode: 'cancel' | 'noshow' } | null>(null)
   const [profileSetupDone] = useLocalStorage('profileSetupDone', false)
   const { shouldRemind, daysSince } = useBackupReminder()
 
@@ -277,6 +280,8 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                     booking={booking}
                     client={client}
                     onOpen={() => onOpenBooking(booking.id)}
+                    onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
+                    onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
                     availabilityStatus={availForDay(new Date(booking.dateTime))?.status}
                   />
                 )
@@ -458,8 +463,17 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           availForDay={availForDay}
           onClose={() => setShowAllActive(false)}
           onOpenBooking={(id) => { setShowAllActive(false); onOpenBooking(id) }}
+          onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
+          onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
         />
       )}
+
+      {/* Cancellation sheet */}
+      <CancellationSheet
+        booking={cancelTarget?.booking ?? null}
+        mode={cancelTarget?.mode ?? 'cancel'}
+        onClose={() => setCancelTarget(null)}
+      />
     </div>
   )
 }
@@ -470,13 +484,15 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function AllActiveBookingsModal({
-  bookings, clientFor, availForDay, onClose, onOpenBooking,
+  bookings, clientFor, availForDay, onClose, onOpenBooking, onCancel, onNoShow,
 }: {
   bookings: import('../../types').Booking[]
   clientFor: (id?: string) => import('../../types').Client | undefined
   availForDay: (day: Date) => import('../../types').DayAvailability | undefined
   onClose: () => void
   onOpenBooking: (id: string) => void
+  onCancel?: (booking: import('../../types').Booking) => void
+  onNoShow?: (booking: import('../../types').Booking) => void
 }) {
   const backdropRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
@@ -542,6 +558,8 @@ function AllActiveBookingsModal({
                   booking={b}
                   client={clientFor(b.clientId)}
                   onOpen={() => onOpenBooking(b.id)}
+                  onCancel={onCancel}
+                  onNoShow={onNoShow}
                   availabilityStatus={availForDay(new Date(b.dateTime))?.status}
                 />
               ))}
