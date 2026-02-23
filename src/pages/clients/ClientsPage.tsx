@@ -350,7 +350,7 @@ function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToast
             }}
           />
 
-          {/* YOU'RE FIRED text */}
+          {/* FIRED text */}
           {burnPhase >= 2 && (
             <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
               <div style={{ animation: 'fireTextSlam 0.7s cubic-bezier(0.17, 0.67, 0.35, 1.3) forwards' }}>
@@ -359,7 +359,7 @@ function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToast
                   textShadow: '0 0 20px #ff6a00, 0 0 40px #ff4500, 0 0 60px #ff2200, 0 2px 4px rgba(0,0,0,0.8)',
                   animation: 'fireTextGlow 0.5s infinite alternate',
                 }}>
-                  YOU'RE FIRED
+                  FIRED
                 </p>
                 <p className="text-center text-xs mt-1 font-semibold" style={{
                   color: '#ffcc00',
