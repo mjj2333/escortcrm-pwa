@@ -7,7 +7,6 @@ import {
 import { useState, useMemo } from 'react'
 import {
   format, startOfMonth, startOfWeek, startOfYear, startOfQuarter,
-  eachDayOfInterval, eachMonthOfInterval, isSameDay, isSameMonth,
   differenceInDays, endOfMonth, endOfWeek, endOfQuarter
 } from 'date-fns'
 import { db, formatCurrency, bookingTotal, removeBookingPayment } from '../../db'
@@ -27,12 +26,11 @@ import type { LocationType, PaymentMethod } from '../../types'
 type TimePeriod = 'Week' | 'Month' | 'Quarter' | 'Year' | 'All'
 
 // Card visibility — user can toggle which sections appear
-type CardKey = 'goal' | 'stats' | 'tax' | 'chart' | 'bookingTypes' | 'paymentMethods' | 'expenses' | 'outstanding' | 'transactions'
+type CardKey = 'goal' | 'stats' | 'tax' | 'bookingTypes' | 'paymentMethods' | 'expenses' | 'outstanding' | 'transactions'
 const CARD_LABELS: Record<CardKey, string> = {
   goal: 'Income Goal',
   stats: 'Stats Grid',
   tax: 'Tax Estimate',
-  chart: 'Income vs Expenses Chart',
   bookingTypes: 'Revenue by Booking Type',
   paymentMethods: 'Payment Methods',
   expenses: 'Top Expenses',
@@ -149,34 +147,6 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
     .filter(x => x.owing > 0)
     .sort((a, b) => b.owing - a.owing)
   const totalOutstanding = bookingsWithBalance.reduce((s, x) => s + x.owing, 0)
-
-  // Chart data
-  const chartData = useMemo(() => {
-    if (filtered.length === 0) return []
-    const useDaily = period === 'Week' || period === 'Month'
-    const now = new Date()
-    // For "All", start from earliest transaction instead of year 2000
-    const chartStart = period === 'All' && filtered.length > 0
-      ? startOfMonth(new Date(filtered[filtered.length - 1].date))
-      : startDate
-    const intervals = useDaily
-      ? eachDayOfInterval({ start: chartStart, end: now })
-      : eachMonthOfInterval({ start: chartStart, end: now })
-
-    return intervals.map(d => {
-      const match = filtered.filter(t =>
-        useDaily ? isSameDay(new Date(t.date), d) : isSameMonth(new Date(t.date), d)
-      )
-      return {
-        date: d,
-        label: useDaily ? format(d, 'd') : format(d, 'MMM'),
-        income: match.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
-        expense: match.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
-      }
-    })
-  }, [filtered, period, startDate.getTime()])
-
-  const chartMax = Math.max(1, ...chartData.map(d => Math.max(d.income, d.expense)))
 
   // Expense breakdown
   const expenseBreakdown = useMemo(() => {
@@ -335,6 +305,15 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
           />
           <StatCard icon={<span className="text-sm">📊</span>} color="#a855f7" label="Avg Booking" value={formatCurrency(avgBooking)} />
         </div>
+        {onOpenAnalytics && (
+          <button
+            onClick={onOpenAnalytics}
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold text-purple-500 active:opacity-70"
+            style={{ backgroundColor: 'rgba(168,85,247,0.1)' }}
+          >
+            <BarChart3 size={14} /> Full Analytics
+          </button>
+        )}
         )}
 
         {/* Tax Estimate */}
@@ -359,107 +338,6 @@ export function FinancesPage({ onOpenAnalytics, onOpenBooking }: { onOpenAnalyti
             </div>
           </div>
         </Card>
-        )}
-
-        {/* Income vs Expenses Chart */}
-        {isCardVisible('chart') && chartData.length > 0 && (
-          <Card>
-            <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Income vs Expenses</p>
-            <div className="relative" style={{ height: '160px' }}>
-              {/* Zero axis line */}
-              <div
-                className="absolute left-0 right-0"
-                style={{ top: '50%', height: '1px', backgroundColor: 'var(--border)' }}
-              />
-
-              {/* Bars container */}
-              <div className="flex items-center h-full justify-center" style={{ gap: chartData.length > 20 ? '1px' : '3px' }}>
-                {chartData.map((d, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-col h-full relative"
-                    style={{
-                      width: chartData.length <= 6
-                        ? '40px'
-                        : chartData.length <= 14
-                          ? '24px'
-                          : undefined,
-                      flex: chartData.length > 14 ? '1' : undefined,
-                      maxWidth: '48px',
-                    }}
-                  >
-                    {/* Top half — income grows up from center */}
-                    <div className="flex-1 flex items-end justify-center">
-                      <div
-                        className="w-full rounded-t"
-                        style={{
-                          height: chartMax > 0 && d.income > 0
-                            ? `${Math.max(4, (d.income / chartMax) * 100)}%`
-                            : '0',
-                          backgroundColor: 'rgba(34,197,94,0.6)',
-                        }}
-                      />
-                    </div>
-                    {/* Bottom half — expense grows down from center */}
-                    <div className="flex-1 flex items-start justify-center">
-                      <div
-                        className="w-full rounded-b"
-                        style={{
-                          height: chartMax > 0 && d.expense > 0
-                            ? `${Math.max(4, (d.expense / chartMax) * 100)}%`
-                            : '0',
-                          backgroundColor: 'rgba(239,68,68,0.5)',
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* Labels */}
-            <div className="flex mt-1 justify-center" style={{ gap: chartData.length > 20 ? '1px' : '3px' }}>
-              {chartData.map((d, i) => (
-                <div
-                  key={i}
-                  className="text-center"
-                  style={{
-                    width: chartData.length <= 6
-                      ? '40px'
-                      : chartData.length <= 14
-                        ? '24px'
-                        : undefined,
-                    flex: chartData.length > 14 ? '1' : undefined,
-                    maxWidth: '48px',
-                  }}
-                >
-                  {(chartData.length <= 14 || i % Math.ceil(chartData.length / 8) === 0) && (
-                    <span className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>{d.label}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-4 mt-2">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-green-500/60" />
-                <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Income</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-red-500/50" />
-                <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Expenses</span>
-              </div>
-            </div>
-            {/* Full Analytics link */}
-            {onOpenAnalytics && (
-              <button
-                onClick={onOpenAnalytics}
-                className="flex items-center justify-center gap-2 w-full mt-3 pt-3 text-xs font-semibold text-green-500 active:opacity-70"
-                style={{ borderTop: '1px solid var(--border)' }}
-              >
-                <BarChart3 size={14} /> Full Analytics
-              </button>
-            )}
-          </Card>
         )}
 
         {/* Revenue by Booking Type */}
