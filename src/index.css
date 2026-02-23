@@ -25,6 +25,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --bg-primary: #0c0c0c;
   --bg-secondary: #171717;
   --bg-card: #1e1e1e;
