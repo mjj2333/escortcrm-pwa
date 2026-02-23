@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Settings, Clock, CalendarDays, DollarSign, Users,
-  ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X
+  ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X, CircleUser
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
 import { useState, useRef, useEffect } from 'react'
@@ -18,6 +18,7 @@ import { useLocalStorage } from '../../hooks/useSettings'
 import { useBackupReminder } from '../../hooks/useBackupReminder'
 import { BackupRestoreModal } from '../../components/BackupRestore'
 import { HomePageSkeleton } from '../../components/Skeleton'
+import { ProfilePage } from './ProfilePage'
 
 interface HomePageProps {
   onNavigateTab: (tab: number) => void
@@ -34,9 +35,11 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const monthStart = startOfMonth(now)
 
   const [showAllActive, setShowAllActive] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
   const [remindersEnabled] = useLocalStorage('remindersEnabled', false)
   const [showBackup, setShowBackup] = useState(false)
   const [reminderDismissed, setReminderDismissed] = useState(false)
+  const [profileSetupDone] = useLocalStorage('profileSetupDone', false)
   const { shouldRemind, daysSince } = useBackupReminder()
 
   const allBookings = useLiveQuery(() => db.bookings.toArray())
@@ -117,6 +120,16 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
     <div className="pb-20">
       <PageHeader title="Home">
         <button
+          onClick={() => setShowProfile(true)}
+          className="p-2 rounded-lg active:bg-white/10 transition-colors relative"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <CircleUser size={20} />
+          {!profileSetupDone && (
+            <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-purple-500" />
+          )}
+        </button>
+        <button
           onClick={onOpenSettings}
           className="p-2 rounded-lg active:bg-white/10 transition-colors"
           style={{ color: 'var(--text-secondary)' }}
@@ -126,6 +139,24 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
       </PageHeader>
 
       <SampleDataBanner />
+
+      {/* New user profile setup tip */}
+      {!profileSetupDone && (
+        <button
+          onClick={() => setShowProfile(true)}
+          className="mx-4 mt-3 rounded-xl p-3 flex items-center gap-3 w-[calc(100%-2rem)] text-left active:opacity-70"
+          style={{ backgroundColor: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}
+        >
+          <CircleUser size={20} className="text-purple-500 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-purple-500">Set up your profile</p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Add your working name, rates, and deposit settings to get started.
+            </p>
+          </div>
+          <ChevronRight size={16} className="text-purple-500 shrink-0" />
+        </button>
+      )}
 
       {/* Backup reminder banner */}
       {shouldRemind && !reminderDismissed && (
@@ -417,6 +448,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
       </div>
 
       <BackupRestoreModal isOpen={showBackup} onClose={() => { setShowBackup(false); setReminderDismissed(true) }} />
+      <ProfilePage isOpen={showProfile} onClose={() => setShowProfile(false)} />
 
       {/* All Active Bookings Modal */}
       {showAllActive && (
