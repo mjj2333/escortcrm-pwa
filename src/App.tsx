@@ -2,7 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { TabBar } from './components/TabBar'
 import { PinLock, hashPin } from './components/PinLock'
 import { WelcomeSplash } from './components/WelcomeSplash'
-import { SetupGuide } from './components/SetupGuide'
+import { GuidedTour, TOUR_STEPS } from './components/GuidedTour'
 import { HomePage } from './pages/home/HomePage'
 import { ClientsPage } from './pages/clients/ClientsPage'
 import { SchedulePage } from './pages/schedule/SchedulePage'
@@ -173,10 +173,23 @@ export default function App() {
     if (dontShowAgain) setHasSeenTour(true)
   }
 
+  function finishTour() {
+    setShowSetup(false)
+    setHasSeenTour(true)
+    // Return to Home tab
+    replaceNav(0, { type: 'tab' })
+  }
+
+  /** Tab change for guided tour — updates tab without polluting history */
+  function tourTabChange(tab: number) {
+    setActiveTab(tab)
+    setScreen({ type: 'tab' })
+  }
+
   function restartTour() {
     setShowSettings(false)
     replaceNav(0, { type: 'tab' })
-    setTimeout(() => setShowSplash(true), 300)
+    setTimeout(() => setShowSetup(true), 300)
   }
 
   // PIN Lock Screen
@@ -304,7 +317,7 @@ export default function App() {
       )}
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
       {showSplash && <WelcomeSplash onComplete={finishOnboarding} onStartSetup={startSetupGuide} />}
-      {showSetup && <SetupGuide onComplete={finishOnboarding} onTabChange={setActiveTab} />}
+      {showSetup && <GuidedTour steps={TOUR_STEPS} onComplete={finishTour} onTabChange={tourTabChange} />}
     </div>
   )
 }

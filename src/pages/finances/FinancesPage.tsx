@@ -343,10 +343,10 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   return (
     <div className="pb-20">
       <PageHeader title="Finances">
-        <button onClick={() => setShowCardSettings(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
+        <button data-tour="tour-finances-customize" onClick={() => setShowCardSettings(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
           <Settings2 size={18} />
         </button>
-        <button onClick={() => setShowEditor(true)} className="p-2 rounded-lg text-purple-500">
+        <button data-tour="tour-finances-add" onClick={() => setShowEditor(true)} className="p-2 rounded-lg text-purple-500">
           <Plus size={20} />
         </button>
       </PageHeader>
