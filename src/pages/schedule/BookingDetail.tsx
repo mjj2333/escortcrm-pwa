@@ -60,6 +60,10 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
     () => db.journalEntries.where('bookingId').equals(bookingId).first(),
     [bookingId]
   )
+  const venue = useLiveQuery(
+    () => booking?.venueId ? db.incallVenues.get(booking.venueId) : undefined,
+    [booking?.venueId]
+  )
   const [payAmount, setPayAmount] = useState('')
   const [payMethod, setPayMethod] = useState<PaymentMethod | ''>('')
   const [payLabel, setPayLabel] = useState<PaymentLabel>('Payment')
@@ -248,7 +252,14 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             <div className="flex items-center gap-3">
               <MapPin size={16} style={{ color: 'var(--text-secondary)' }} />
               <div className="flex-1">
-                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{booking.locationType}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{booking.locationType}</p>
+                  {venue && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(168,85,247,0.12)', color: '#a855f7' }}>
+                      {venue.name}
+                    </span>
+                  )}
+                </div>
                 {booking.locationAddress && (
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{booking.locationAddress}</p>
                 )}

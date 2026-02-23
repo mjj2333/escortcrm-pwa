@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Settings, Clock, CalendarDays, DollarSign, Users,
-  ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X, CircleUser
+  ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X, CircleUser, Building2
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
 import { useState, useRef, useEffect } from 'react'
@@ -21,6 +21,7 @@ import { useBackupReminder } from '../../hooks/useBackupReminder'
 import { BackupRestoreModal } from '../../components/BackupRestore'
 import { HomePageSkeleton } from '../../components/Skeleton'
 import { ProfilePage } from './ProfilePage'
+import { IncallBookPage } from './IncallBookPage'
 
 interface HomePageProps {
   onNavigateTab: (tab: number) => void
@@ -38,6 +39,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 
   const [showAllActive, setShowAllActive] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
+  const [showIncallBook, setShowIncallBook] = useState(false)
   const [remindersEnabled] = useLocalStorage('remindersEnabled', false)
   const [showBackup, setShowBackup] = useState(false)
   const [reminderDismissed, setReminderDismissed] = useState(false)
@@ -122,6 +124,13 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   return (
     <div className="pb-20">
       <PageHeader title="Home">
+        <button
+          onClick={() => setShowIncallBook(true)}
+          className="p-2 rounded-lg active:bg-white/10 transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <Building2 size={20} />
+        </button>
         <button
           onClick={() => setShowProfile(true)}
           className="p-2 rounded-lg active:bg-white/10 transition-colors relative"
@@ -454,6 +463,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 
       <BackupRestoreModal isOpen={showBackup} onClose={() => { setShowBackup(false); setReminderDismissed(true) }} />
       <ProfilePage isOpen={showProfile} onClose={() => setShowProfile(false)} />
+      <IncallBookPage isOpen={showIncallBook} onClose={() => setShowIncallBook(false)} />
 
       {/* All Active Bookings Modal */}
       {showAllActive && (

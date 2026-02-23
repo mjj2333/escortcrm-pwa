@@ -64,6 +64,7 @@ export interface Booking {
   locationType: LocationType
   locationAddress?: string
   locationNotes?: string
+  venueId?: string          // links to IncallVenue for incall bookings
   status: BookingStatus
   baseRate: number
   extras: number
@@ -163,6 +164,47 @@ export interface ServiceRate {
   rate: number
   isActive: boolean
   sortOrder: number
+}
+
+export type VenueType = 'Apartment' | 'Hotel' | 'Studio' | 'Airbnb' | 'Other'
+export type AccessMethod = 'Key Cafe' | 'Lockbox' | 'Front Desk' | 'Doorman' | 'Code' | 'Key Handoff' | 'App' | 'Other'
+
+export interface IncallVenue {
+  id: string
+  name: string
+  venueType: VenueType
+  city: string
+  address: string
+  directions?: string       // copy-paste to client
+  contactName?: string
+  contactPhone?: string
+  contactEmail?: string
+  accessMethod?: AccessMethod
+  accessNotes?: string      // codes, login info, how-to
+  bookingApp?: string       // "Airbnb", "Hotels.com"
+  bookingNotes?: string     // login, how to book
+  costPerHour?: number
+  costPerDay?: number
+  costNotes?: string
+  hotelFriendly?: boolean
+  notes?: string
+  isFavorite?: boolean
+  isArchived?: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface VenueDoc {
+  id: string
+  venueId: string
+  filename: string
+  mimeType: string
+  data: Blob
+  uploadedAt: Date
+}
+
+export const venueTypeColors: Record<VenueType, string> = {
+  'Apartment': '#3b82f6', 'Hotel': '#a855f7', 'Studio': '#22c55e', 'Airbnb': '#f43f5e', 'Other': '#6b7280'
 }
 
 export interface ScreeningDoc {

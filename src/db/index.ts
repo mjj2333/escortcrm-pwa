@@ -1,7 +1,8 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type {
   Client, Booking, Transaction, DayAvailability,
-  SafetyContact, SafetyCheck, IncidentLog, ServiceRate, BookingPayment, JournalEntry, ScreeningDoc
+  SafetyContact, SafetyCheck, IncidentLog, ServiceRate, BookingPayment, JournalEntry, ScreeningDoc,
+  IncallVenue, VenueDoc
 } from '../types'
 import type { PaymentLabel, PaymentMethod } from '../types'
 
@@ -17,6 +18,8 @@ class EscortCRMDatabase extends Dexie {
   payments!: EntityTable<BookingPayment, 'id'>
   journalEntries!: EntityTable<JournalEntry, 'id'>
   screeningDocs!: EntityTable<ScreeningDoc, 'id'>
+  incallVenues!: EntityTable<IncallVenue, 'id'>
+  venueDocs!: EntityTable<VenueDoc, 'id'>
   meta!: Dexie.Table<{ key: string; value: unknown }, string>
 
   constructor() {
@@ -173,6 +176,23 @@ class EscortCRMDatabase extends Dexie {
       screeningDocs: 'id, clientId, uploadedAt',
       meta: 'key',
     })
+
+    this.version(10).stores({
+      clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId',
+      transactions: 'id, bookingId, type, category, date',
+      availability: 'id, date',
+      safetyContacts: 'id, isPrimary, isActive',
+      safetyChecks: 'id, bookingId, status, scheduledTime',
+      incidents: 'id, clientId, bookingId, date, severity',
+      serviceRates: 'id, sortOrder, isActive',
+      payments: 'id, bookingId, label, date',
+      journalEntries: 'id, bookingId, clientId, date',
+      screeningDocs: 'id, clientId, uploadedAt',
+      incallVenues: 'id, city, isFavorite, isArchived, createdAt',
+      venueDocs: 'id, venueId, uploadedAt',
+      meta: 'key',
+    })
   }
 }
 
@@ -286,6 +306,7 @@ export function createBooking(data: Partial<Booking>): Booking {
     locationType: data.locationType ?? 'Incall',
     locationAddress: data.locationAddress,
     locationNotes: data.locationNotes,
+    venueId: data.venueId,
     status: data.status ?? 'To Be Confirmed',
     baseRate: data.baseRate ?? 0,
     extras: data.extras ?? 0,

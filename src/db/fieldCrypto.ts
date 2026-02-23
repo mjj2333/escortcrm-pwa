@@ -33,6 +33,10 @@ export const SENSITIVE_FIELDS: Record<string, string[]> = {
   transactions: ['notes'],
   payments: ['notes'],
   journalEntries: ['notes', 'timingNotes'],
+  incallVenues: [
+    'address', 'directions', 'contactName', 'contactPhone', 'contactEmail',
+    'accessNotes', 'bookingNotes', 'notes',
+  ],
 }
 
 // ── Module state (memory-only) ─────────────────────────────────────────

@@ -14,7 +14,7 @@ async function getExcelJS() {
   return ExcelJS
 }
 
-type DataType = 'clients' | 'bookings' | 'transactions' | 'safety_contacts' | 'incidents' | 'safety_checks'
+type DataType = 'clients' | 'bookings' | 'transactions' | 'safety_contacts' | 'incidents' | 'safety_checks' | 'venues'
 type Format = 'csv' | 'xlsx'
 
 interface ImportExportProps {
@@ -187,6 +187,32 @@ async function exportSafetyChecks(format: Format) {
     }
   })
   downloadSheet(rows, 'safety_checks', format)
+}
+
+async function exportVenues(format: Format) {
+  const venues = await db.incallVenues.toArray()
+  const rows = venues.map(v => ({
+    Name: v.name,
+    Type: v.venueType,
+    City: v.city,
+    Address: v.address,
+    Directions: v.directions ?? '',
+    'Access Method': v.accessMethod ?? '',
+    'Access Notes': v.accessNotes ?? '',
+    'Booking App': v.bookingApp ?? '',
+    'Booking Notes': v.bookingNotes ?? '',
+    'Contact Name': v.contactName ?? '',
+    'Contact Phone': v.contactPhone ?? '',
+    'Contact Email': v.contactEmail ?? '',
+    'Cost Per Hour': v.costPerHour ?? '',
+    'Cost Per Day': v.costPerDay ?? '',
+    'Cost Notes': v.costNotes ?? '',
+    'Hotel Friendly': v.hotelFriendly ? 'Yes' : '',
+    Favorite: v.isFavorite ? 'Yes' : '',
+    Archived: v.isArchived ? 'Yes' : '',
+    Notes: v.notes ?? '',
+  }))
+  downloadSheet(rows, 'venues', format)
 }
 
 async function downloadSheet(rows: Record<string, unknown>[], name: string, format: Format) {
@@ -435,7 +461,7 @@ function parseCSV(text: string): Record<string, unknown>[] {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // Export-only data types — import is not meaningful for these
-const EXPORT_ONLY: DataType[] = ['bookings', 'incidents', 'safety_checks']
+const EXPORT_ONLY: DataType[] = ['bookings', 'incidents', 'safety_checks', 'venues']
 
 interface TabDef { key: DataType; label: string }
 
@@ -443,6 +469,7 @@ const DATA_TABS: TabDef[] = [
   { key: 'clients',         label: 'Clients' },
   { key: 'bookings',        label: 'Bookings' },
   { key: 'transactions',    label: 'Finances' },
+  { key: 'venues',          label: 'Venues' },
   { key: 'safety_contacts', label: 'Contacts' },
   { key: 'incidents',       label: 'Incidents' },
   { key: 'safety_checks',   label: 'Checks' },
@@ -467,6 +494,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
       else if (dataType === 'safety_contacts') await exportSafetyContacts(format)
       else if (dataType === 'incidents')   await exportIncidents(format)
       else if (dataType === 'safety_checks') await exportSafetyChecks(format)
+      else if (dataType === 'venues')         await exportVenues(format)
       setStatus({ type: 'success', msg: `Exported ${dataType.replace('_', ' ')} as ${format.toUpperCase()}` })
     } catch (err) {
       setStatus({ type: 'error', msg: `Export failed: ${(err as Error).message}` })
@@ -513,6 +541,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
     bookings: 'Booking import is not available — bookings have complex relationships with clients. Import clients and finances separately.',
     incidents: 'Incident records are export-only. They are sensitive safety logs that should only be created within the app.',
     safety_checks: 'Safety check records are export-only. They are generated automatically when bookings are created.',
+    venues: 'Venue records are export-only. Use the Incall Book to add and manage venues.',
   }
 
   return (

@@ -10,6 +10,7 @@ import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../../utils/availability'
 import { canAddClient, canAddBooking } from '../../components/planLimits'
+import { VenuePicker } from '../home/IncallBookPage'
 import type {
   Booking, BookingStatus, LocationType, PaymentMethod, ContactMethod, ScreeningStatus, ScreeningMethod,
   RecurrencePattern
@@ -46,6 +47,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const [locationType, setLocationType] = useState<LocationType>(booking?.locationType ?? rebookFrom?.locationType ?? 'Incall')
   const [locationAddress, setLocationAddress] = useState(booking?.locationAddress ?? rebookFrom?.locationAddress ?? '')
   const [locationNotes, setLocationNotes] = useState(booking?.locationNotes ?? rebookFrom?.locationNotes ?? '')
+  const [venueId, setVenueId] = useState(booking?.venueId ?? rebookFrom?.venueId ?? '')
+  const [venueName, setVenueName] = useState('')
+  const [showVenuePicker, setShowVenuePicker] = useState(false)
   const [status, setStatus] = useState<BookingStatus>(booking?.status ?? 'To Be Confirmed')
   const [baseRate, setBaseRate] = useState(booking?.baseRate ?? rebookFrom?.baseRate ?? 0)
   const [extras, setExtras] = useState(booking?.extras ?? rebookFrom?.extras ?? 0)
@@ -90,6 +94,11 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       setLocationType(booking?.locationType ?? rebookFrom?.locationType ?? 'Incall')
       setLocationAddress(booking?.locationAddress ?? rebookFrom?.locationAddress ?? '')
       setLocationNotes(booking?.locationNotes ?? rebookFrom?.locationNotes ?? '')
+      setVenueId(booking?.venueId ?? rebookFrom?.venueId ?? '')
+      // Load venue name
+      const vid = booking?.venueId ?? rebookFrom?.venueId
+      if (vid) db.incallVenues.get(vid).then(v => setVenueName(v?.name ?? ''))
+      else setVenueName('')
       setStatus(booking?.status ?? 'To Be Confirmed')
       setBaseRate(booking?.baseRate ?? rebookFrom?.baseRate ?? 0)
       setExtras(booking?.extras ?? rebookFrom?.extras ?? 0)
@@ -221,6 +230,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         locationType,
         locationAddress: locationAddress.trim() || undefined,
         locationNotes: locationNotes.trim() || undefined,
+        venueId: locationType === 'Incall' && venueId ? venueId : undefined,
         status,
         baseRate,
         extras,
@@ -276,6 +286,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         locationType,
         locationAddress: locationAddress.trim() || undefined,
         locationNotes: locationNotes.trim() || undefined,
+        venueId: locationType === 'Incall' && venueId ? venueId : undefined,
         status,
         baseRate,
         extras,
@@ -324,6 +335,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
 
   return (
+    <>
     <Modal
       isOpen={isOpen}
       onClose={onClose}
@@ -601,8 +613,34 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
         {/* ━━━ Location ━━━ */}
         <SectionLabel label="Location" />
-        <FieldSelect label="Type" value={locationType} options={locationTypes} onChange={setLocationType}
+        <FieldSelect label="Type" value={locationType} options={locationTypes} onChange={v => {
+          setLocationType(v as LocationType)
+          if (v !== 'Incall') { setVenueId(''); setVenueName('') }
+        }}
           hint="Incall = your place. Outcall = their place. Travel = out of town. Virtual = online." />
+        {locationType === 'Incall' && (
+          <>
+            <button
+              onClick={() => setShowVenuePicker(true)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg mb-1"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            >
+              <span className="text-sm" style={{ color: venueName ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                {venueName || 'Choose from Incall Book...'}
+              </span>
+              <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
+            </button>
+            {venueId && (
+              <button
+                onClick={() => { setVenueId(''); setVenueName(''); setLocationAddress('') }}
+                className="text-xs text-purple-500 mb-1 px-1"
+              >
+                Clear venue
+              </button>
+            )}
+            <FieldTextInput label="Address" value={locationAddress} onChange={setLocationAddress} placeholder="Address (auto-filled from venue)" />
+          </>
+        )}
         {(locationType === 'Outcall' || locationType === 'Travel') && (
           <>
             <FieldTextInput label="Address" value={locationAddress} onChange={setLocationAddress} placeholder="Address" />
@@ -726,5 +764,16 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         </div>
       )}
     </Modal>
+    <VenuePicker
+      isOpen={showVenuePicker}
+      onClose={() => setShowVenuePicker(false)}
+      onSelect={(v) => {
+        setVenueId(v.id)
+        setVenueName(v.name)
+        setLocationAddress(v.address)
+        if (v.directions) setLocationNotes(v.directions)
+      }}
+    />
+    </>
   )
 }
