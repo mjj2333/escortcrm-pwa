@@ -285,20 +285,6 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
 
                   // Run in a detached async context so React re-renders can't kill it
                   ;(async () => {
-                    // Advance bookings first
-                    if (newStatus === 'Screened') {
-                      const allBookings = await db.bookings.toArray()
-                      const toAdvance = allBookings.filter(b => b.clientId === cid && b.status === 'Screening')
-                      for (const b of toAdvance) {
-                        const next = (b.depositAmount ?? 0) > 0 && !b.depositReceived
-                          ? 'Pending Deposit' as const : 'Confirmed' as const
-                        await db.bookings.update(b.id, {
-                          status: next,
-                          ...(next === 'Confirmed' ? { confirmedAt: new Date() } : {}),
-                        })
-                      }
-                    }
-                    // Then update client
                     await db.clients.update(cid, { screeningStatus: newStatus })
                   })()
                 }}

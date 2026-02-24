@@ -48,20 +48,6 @@ export function useAutoStatusTransitions() {
         const endTime = startTime + b.duration * 60_000
         const fiveAfterEnd = endTime + 5 * 60_000
 
-        // Screening → Pending Deposit / Confirmed when client becomes Screened
-        if (b.status === 'Screening' && b.clientId) {
-          const client = await db.clients.get(b.clientId)
-          if (client?.screeningStatus === 'Screened') {
-            const nextStatus = (b.depositAmount ?? 0) > 0 && !b.depositReceived
-              ? 'Pending Deposit' : 'Confirmed'
-            await db.bookings.update(b.id, {
-              status: nextStatus,
-              ...(nextStatus === 'Confirmed' ? { confirmedAt: new Date() } : {}),
-            })
-            continue
-          }
-        }
-
         // Pending Deposit → Confirmed when deposit is fully received
         if (b.status === 'Pending Deposit' && b.depositReceived) {
           await db.bookings.update(b.id, { status: 'Confirmed', confirmedAt: new Date() })

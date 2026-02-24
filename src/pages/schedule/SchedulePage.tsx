@@ -25,7 +25,7 @@ interface SchedulePageProps {
 }
 
 const ALL_STATUSES: BookingStatus[] = [
-  'To Be Confirmed', 'Screening', 'Pending Deposit', 'Confirmed',
+  'To Be Confirmed', 'Pending Deposit', 'Confirmed',
   'In Progress', 'Completed', 'Cancelled', 'No Show'
 ]
 

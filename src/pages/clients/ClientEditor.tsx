@@ -135,20 +135,6 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
     }
 
     if (isEditing && client) {
-      // Advance bookings FIRST — before client update triggers useLiveQuery re-render
-      if (screeningStatus === 'Screened' && client.screeningStatus !== 'Screened') {
-        const allBookings = await db.bookings.toArray()
-        const toAdvance = allBookings.filter(b => b.clientId === client.id && b.status === 'Screening')
-        for (const b of toAdvance) {
-          const next = (b.depositAmount ?? 0) > 0 && !b.depositReceived
-            ? 'Pending Deposit' as const : 'Confirmed' as const
-          await db.bookings.update(b.id, {
-            status: next,
-            ...(next === 'Confirmed' ? { confirmedAt: new Date() } : {}),
-          })
-        }
-      }
-
       await db.clients.update(client.id, data)
 
       showToast('Client updated')

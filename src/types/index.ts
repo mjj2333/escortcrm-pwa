@@ -4,7 +4,7 @@ export type ContactMethod = 'Phone' | 'Text' | 'Email' | 'Telegram' | 'Signal' |
 export type ScreeningStatus = 'Unscreened' | 'In Progress' | 'Screened'
 export type ScreeningMethod = 'ID' | 'LinkedIn' | 'Provider Reference' | 'Employment' | 'Phone' | 'Deposit' | 'Other'
 export type RiskLevel = 'Unknown' | 'Low Risk' | 'Medium Risk' | 'High Risk'
-export type BookingStatus = 'To Be Confirmed' | 'Screening' | 'Pending Deposit' | 'Confirmed' | 'In Progress' | 'Completed' | 'Cancelled' | 'No Show'
+export type BookingStatus = 'To Be Confirmed' | 'Pending Deposit' | 'Confirmed' | 'In Progress' | 'Completed' | 'Cancelled' | 'No Show'
 export type LocationType = 'Incall' | 'Outcall' | 'Travel' | 'Virtual'
 export type PaymentMethod = 'Cash' | 'e-Transfer' | 'Crypto' | 'Venmo' | 'Cash App' | 'Zelle' | 'Gift Card' | 'Other'
 export type TransactionType = 'income' | 'expense'
@@ -256,7 +256,7 @@ export const riskLevelColors: Record<RiskLevel, string> = {
 }
 
 export const bookingStatusColors: Record<BookingStatus, string> = {
-  'To Be Confirmed': 'purple', 'Screening': 'blue', 'Pending Deposit': 'orange',
+  'To Be Confirmed': 'purple', 'Pending Deposit': 'orange',
   'Confirmed': 'green', 'In Progress': 'teal', 'Completed': 'gray',
   'Cancelled': 'red', 'No Show': 'red'
 }

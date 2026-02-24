@@ -180,7 +180,7 @@ export async function seedSampleData(): Promise<void> {
       dateTime: daysFromNow(3),
       duration: 60,
       locationType: 'Incall',
-      status: 'Screening',
+      status: 'To Be Confirmed',
       baseRate: 400,
       extras: 0,
       travelFee: 0,

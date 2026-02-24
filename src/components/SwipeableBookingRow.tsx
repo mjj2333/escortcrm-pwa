@@ -242,7 +242,7 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
     closePanel()
   }
 
-  // Booking status pills — simplified (Screening and Pending Deposit removed — they have their own rows)
+  // Booking status pills — simplified (Pending Deposit has its own deposit row)
   const statusFlowPills: { status: BookingStatus; label: string; color: string }[] = [
     { status: 'To Be Confirmed', label: 'To Be Confirmed', color: '#a855f7' },
     { status: 'Confirmed',       label: 'Confirmed',       color: '#22c55e' },
