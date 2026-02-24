@@ -724,7 +724,7 @@ function ContactActionBar({ client }: { client: Client }) {
   const phone = client.phone ? cleanPhone(client.phone) : null
   const pref = client.preferredContact
 
-  type Action = { label: string; icon: React.ReactNode; href: string; bg: string; fg: string; preferred?: boolean }
+  type Action = { label: string; icon: React.ReactNode; href: string; bg: string; fg: string; preferred?: boolean; fallback?: boolean }
   const actions: Action[] = []
 
   if (phone) {
@@ -746,6 +746,7 @@ function ContactActionBar({ client }: { client: Client }) {
 
   // WhatsApp — use dedicated field, fall back to phone
   const waNumber = client.whatsapp ? cleanPhone(client.whatsapp) : phone
+  const waFallback = !client.whatsapp && !!phone
   if (waNumber) {
     actions.push({
       label: 'WhatsApp',
@@ -753,11 +754,13 @@ function ContactActionBar({ client }: { client: Client }) {
       href: `https://wa.me/${waNumber.replace(/^\+/, '')}`,
       bg: 'rgba(37,211,102,0.15)', fg: '#25d366',
       preferred: pref === 'WhatsApp',
+      fallback: waFallback,
     })
   }
 
   // Telegram — use dedicated field, fall back to phone
   const tgHandle = client.telegram || (phone ? phone : null)
+  const tgFallback = !client.telegram && !!phone
   if (tgHandle) {
     actions.push({
       label: 'Telegram',
@@ -765,11 +768,13 @@ function ContactActionBar({ client }: { client: Client }) {
       href: tgHandle.startsWith('@') ? `https://t.me/${tgHandle.slice(1)}` : `https://t.me/${tgHandle}`,
       bg: 'rgba(0,136,204,0.15)', fg: '#0088cc',
       preferred: pref === 'Telegram',
+      fallback: tgFallback,
     })
   }
 
   // Signal — use dedicated field, fall back to phone
   const sigNumber = client.signal ? cleanPhone(client.signal) : phone
+  const sgFallback = !client.signal && !!phone
   if (sigNumber) {
     actions.push({
       label: 'Signal',
@@ -777,6 +782,7 @@ function ContactActionBar({ client }: { client: Client }) {
       href: `https://signal.me/#p/${sigNumber}`,
       bg: 'rgba(59,120,246,0.15)', fg: '#3a76f0',
       preferred: pref === 'Signal',
+      fallback: sgFallback,
     })
   }
 
@@ -816,16 +822,22 @@ function ContactActionBar({ client }: { client: Client }) {
               color: a.fg,
               border: a.preferred ? `2px solid ${a.fg}` : '2px solid transparent',
               boxShadow: a.preferred ? `0 0 8px ${a.fg}40` : 'none',
+              opacity: a.fallback ? 0.5 : 1,
             }}
           >
             {a.icon}
           </div>
-          <span className="text-[10px]" style={{ color: a.preferred ? a.fg : 'var(--text-secondary)' }}>
+          <span className="text-[10px]" style={{ color: a.preferred ? a.fg : 'var(--text-secondary)', opacity: a.fallback ? 0.5 : 1 }}>
             {a.label}
           </span>
-          {a.preferred && (
+          {a.preferred && !a.fallback && (
             <span className="text-[8px] font-semibold" style={{ color: a.fg, marginTop: '-2px' }}>
               PREFERRED
+            </span>
+          )}
+          {a.fallback && (
+            <span className="text-[8px]" style={{ color: 'var(--text-secondary)', marginTop: '-2px', opacity: 0.7 }}>
+              via phone
             </span>
           )}
         </a>
