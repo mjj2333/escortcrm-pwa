@@ -11,6 +11,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Card } from '../../components/Card'
+import { CollapsibleCard, useAccordion } from '../../components/CollapsibleCard'
 import { BookingEditor } from './BookingEditor'
 import { JournalEntryEditor } from '../../components/JournalEntryEditor'
 import { ProGate } from '../../components/ProGate'
@@ -53,6 +54,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const [confirmAction, setConfirmAction] = useState<'noshow' | 'cancel' | 'delete' | null>(null)
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [showJournal, setShowJournal] = useState(false)
+  const { expanded, toggle } = useAccordion(['details', 'pricing'])
 
   // Journal entry for this booking
   const journalEntry = useLiveQuery(
@@ -253,9 +255,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         )}
 
         {/* Time & Location */}
-        <Card>
-          <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Details</p>
-          <div className="space-y-3">
+        <CollapsibleCard label="Details" id="details" expanded={expanded} toggle={toggle}
+          preview={<span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            {format(new Date(booking.dateTime), 'h:mm a')} · {booking.locationType}
+          </span>}>
+          <div className="space-y-3 pt-1">
             <div className="flex items-center gap-3">
               <Clock size={16} style={{ color: 'var(--text-secondary)' }} />
               <div className="flex-1">
@@ -287,12 +291,12 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               </div>
             </div>
           </div>
-        </Card>
+        </CollapsibleCard>
 
         {/* Pricing Breakdown */}
-        <Card>
-          <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Pricing</p>
-          <div className="space-y-2">
+        <CollapsibleCard label="Pricing" id="pricing" expanded={expanded} toggle={toggle}
+          preview={<span className="text-sm font-bold text-green-500">{formatCurrency(total)}</span>}>
+          <div className="space-y-2 pt-1">
             <div className="flex justify-between">
               <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Base Rate</span>
               <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{formatCurrency(booking.baseRate)}</span>
@@ -314,25 +318,23 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <span className="text-sm font-bold text-green-500">{formatCurrency(total)}</span>
             </div>
           </div>
-        </Card>
+        </CollapsibleCard>
 
         {/* Payment Ledger */}
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Payments</p>
-            <div className="flex items-center gap-2">
-              {!isFullyPaid && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-500">
-                  {formatCurrency(balance)} due
-                </span>
-              )}
-              {isFullyPaid && totalPaid > 0 && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/15 text-green-500">
-                  Paid in full
-                </span>
-              )}
-            </div>
-          </div>
+        <CollapsibleCard label="Payments" id="payments" expanded={expanded} toggle={toggle}
+          badge={<>
+            {!isFullyPaid && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-500">
+                {formatCurrency(balance)} due
+              </span>
+            )}
+            {isFullyPaid && totalPaid > 0 && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500/15 text-green-500">
+                Paid
+              </span>
+            )}
+          </>}>
+          <div className="pt-1">
 
           {/* Balance bar */}
           {total > 0 && (
@@ -415,7 +417,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <Plus size={14} />
             </button>
           </div>
-        </Card>
+          </div>
+        </CollapsibleCard>
 
         {/* Client Screening — quick toggle */}
         {client && client.screeningStatus !== 'Screened' && (
@@ -448,24 +451,29 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
 
         {/* Safety */}
         {booking.requiresSafetyCheck && (
-          <Card>
-            <div className="flex items-center gap-2">
+          <CollapsibleCard label="Safety" id="safety" expanded={expanded} toggle={toggle}
+            badge={<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-500">
+              {booking.safetyCheckMinutesAfter}min
+            </span>}>
+            <div className="flex items-center gap-2 pt-1">
               <Shield size={16} className="text-purple-500" />
               <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                Safety check-in enabled
+                Safety check-in {booking.safetyCheckMinutesAfter}min after start
               </span>
             </div>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-              {booking.safetyCheckMinutesAfter}min after start
-            </p>
-          </Card>
+          </CollapsibleCard>
         )}
 
         {/* Session Journal */}
         {isPro() ? (
-          <Card>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Session Journal</p>
+          <CollapsibleCard label="Session Journal" id="journal" expanded={expanded} toggle={toggle}
+            badge={journalEntry ? (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-500">
+                Recorded
+              </span>
+            ) : undefined}>
+            <div className="pt-1">
+            <div className="flex items-center justify-end mb-2">
               {(isTerminal || journalEntry) && (
                 <button onClick={() => setShowJournal(true)}
                   className="text-xs font-medium text-purple-500 active:opacity-70">
@@ -514,11 +522,12 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                 {isTerminal ? 'No session notes recorded.' : 'Available after session is completed.'}
               </p>
             )}
-          </Card>
+            </div>
+          </CollapsibleCard>
         ) : (
-          <Card>
+          <CollapsibleCard label="Session Journal" id="journal" expanded={expanded} toggle={toggle}>
             <ProGate feature="Session Journal" onUpgrade={onShowPaywall} inline />
-          </Card>
+          </CollapsibleCard>
         )}
 
         {/* Cancellation info */}
@@ -571,8 +580,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         )}
 
         {/* Actions */}
-        <Card>
-          <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Actions</p>
+        <CollapsibleCard label="Actions" id="actions" expanded={expanded} toggle={toggle}>
+          <div className="pt-1">
 
           {/* Advance Status */}
           {next && (
@@ -630,12 +639,12 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <span className="text-sm font-medium text-red-500">Delete Booking</span>
             </button>
           )}
-        </Card>
+          </div>
+        </CollapsibleCard>
 
         {/* Timestamps */}
-        <Card>
-          <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Timeline</p>
-          <div className="space-y-1.5">
+        <CollapsibleCard label="Timeline" id="timeline" expanded={expanded} toggle={toggle}>
+          <div className="space-y-1.5 pt-1">
             <div className="flex justify-between">
               <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Created</span>
               <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
@@ -659,7 +668,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               </div>
             )}
           </div>
-        </Card>
+        </CollapsibleCard>
       </div>
 
       {/* Confirm Dialogs */}

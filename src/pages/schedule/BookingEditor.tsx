@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, ChevronRight, User, UserPlus, Search, AlertTriangle, Plus, ChevronLeft } from 'lucide-react'
+import { Check, ChevronRight, User, UserPlus, Search, AlertTriangle, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, createBooking, createClient, formatCurrency, recordBookingPayment, completeBookingPayment } from '../../db'
 import { Modal } from '../../components/Modal'
+import { CollapsibleCard, useAccordion } from '../../components/CollapsibleCard'
 import { showToast } from '../../components/Toast'
-import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
+import { FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
 import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../../utils/availability'
@@ -65,7 +66,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const [showClientPicker, setShowClientPicker] = useState(false)
   const [clientSearch, setClientSearch] = useState('')
   const [userEditedDeposit, setUserEditedDeposit] = useState(isEditing || !!rebookFrom)
-  const [showOptional, setShowOptional] = useState(false)
+  const { expanded, toggle } = useAccordion(['datetime', 'duration', 'location'])
 
   // Inline new client state
   const [showNewClient, setShowNewClient] = useState(false)
@@ -113,7 +114,6 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       setShowClientPicker(false)
       setClientSearch('')
       setUserEditedDeposit(!!booking || !!rebookFrom)
-      setShowOptional(false)
       setShowNewClient(false)
       setNewClientAlias('')
       setNewClientPhone('')
@@ -351,9 +351,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         </button>
       }
     >
-      <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <div className="px-4 py-2 space-y-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         {/* ━━━ Client ━━━ */}
-        <SectionLabel label="Client" />
+        <p className="text-xs font-semibold uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>Client</p>
         <div className="mb-3">
           <button
             type="button"
@@ -562,161 +562,174 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         )}
 
         {/* ━━━ Date & Time ━━━ */}
-        <FieldDateTime label="Date & Time" value={dateTime} onChange={setDateTime} />
-
-        {/* ━━━ Duration ━━━ */}
-        <SectionLabel label="Duration" />
-
-        {/* Service rate quick-select buttons */}
-        {serviceRates.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-2">
-            {serviceRates.map(rate => (
-              <button key={rate.id} type="button"
-                onClick={() => selectServiceRate(rate.duration, rate.rate)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  duration === rate.duration && !customDuration ? 'bg-purple-500/20 text-purple-500' : ''
-                }`}
-                style={duration !== rate.duration || customDuration
-                  ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' } : {}}>
-                <div className="font-bold">
-                  {`${Math.round((rate.duration / 60) * 100) / 100}h`}
-                </div>
-                <div className="text-xs opacity-70">{formatCurrency(rate.rate)}</div>
-              </button>
-            ))}
-            <button type="button" onClick={() => setCustomDuration(true)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium ${customDuration ? 'bg-purple-500/20 text-purple-500' : ''}`}
-              style={!customDuration ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' } : {}}>
-              Custom</button>
+        <CollapsibleCard label="Date & Time" id="datetime" expanded={expanded} toggle={toggle}
+          preview={<span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            {dateTime ? format(new Date(dateTime), 'MMM d, h:mm a') : ''}
+          </span>}>
+          <div className="pt-1">
+            <FieldDateTime label="Date & Time" value={dateTime} onChange={setDateTime} />
           </div>
-        )}
+        </CollapsibleCard>
 
-        {/* Custom / manual duration input */}
-        {(customDuration || serviceRates.length === 0) && (
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Hours</span>
-            <input type="text" inputMode="decimal"
-              value={duration === 0 ? '' : String(Math.round((duration / 60) * 100) / 100)}
-              onChange={e => {
-                const raw = e.target.value.replace(/[^0-9.]/g, '')
-                if (raw === '' || raw === '.') { setDuration(0); return }
-                const val = parseFloat(raw)
-                if (!isNaN(val)) setDuration(Math.round(val * 60))
-              }}
-              placeholder="0" className="flex-1 px-3 py-2.5 rounded-lg text-sm outline-none"
-              style={fieldInputStyle} />
+        {/* ━━━ Duration & Pricing ━━━ */}
+        <CollapsibleCard label="Duration & Pricing" id="duration" expanded={expanded} toggle={toggle}
+          preview={total > 0 ? <span className="text-sm font-bold text-green-500">{formatCurrency(total)}</span> : undefined}>
+          <div className="pt-1">
+
+          {/* Service rate quick-select buttons */}
+          {serviceRates.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {serviceRates.map(rate => (
+                <button key={rate.id} type="button"
+                  onClick={() => selectServiceRate(rate.duration, rate.rate)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    duration === rate.duration && !customDuration ? 'bg-purple-500/20 text-purple-500' : ''
+                  }`}
+                  style={duration !== rate.duration || customDuration
+                    ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' } : {}}>
+                  <div className="font-bold">
+                    {`${Math.round((rate.duration / 60) * 100) / 100}h`}
+                  </div>
+                  <div className="text-xs opacity-70">{formatCurrency(rate.rate)}</div>
+                </button>
+              ))}
+              <button type="button" onClick={() => setCustomDuration(true)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium ${customDuration ? 'bg-purple-500/20 text-purple-500' : ''}`}
+                style={!customDuration ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' } : {}}>
+                Custom</button>
+            </div>
+          )}
+
+          {/* Custom / manual duration input */}
+          {(customDuration || serviceRates.length === 0) && (
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Hours</span>
+              <input type="text" inputMode="decimal"
+                value={duration === 0 ? '' : String(Math.round((duration / 60) * 100) / 100)}
+                onChange={e => {
+                  const raw = e.target.value.replace(/[^0-9.]/g, '')
+                  if (raw === '' || raw === '.') { setDuration(0); return }
+                  const val = parseFloat(raw)
+                  if (!isNaN(val)) setDuration(Math.round(val * 60))
+                }}
+                placeholder="0" className="flex-1 px-3 py-2.5 rounded-lg text-sm outline-none"
+                style={fieldInputStyle} />
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <div className="flex-1"><FieldCurrency label="Base Rate" value={baseRate} onChange={setBaseRate} /></div>
+            <div className="flex-1"><FieldCurrency label="Extras" value={extras} onChange={setExtras} /></div>
           </div>
-        )}
 
-        {/* ━━━ Pricing ━━━ */}
-        <SectionLabel label="Pricing" />
-        <div className="flex gap-3">
-          <div className="flex-1"><FieldCurrency label="Base Rate" value={baseRate} onChange={setBaseRate} /></div>
-          <div className="flex-1"><FieldCurrency label="Extras" value={extras} onChange={setExtras} /></div>
-        </div>
+          {/* Total */}
+          {total > 0 && (
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
+              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Total</span>
+              <span className="text-lg font-bold text-green-500">{formatCurrency(total)}</span>
+            </div>
+          )}
+
+          </div>
+        </CollapsibleCard>
 
         {/* ━━━ Location ━━━ */}
-        <SectionLabel label="Location" />
-        <FieldSelect label="Type" value={locationType} options={locationTypes} onChange={v => {
-          setLocationType(v as LocationType)
-          if (v !== 'Incall') { setVenueId(''); setVenueName('') }
-        }}
-          hint="Incall = your place. Outcall = their place. Travel = out of town. Virtual = online." />
-        {locationType === 'Incall' && (
-          <>
-            <button
-              onClick={() => setShowVenuePicker(true)}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg mb-1"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
-              <span className="text-sm" style={{ color: venueName ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                {venueName || 'Choose from Incall Book...'}
-              </span>
-              <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
-            </button>
-            {venueId && (
+        <CollapsibleCard label="Location" id="location" expanded={expanded} toggle={toggle}
+          preview={<span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{locationType}</span>}>
+          <div className="pt-1">
+          <FieldSelect label="Type" value={locationType} options={locationTypes} onChange={v => {
+            setLocationType(v as LocationType)
+            if (v !== 'Incall') { setVenueId(''); setVenueName('') }
+          }}
+            hint="Incall = your place. Outcall = their place. Travel = out of town. Virtual = online." />
+          {locationType === 'Incall' && (
+            <>
               <button
-                onClick={() => { setVenueId(''); setVenueName(''); setLocationAddress('') }}
-                className="text-xs text-purple-500 mb-1 px-1"
+                onClick={() => setShowVenuePicker(true)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg mb-1"
+                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
               >
-                Clear venue
+                <span className="text-sm" style={{ color: venueName ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                  {venueName || 'Choose from Incall Book...'}
+                </span>
+                <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
               </button>
-            )}
-            <FieldTextInput label="Address" value={locationAddress} onChange={setLocationAddress} placeholder="Address (auto-filled from venue)" />
-          </>
-        )}
-        {(locationType === 'Outcall' || locationType === 'Travel') && (
-          <>
-            <FieldTextInput label="Address" value={locationAddress} onChange={setLocationAddress} placeholder="Address" />
-            <FieldCurrency label="Travel Fee" value={travelFee} onChange={setTravelFee} />
-          </>
-        )}
-        <FieldTextInput label="Location Notes" value={locationNotes} onChange={setLocationNotes}
-          placeholder="Room number, parking info, gate code..." />
-
-        {/* Total */}
-        {total > 0 && (
-          <div className="flex items-center justify-between mb-3 px-3 py-2.5 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
-            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Total</span>
-            <span className="text-lg font-bold text-green-500">{formatCurrency(total)}</span>
+              {venueId && (
+                <button
+                  onClick={() => { setVenueId(''); setVenueName(''); setLocationAddress('') }}
+                  className="text-xs text-purple-500 mb-1 px-1"
+                >
+                  Clear venue
+                </button>
+              )}
+              <FieldTextInput label="Address" value={locationAddress} onChange={setLocationAddress} placeholder="Address (auto-filled from venue)" />
+            </>
+          )}
+          {(locationType === 'Outcall' || locationType === 'Travel') && (
+            <>
+              <FieldTextInput label="Address" value={locationAddress} onChange={setLocationAddress} placeholder="Address" />
+              <FieldCurrency label="Travel Fee" value={travelFee} onChange={setTravelFee} />
+            </>
+          )}
+          <FieldTextInput label="Location Notes" value={locationNotes} onChange={setLocationNotes}
+            placeholder="Room number, parking info, gate code..." />
           </div>
-        )}
+        </CollapsibleCard>
 
         {/* ━━━ Deposit ━━━ */}
-        <SectionLabel label="Deposit" />
-        <FieldCurrency label="Deposit Amount" value={depositAmount}
-          onChange={v => { setDepositAmount(v); setUserEditedDeposit(true) }}
-          hint={defaultDepositType === 'flat' ? `Default flat deposit.` : `Auto-calculated at ${defaultDepositPct}% of base rate.`} />
-        {depositAmount > 0 && !isEditing && (
-          <FieldToggle label="Deposit Received" value={depositReceived} onChange={setDepositReceived}
-            hint="Manage deposit payments from the booking detail page after creation." />
-        )}
+        <CollapsibleCard label="Deposit" id="deposit" expanded={expanded} toggle={toggle}
+          preview={depositAmount > 0 ? <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(depositAmount)}</span> : undefined}>
+          <div className="pt-1">
+          <FieldCurrency label="Deposit Amount" value={depositAmount}
+            onChange={v => { setDepositAmount(v); setUserEditedDeposit(true) }}
+            hint={defaultDepositType === 'flat' ? `Default flat deposit.` : `Auto-calculated at ${defaultDepositPct}% of base rate.`} />
+          {depositAmount > 0 && !isEditing && (
+            <FieldToggle label="Deposit Received" value={depositReceived} onChange={setDepositReceived}
+              hint="Manage deposit payments from the booking detail page after creation." />
+          )}
+          </div>
+        </CollapsibleCard>
 
-        {/* ━━━ Status ━━━ */}
-        <SectionLabel label="Status & Payment" />
-        <FieldSelect label="Booking Status" value={status} options={bookingStatuses} onChange={setStatus}
-          hint="Track the booking through its lifecycle." />
-        <FieldSelect label="Payment Method" value={paymentMethod || '' as PaymentMethod}
-          options={['', ...paymentMethods] as PaymentMethod[]}
-          onChange={v => setPaymentMethod(v || '')}
-          displayFn={(v: string) => v || 'Not set'} />
+        {/* ━━━ Status & Payment ━━━ */}
+        <CollapsibleCard label="Status & Payment" id="status" expanded={expanded} toggle={toggle}
+          badge={<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{
+            backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7',
+          }}>{status}</span>}>
+          <div className="pt-1">
+          <FieldSelect label="Booking Status" value={status} options={bookingStatuses} onChange={setStatus}
+            hint="Track the booking through its lifecycle." />
+          <FieldSelect label="Payment Method" value={paymentMethod || '' as PaymentMethod}
+            options={['', ...paymentMethods] as PaymentMethod[]}
+            onChange={v => setPaymentMethod(v || '')}
+            displayFn={(v: string) => v || 'Not set'} />
+          </div>
+        </CollapsibleCard>
 
-        {/* ━━━ Optional ━━━ */}
-        <button type="button" onClick={() => setShowOptional(!showOptional)}
-          className="flex items-center gap-2 mb-3 mt-2 text-xs font-semibold active:opacity-70"
-          style={{ color: '#a855f7' }}>
-          {showOptional ? <ChevronLeft size={14} /> : <Plus size={14} />}
-          {showOptional ? 'Hide' : 'Show'} additional options
-        </button>
+        {/* ━━━ Safety, Recurrence & Notes ━━━ */}
+        <CollapsibleCard label="Safety & Options" id="options" expanded={expanded} toggle={toggle}>
+          <div className="pt-1">
+          <FieldToggle label="Safety Check-In" value={requiresSafetyCheck}
+            onChange={v => {
+              if (!v && selectedClient) {
+                const forceOn = selectedClient.riskLevel === 'High Risk' || selectedClient.riskLevel === 'Unknown'
+                if (forceOn) return
+              }
+              setRequiresSafetyCheck(v)
+            }}
+            disabled={!!selectedClient && (selectedClient.riskLevel === 'High Risk' || selectedClient.riskLevel === 'Unknown')}
+            hint={selectedClient && (selectedClient.riskLevel === 'High Risk' || selectedClient.riskLevel === 'Unknown')
+              ? 'Required for unknown or high-risk clients.'
+              : 'Get a reminder to check in with your safety contact.'} />
 
-        {showOptional && (
-          <>
-            <SectionLabel label="Safety" />
-            <FieldToggle label="Safety Check-In" value={requiresSafetyCheck}
-              onChange={v => {
-                if (!v && selectedClient) {
-                  const forceOn = selectedClient.riskLevel === 'High Risk' || selectedClient.riskLevel === 'Unknown'
-                  if (forceOn) return
-                }
-                setRequiresSafetyCheck(v)
-              }}
-              disabled={!!selectedClient && (selectedClient.riskLevel === 'High Risk' || selectedClient.riskLevel === 'Unknown')}
-              hint={selectedClient && (selectedClient.riskLevel === 'High Risk' || selectedClient.riskLevel === 'Unknown')
-                ? 'Required for unknown or high-risk clients.'
-                : 'Get a reminder to check in with your safety contact.'} />
+          <FieldSelect label="Recurrence" value={recurrence} options={recurrenceOptions} onChange={setRecurrence}
+            displayFn={(v: string) => v === 'none' ? 'None' : v === 'weekly' ? 'Weekly' : v === 'biweekly' ? 'Every 2 Weeks' : 'Monthly'}
+            hint="A new booking will auto-create when this one completes." />
 
-            <SectionLabel label="Repeat" />
-            <FieldSelect label="Recurrence" value={recurrence} options={recurrenceOptions} onChange={setRecurrence}
-              displayFn={(v: string) => v === 'none' ? 'None' : v === 'weekly' ? 'Weekly' : v === 'biweekly' ? 'Every 2 Weeks' : 'Monthly'}
-              hint="A new booking will auto-create when this one completes." />
-
-            <SectionLabel label="Notes" />
-            <FieldTextArea label="Booking Notes" value={notes} onChange={setNotes}
-              placeholder="General notes about this booking…"
-              hint="Private notes visible only to you." />
-
-          </>
-        )}
+          <FieldTextArea label="Booking Notes" value={notes} onChange={setNotes}
+            placeholder="General notes about this booking…"
+            hint="Private notes visible only to you." />
+          </div>
+        </CollapsibleCard>
 
         {/* Save Button */}
         <div className="py-4">

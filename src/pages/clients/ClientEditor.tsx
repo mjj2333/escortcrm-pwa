@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { Check, User, UserCheck, ShieldCheck, Heart, ShieldAlert, Share2, Cake, CalendarDays, MapPin, StickyNote } from 'lucide-react'
 import { db, createClient, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../../db'
 import { Modal } from '../../components/Modal'
+import { CollapsibleCard, useAccordion } from '../../components/CollapsibleCard'
 import { showToast } from '../../components/Toast'
-import { SectionLabel, FieldHint, FieldTextInput, FieldTextArea, FieldDate, fieldInputStyle } from '../../components/FormFields'
+import { FieldTextInput, FieldTextArea, FieldDate, fieldInputStyle } from '../../components/FormFields'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { TagPicker } from '../../components/TagPicker'
 import { ScreeningProofManager } from '../../components/ScreeningProofManager'
@@ -70,7 +71,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
   const [referenceSource, setReferenceSource] = useState('')
   const [verificationNotes, setVerificationNotes] = useState('')
   const [tags, setTags] = useState<ClientTag[]>([])
-
+  const { expanded, toggle } = useAccordion(['contact', 'screening', 'risk'])
   const fieldMap: Record<string, { value: string; set: (v: string) => void }> = {
     phone: { value: phone, set: setPhone },
     email: { value: email, set: setEmail },
@@ -196,24 +197,34 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         </button>
       }
     >
-      <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <div className="px-4 py-2 space-y-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
 
-        {/* ━━━ Basic Info ━━━ */}
-        <SectionLabel label="Basic Info" />
+        {/* ━━━ Name (always visible, required) ━━━ */}
         <FieldTextInput label="Name" value={alias} onChange={setAlias} placeholder="Name" required
           icon={<User size={12} />} />
-        <FieldTextInput label="Nickname or Preferred Name" value={nickname} onChange={setNickname}
-          placeholder="Optional" icon={<UserCheck size={12} />} />
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          <FieldDate label="Birthday" value={birthday} onChange={setBirthday} icon={<Cake size={12} />} />
-          <FieldDate label="Client Since" value={clientSince} onChange={setClientSince} icon={<CalendarDays size={12} />} />
-        </div>
-        <FieldTextInput label="Address" value={address} onChange={setAddress}
-          placeholder="Physical address (for outcalls)" icon={<MapPin size={12} />} />
+
+        {/* ━━━ Personal Details ━━━ */}
+        <CollapsibleCard label="Personal Details" id="personal" expanded={expanded} toggle={toggle}
+          preview={nickname ? <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{nickname}</span> : undefined}>
+          <div className="pt-1">
+          <FieldTextInput label="Nickname or Preferred Name" value={nickname} onChange={setNickname}
+            placeholder="Optional" icon={<UserCheck size={12} />} />
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <FieldDate label="Birthday" value={birthday} onChange={setBirthday} icon={<Cake size={12} />} />
+            <FieldDate label="Client Since" value={clientSince} onChange={setClientSince} icon={<CalendarDays size={12} />} />
+          </div>
+          <FieldTextInput label="Address" value={address} onChange={setAddress}
+            placeholder="Physical address (for outcalls)" icon={<MapPin size={12} />} />
+          </div>
+        </CollapsibleCard>
 
         {/* ━━━ Contact ━━━ */}
-        <SectionLabel label="Contact" />
-        <div className="mb-1">
+        <CollapsibleCard label="Contact" id="contact" expanded={expanded} toggle={toggle}
+          badge={<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}>
+            {primaryContact}
+          </span>}>
+          <div className="pt-1">
+          <div className="mb-1">
           <label className="text-[11px] font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>Primary Contact</label>
           <select
             value={primaryContact}
@@ -244,10 +255,17 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           </select>
         </div>
         {secondaryContact && <ContactInput method={secondaryContact as ContactMethod} />}
+          </div>
+        </CollapsibleCard>
 
         {/* ━━━ Screening ━━━ */}
-        <SectionLabel label="Screening" />
-        <div className="grid grid-cols-2 gap-2 mb-3">
+        <CollapsibleCard label="Screening" id="screening" expanded={expanded} toggle={toggle}
+          badge={<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{
+            backgroundColor: screeningStatus === 'Screened' ? 'rgba(34,197,94,0.15)' : screeningStatus === 'In Progress' ? 'rgba(59,130,246,0.15)' : 'rgba(249,115,22,0.15)',
+            color: screeningStatus === 'Screened' ? '#22c55e' : screeningStatus === 'In Progress' ? '#3b82f6' : '#f59e0b',
+          }}>{screeningStatus}</span>}>
+          <div className="pt-1">
+          <div className="grid grid-cols-2 gap-2 mb-3">
           <div>
             <label className="text-[11px] font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>Status</label>
             <select value={screeningStatus} onChange={e => setScreeningStatus(e.target.value as ScreeningStatus)}
@@ -272,44 +290,64 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           <div className="mb-3">
             <ScreeningProofManager clientId={client.id} editable />
           </div>
-        )}
+          </div>
+          </div>
+        </CollapsibleCard>
 
         {/* ━━━ Risk Level ━━━ */}
-        <SectionLabel label="Risk Level" />
-        <div className="mb-3">
-          <RiskLevelBar value={riskLevel} onChange={setRiskLevel} />
-        </div>
+        <CollapsibleCard label="Risk Level" id="risk" expanded={expanded} toggle={toggle}
+          preview={riskLevel !== 'Unknown' ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{
+            backgroundColor: riskLevel === 'Low Risk' ? 'rgba(34,197,94,0.15)' : riskLevel === 'Medium Risk' ? 'rgba(249,115,22,0.15)' : 'rgba(239,68,68,0.15)',
+            color: riskLevel === 'Low Risk' ? '#22c55e' : riskLevel === 'Medium Risk' ? '#f59e0b' : '#ef4444',
+          }}>{riskLevel}</span> : undefined}>
+          <div className="pt-1">
+            <RiskLevelBar value={riskLevel} onChange={setRiskLevel} />
+          </div>
+        </CollapsibleCard>
 
         {/* ━━━ Tags ━━━ */}
-        <SectionLabel label="Tags" optional />
-        <div className="mb-3">
-          <TagPicker selected={tags} onChange={setTags} />
-        </div>
+        <CollapsibleCard label="Tags" id="tags" expanded={expanded} toggle={toggle}
+          preview={tags.length > 0 ? <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{tags.length} tag{tags.length !== 1 ? 's' : ''}</span> : undefined}>
+          <div className="pt-1">
+            <TagPicker selected={tags} onChange={setTags} />
+          </div>
+        </CollapsibleCard>
 
         {/* ━━━ Preferences & Boundaries ━━━ */}
-        <SectionLabel label="Preferences & Boundaries" optional />
-        <FieldTextArea label="Preferences" value={preferences} onChange={setPreferences}
-          placeholder="Likes, requests..." icon={<Heart size={12} />} />
-        <FieldTextArea label="Boundaries" value={boundaries} onChange={setBoundaries}
-          placeholder="Hard limits, boundaries..." icon={<ShieldAlert size={12} />} />
+        <CollapsibleCard label="Preferences & Boundaries" id="prefs" expanded={expanded} toggle={toggle}
+          preview={(preferences || boundaries) ? <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>✓</span> : undefined}>
+          <div className="pt-1">
+          <FieldTextArea label="Preferences" value={preferences} onChange={setPreferences}
+            placeholder="Likes, requests..." icon={<Heart size={12} />} />
+          <FieldTextArea label="Boundaries" value={boundaries} onChange={setBoundaries}
+            placeholder="Hard limits, boundaries..." icon={<ShieldAlert size={12} />} />
+          </div>
+        </CollapsibleCard>
 
         {/* ━━━ General Notes ━━━ */}
-        <SectionLabel label="General Notes" optional />
-        <FieldTextArea label="Notes" value={notes} onChange={setNotes}
-          placeholder="Any other notes about this client..." icon={<StickyNote size={12} />} />
+        <CollapsibleCard label="General Notes" id="notes" expanded={expanded} toggle={toggle}
+          preview={notes ? <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>✓</span> : undefined}>
+          <div className="pt-1">
+          <FieldTextArea label="Notes" value={notes} onChange={setNotes}
+            placeholder="Any other notes about this client..." icon={<StickyNote size={12} />} />
+          </div>
+        </CollapsibleCard>
 
         {/* ━━━ Screening & Referral ━━━ */}
-        <SectionLabel label="Screening & Referral" optional />
-        <FieldTextInput label="Referral Source" value={referenceSource} onChange={setReferenceSource}
-          placeholder="How they found you" icon={<Share2 size={12} />} />
-        <FieldTextArea label="Verification Notes" value={verificationNotes} onChange={setVerificationNotes}
-          placeholder="ID details, references..." icon={<ShieldCheck size={12} />} />
+        <CollapsibleCard label="Screening & Referral" id="referral" expanded={expanded} toggle={toggle}
+          preview={referenceSource ? <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{referenceSource}</span> : undefined}>
+          <div className="pt-1">
+          <FieldTextInput label="Referral Source" value={referenceSource} onChange={setReferenceSource}
+            placeholder="How they found you" icon={<Share2 size={12} />} />
+          <FieldTextArea label="Verification Notes" value={verificationNotes} onChange={setVerificationNotes}
+            placeholder="ID details, references..." icon={<ShieldCheck size={12} />} />
+          </div>
+        </CollapsibleCard>
 
         {/* ━━━ Other Contact Methods ━━━ */}
         {allContactFields.length > 0 && (
-          <>
-            <SectionLabel label="Other Contact Methods" optional />
-            <FieldHint text="Primary/secondary values are synced automatically." />
+          <CollapsibleCard label="Other Contact Methods" id="othercontact" expanded={expanded} toggle={toggle}>
+            <div className="pt-1">
             {allContactFields.map(f => {
               const fm = fieldMap[f.key]
               return (
@@ -326,7 +364,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
                 </div>
               )
             })}
-          </>
+            </div>
+          </CollapsibleCard>
         )}
 
         {/* Save button */}

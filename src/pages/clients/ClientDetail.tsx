@@ -12,6 +12,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { Card } from '../../components/Card'
+import { CollapsibleCard } from '../../components/CollapsibleCard'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { showUndoToast } from '../../components/Toast'
 import { ClientEditor } from './ClientEditor'
@@ -643,46 +644,6 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         onClose={() => setShowSendIntro(false)}
         client={client}
       />
-    </div>
-  )
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Collapsible Card
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-function CollapsibleCard({ label, id, expanded, toggle, children, badge, preview }: {
-  label: string
-  id: string
-  expanded: Set<string>
-  toggle: (id: string) => void
-  children: React.ReactNode
-  badge?: React.ReactNode
-  preview?: React.ReactNode
-}) {
-  const isOpen = expanded.has(id)
-  return (
-    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-      <button
-        onClick={() => toggle(id)}
-        className="flex items-center justify-between w-full px-3 py-2.5 active:opacity-70"
-      >
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>{label}</p>
-          {badge}
-        </div>
-        {!isOpen && preview && <div className="flex-shrink-0 ml-2">{preview}</div>}
-        <ChevronDown
-          size={14}
-          className="ml-1 shrink-0 transition-transform"
-          style={{ color: 'var(--text-secondary)', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        />
-      </button>
-      {isOpen && (
-        <div className="px-3 pb-3" style={{ borderTop: '1px solid var(--border)' }}>
-          {children}
-        </div>
-      )}
     </div>
   )
 }
