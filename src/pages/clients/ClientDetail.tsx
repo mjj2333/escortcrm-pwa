@@ -33,15 +33,16 @@ interface ClientDetailProps {
 }
 
 export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }: ClientDetailProps) {
-  const client = useLiveQuery(() => db.clients.get(clientId))
+  const [dbVersion, setDbVersion] = useState(0)
+  const client = useLiveQuery(() => db.clients.get(clientId), [clientId, dbVersion])
   const bookings = useLiveQuery(() =>
     db.bookings.where('clientId').equals(clientId).toArray()
-  ) ?? []
+  , [clientId, dbVersion]) ?? []
   const allPayments = useLiveQuery(async () => {
     const bIds = (await db.bookings.where('clientId').equals(clientId).toArray()).map(b => b.id)
     if (bIds.length === 0) return []
     return db.payments.where('bookingId').anyOf(bIds).toArray()
-  }, [clientId]) ?? []
+  }, [clientId, dbVersion]) ?? []
   const [showEditor, setShowEditor] = useState(false)
   const [showBookingEditor, setShowBookingEditor] = useState(false)
   const [showRebook, setShowRebook] = useState(false)
@@ -281,27 +282,26 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 value={client.screeningStatus}
                 onChange={async (e) => {
                   const newStatus = e.target.value as any
+                  const cid = client.id
+                  await db.clients.update(cid, { screeningStatus: newStatus })
 
-                  // Wrap in transaction so Dexie fires one atomic observation notification
-                  await db.transaction('rw', [db.clients, db.bookings], async () => {
-                    await db.clients.update(client.id, { screeningStatus: newStatus })
-
-                    // Auto-advance any "Screening" bookings when client becomes Screened
-                    if (newStatus === 'Screened') {
-                      const screeningBookings = await db.bookings
-                        .where('clientId').equals(client.id)
-                        .filter(b => b.status === 'Screening')
-                        .toArray()
-                      for (const b of screeningBookings) {
-                        const nextStatus = (b.depositAmount ?? 0) > 0 && !b.depositReceived
-                          ? 'Pending Deposit' : 'Confirmed'
-                        await db.bookings.update(b.id, {
-                          status: nextStatus,
-                          ...(nextStatus === 'Confirmed' ? { confirmedAt: new Date() } : {}),
-                        })
-                      }
+                  // Auto-advance any "Screening" bookings when client becomes Screened
+                  // Uses same pattern as useAutoStatusTransitions (full scan + individual update)
+                  if (newStatus === 'Screened') {
+                    const allBookings = await db.bookings.toArray()
+                    const toAdvance = allBookings.filter(b => b.clientId === cid && b.status === 'Screening')
+                    for (const b of toAdvance) {
+                      const next = (b.depositAmount ?? 0) > 0 && !b.depositReceived
+                        ? 'Pending Deposit' as const : 'Confirmed' as const
+                      await db.bookings.update(b.id, {
+                        status: next,
+                        ...(next === 'Confirmed' ? { confirmedAt: new Date() } : {}),
+                      })
                     }
-                  })
+                  }
+
+                  // Force all useLiveQuery hooks to re-evaluate
+                  setDbVersion(v => v + 1)
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
                 style={{
