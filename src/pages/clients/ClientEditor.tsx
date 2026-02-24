@@ -290,7 +290,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           <div className="mb-3">
             <ScreeningProofManager clientId={client.id} editable />
           </div>
-          </div>
+        )}
           </div>
         </CollapsibleCard>
 
