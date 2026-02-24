@@ -115,7 +115,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   }
 
   async function confirmDelete() {
-    // Snapshot everything before deletion for undo
+    // Snapshot everything before deletion for undo (outside transaction — read-only)
     const clientSnap = await db.clients.get(clientId)
     const bookingSnaps = await db.bookings.where('clientId').equals(clientId).toArray()
     const bookingIds = bookingSnaps.map(b => b.id)
@@ -126,17 +126,22 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     const journalSnaps = await db.journalEntries.where('clientId').equals(clientId).toArray()
     const screeningDocSnaps = await db.screeningDocs.where('clientId').equals(clientId).toArray()
 
-    // Execute cascade delete
-    for (const bid of bookingIds) {
-      await db.payments.where('bookingId').equals(bid).delete()
-      await db.transactions.where('bookingId').equals(bid).delete()
-      await db.safetyChecks.where('bookingId').equals(bid).delete()
-    }
-    await db.bookings.where('clientId').equals(clientId).delete()
-    await db.incidents.where('clientId').equals(clientId).delete()
-    await db.journalEntries.where('clientId').equals(clientId).delete()
-    await db.screeningDocs.where('clientId').equals(clientId).delete()
-    await db.clients.delete(clientId)
+    // Execute cascade delete atomically
+    await db.transaction('rw',
+      [db.clients, db.bookings, db.payments, db.transactions, db.safetyChecks, db.incidents, db.journalEntries, db.screeningDocs],
+      async () => {
+        for (const bid of bookingIds) {
+          await db.payments.where('bookingId').equals(bid).delete()
+          await db.transactions.where('bookingId').equals(bid).delete()
+          await db.safetyChecks.where('bookingId').equals(bid).delete()
+        }
+        await db.bookings.where('clientId').equals(clientId).delete()
+        await db.incidents.where('clientId').equals(clientId).delete()
+        await db.journalEntries.where('clientId').equals(clientId).delete()
+        await db.screeningDocs.where('clientId').equals(clientId).delete()
+        await db.clients.delete(clientId)
+      },
+    )
     setShowDeleteConfirm(false)
     onBack()
 

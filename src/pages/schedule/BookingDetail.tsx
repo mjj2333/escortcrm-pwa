@@ -103,18 +103,24 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   }
 
   async function deleteBooking() {
-    // Snapshot everything before deletion for undo
+    // Snapshot everything before deletion for undo (outside transaction — read-only)
     const bookingSnap = await db.bookings.get(bookingId)
     const paymentsSnap = await db.payments.where('bookingId').equals(bookingId).toArray()
     const txnsSnap = await db.transactions.where('bookingId').equals(bookingId).toArray()
     const checksSnap = await db.safetyChecks.where('bookingId').equals(bookingId).toArray()
     const journalSnaps = await db.journalEntries.where('bookingId').equals(bookingId).toArray()
 
-    await db.payments.where('bookingId').equals(bookingId).delete()
-    await db.transactions.where('bookingId').equals(bookingId).delete()
-    await db.safetyChecks.where('bookingId').equals(bookingId).delete()
-    await db.journalEntries.where('bookingId').equals(bookingId).delete()
-    await db.bookings.delete(bookingId)
+    // Execute cascade delete atomically
+    await db.transaction('rw',
+      [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries],
+      async () => {
+        await db.payments.where('bookingId').equals(bookingId).delete()
+        await db.transactions.where('bookingId').equals(bookingId).delete()
+        await db.safetyChecks.where('bookingId').equals(bookingId).delete()
+        await db.journalEntries.where('bookingId').equals(bookingId).delete()
+        await db.bookings.delete(bookingId)
+      },
+    )
     setConfirmAction(null)
     onBack()
 
