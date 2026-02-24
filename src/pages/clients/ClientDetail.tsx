@@ -7,7 +7,7 @@ import {
   ChevronDown, MapPin, Send, StickyNote
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { db, formatCurrency, bookingTotal, bookingDurationFormatted, downgradeBookingsOnUnscreen } from '../../db'
+import { db, formatCurrency, bookingTotal, bookingDurationFormatted, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { VerifiedBadge } from '../../components/VerifiedBadge'
@@ -287,6 +287,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                   // Run in a detached async context so React re-renders can't kill it
                   ;(async () => {
                     await db.clients.update(cid, { screeningStatus: newStatus })
+                    await advanceBookingsOnScreen(cid, oldStatus, newStatus)
                     await downgradeBookingsOnUnscreen(cid, oldStatus, newStatus)
                   })()
                 }}

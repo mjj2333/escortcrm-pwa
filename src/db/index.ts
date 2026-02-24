@@ -388,6 +388,30 @@ export async function downgradeBookingsOnUnscreen(
   return toDowngrade.length
 }
 
+/**
+ * When a client becomes Screened, advance their "To Be Confirmed" bookings:
+ * → "Pending Deposit" if deposit is required and not yet received
+ * → "Confirmed" otherwise
+ */
+export async function advanceBookingsOnScreen(
+  clientId: string,
+  oldStatus: ScreeningStatus,
+  newStatus: ScreeningStatus,
+): Promise<number> {
+  if (newStatus !== 'Screened' || oldStatus === 'Screened') return 0
+  const bookings = await db.bookings.where('clientId').equals(clientId).toArray()
+  const toAdvance = bookings.filter(b => b.status === 'To Be Confirmed')
+  for (const b of toAdvance) {
+    const nextSt: BookingStatus = (b.depositAmount ?? 0) > 0 && !b.depositReceived
+      ? 'Pending Deposit' : 'Confirmed'
+    await db.bookings.update(b.id, {
+      status: nextSt,
+      ...(nextSt === 'Confirmed' ? { confirmedAt: new Date() } : {}),
+    })
+  }
+  return toAdvance.length
+}
+
 // Helper: currency setting
 export const CURRENCY_KEY = 'currency'
 export const DEFAULT_CURRENCY = 'USD'

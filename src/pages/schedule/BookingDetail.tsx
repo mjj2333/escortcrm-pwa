@@ -6,7 +6,7 @@ import {
   ChevronRight, Trash2, Plus, DollarSign
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, completeBookingPayment, recordBookingPayment, removeBookingPayment } from '../../db'
+import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, completeBookingPayment, recordBookingPayment, removeBookingPayment, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
 import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -74,7 +74,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const total = bookingTotal(booking)
   const endTime = bookingEndTime(booking)
   const isTerminal = ['Completed', 'Cancelled', 'No Show'].includes(booking.status)
-  const next = nextStatus[booking.status]
+  const clientIsScreened = client?.screeningStatus === 'Screened'
+  // Block advancement past "To Be Confirmed" until client is screened
+  const next = (booking.status === 'To Be Confirmed' && !clientIsScreened)
+    ? undefined
+    : nextStatus[booking.status]
 
   const totalPaid = (payments ?? []).reduce((sum, p) => sum + p.amount, 0)
   const balance = total - totalPaid
@@ -406,7 +410,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <select
                 value={client.screeningStatus}
                 onChange={async (e) => {
-                  await db.clients.update(client.id, { screeningStatus: e.target.value as any })
+                  const newStatus = e.target.value as any
+                  const oldStatus = client.screeningStatus
+                  await db.clients.update(client.id, { screeningStatus: newStatus })
+                  await advanceBookingsOnScreen(client.id, oldStatus, newStatus)
+                  await downgradeBookingsOnUnscreen(client.id, oldStatus, newStatus)
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
                 style={{
