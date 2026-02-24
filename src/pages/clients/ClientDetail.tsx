@@ -33,16 +33,15 @@ interface ClientDetailProps {
 }
 
 export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }: ClientDetailProps) {
-  const [dbVersion, setDbVersion] = useState(0)
-  const client = useLiveQuery(() => db.clients.get(clientId), [clientId, dbVersion])
+  const client = useLiveQuery(() => db.clients.get(clientId), [clientId])
   const bookings = useLiveQuery(() =>
     db.bookings.where('clientId').equals(clientId).toArray()
-  , [clientId, dbVersion]) ?? []
+  , [clientId]) ?? []
   const allPayments = useLiveQuery(async () => {
     const bIds = (await db.bookings.where('clientId').equals(clientId).toArray()).map(b => b.id)
     if (bIds.length === 0) return []
     return db.payments.where('bookingId').anyOf(bIds).toArray()
-  }, [clientId, dbVersion]) ?? []
+  }, [clientId]) ?? []
   const [showEditor, setShowEditor] = useState(false)
   const [showBookingEditor, setShowBookingEditor] = useState(false)
   const [showRebook, setShowRebook] = useState(false)
@@ -280,27 +279,28 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
               )}
               <select
                 value={client.screeningStatus}
-                onChange={async (e) => {
+                onChange={(e) => {
                   const newStatus = e.target.value as any
                   const cid = client.id
 
-                  // Advance bookings FIRST — before client update triggers useLiveQuery re-render
-                  if (newStatus === 'Screened') {
-                    const allBookings = await db.bookings.toArray()
-                    const toAdvance = allBookings.filter(b => b.clientId === cid && b.status === 'Screening')
-                    for (const b of toAdvance) {
-                      const next = (b.depositAmount ?? 0) > 0 && !b.depositReceived
-                        ? 'Pending Deposit' as const : 'Confirmed' as const
-                      await db.bookings.update(b.id, {
-                        status: next,
-                        ...(next === 'Confirmed' ? { confirmedAt: new Date() } : {}),
-                      })
+                  // Run in a detached async context so React re-renders can't kill it
+                  ;(async () => {
+                    // Advance bookings first
+                    if (newStatus === 'Screened') {
+                      const allBookings = await db.bookings.toArray()
+                      const toAdvance = allBookings.filter(b => b.clientId === cid && b.status === 'Screening')
+                      for (const b of toAdvance) {
+                        const next = (b.depositAmount ?? 0) > 0 && !b.depositReceived
+                          ? 'Pending Deposit' as const : 'Confirmed' as const
+                        await db.bookings.update(b.id, {
+                          status: next,
+                          ...(next === 'Confirmed' ? { confirmedAt: new Date() } : {}),
+                        })
+                      }
                     }
-                  }
-
-                  // Now update client — this triggers re-render via useLiveQuery
-                  await db.clients.update(cid, { screeningStatus: newStatus })
-                  setDbVersion(v => v + 1)
+                    // Then update client
+                    await db.clients.update(cid, { screeningStatus: newStatus })
+                  })()
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
                 style={{
