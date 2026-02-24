@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RotateCcw, Database, MessageSquare, Users } from 'lucide-react'
+import { RotateCcw, Database, MessageSquare, Users, Share2, Download } from 'lucide-react'
 import { db } from '../../db'
 import { seedSampleData, clearSampleData } from '../../data/sampleData'
 import { Modal } from '../../components/Modal'
@@ -84,6 +84,58 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
   }
 
   const [resetting, setResetting] = useState(false)
+  const [shareFallback, setShareFallback] = useState<{
+    json: string; filename: string; email: string
+  } | null>(null)
+
+  /** Try to share a File via Web Share API. Returns true on success. */
+  async function tryWebShare(file: File): Promise<boolean> {
+    if (!navigator.share) return false
+
+    // Some Android browsers reject application/json but accept octet-stream
+    const candidates = [file]
+    if (file.type === 'application/json') {
+      candidates.push(new File([file], file.name, { type: 'application/octet-stream' }))
+    }
+
+    for (const f of candidates) {
+      if (!navigator.canShare?.({ files: [f] })) continue
+      try {
+        // NOTE: omit `text` — some Android email apps show text OR files, not both
+        await navigator.share({ files: [f] })
+        return true
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') throw err // user cancelled — propagate
+        console.warn('[reset] Web Share failed for MIME', f.type, err)
+      }
+    }
+    return false
+  }
+
+  /** Download a JSON string as a file (best-effort on mobile). */
+  function downloadJsonFile(json: string, filename: string) {
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  /** Wipe database and reload. */
+  async function executeWipe() {
+    await db.delete()
+    const preserveKeys = ['_cstate_v2', '_cstate_rv', LAST_BACKUP_KEY, BACKUP_REMINDER_INTERVAL_KEY]
+    const saved = preserveKeys.map(k => [k, localStorage.getItem(k)] as const)
+    localStorage.clear()
+    for (const [k, v] of saved) {
+      if (v !== null) localStorage.setItem(k, v)
+    }
+    window.location.reload()
+  }
 
   async function resetAllData() {
     setResetting(true)
@@ -101,66 +153,45 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
       const raw = localStorage.getItem('profileWorkEmail')
       const email = raw ? raw.replace(/^"|"$/g, '') : ''
 
-      // 3. Try Web Share API (works great on mobile — lets user pick email app)
-      let shared = false
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        try {
-          await navigator.share({
-            title: 'Companion Backup',
-            text: `Companion data backup — ${date}`,
-            files: [file],
-          })
-          shared = true
-        } catch (err) {
-          // User cancelled share — fall through to download+mailto
-          if ((err as Error).name === 'AbortError') {
-            setResetting(false)
-            showToast('Reset cancelled')
-            return
-          }
+      // 3. Try Web Share API — the only mobile path that actually attaches files
+      try {
+        const shared = await tryWebShare(file)
+        if (shared) {
+          recordBackupTimestamp()
+          showToast('Backup shared — wiping data...')
+          await new Promise(r => setTimeout(r, 500))
+          await executeWipe()
+          return
+        }
+      } catch (err) {
+        // AbortError = user cancelled the share sheet
+        if ((err as Error).name === 'AbortError') {
+          setResetting(false)
+          showToast('Reset cancelled')
+          return
         }
       }
 
-      // 4. Fallback: download file + open mailto
-      if (!shared) {
-        // Download backup file
-        const blob = new Blob([json], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
+      // 4. Web Share unavailable or failed — show manual share/download modal
+      //    Do NOT auto-download + mailto (mailto can't attach files)
+      setShareFallback({ json, filename, email })
+      setResetting(false)
 
-        // Open mailto with instructions
-        if (email) {
-          const subject = encodeURIComponent(`Companion Backup — ${date}`)
-          const body = encodeURIComponent(
-            `Your Companion data backup is attached.\n\nFile: ${filename}\nDate: ${date}\n\nIMPORTANT: Attach the downloaded backup file (${filename}) to this email before sending.`
-          )
-          window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank')
-          showToast('Backup downloaded — attach it to the email')
-        } else {
-          showToast('Backup downloaded (no email set in Profile)')
-        }
+    } catch (err) {
+      setResetting(false)
+      showToast(`Reset failed: ${(err as Error).message}`)
+    }
+  }
 
-        // Brief pause so user sees the download / mailto
-        await new Promise(r => setTimeout(r, 1500))
-      }
-
+  /** Called from share-fallback modal after user has saved the backup. */
+  async function proceedWithWipeAfterManualSave() {
+    setShareFallback(null)
+    setResetting(true)
+    try {
       recordBackupTimestamp()
-
-      // 5. Wipe everything
-      await db.delete()
-      const preserveKeys = ['_cstate_v2', '_cstate_rv', LAST_BACKUP_KEY, BACKUP_REMINDER_INTERVAL_KEY]
-      const saved = preserveKeys.map(k => [k, localStorage.getItem(k)] as const)
-      localStorage.clear()
-      for (const [k, v] of saved) {
-        if (v !== null) localStorage.setItem(k, v)
-      }
-      window.location.reload()
+      showToast('Wiping data...')
+      await new Promise(r => setTimeout(r, 500))
+      await executeWipe()
     } catch (err) {
       setResetting(false)
       showToast(`Reset failed: ${(err as Error).message}`)
@@ -428,13 +459,7 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
       <ConfirmDialog
         isOpen={showResetConfirm}
         title="Reset All Data"
-        message={(() => {
-          const raw = localStorage.getItem('profileWorkEmail')
-          const email = raw ? raw.replace(/^"|"$/g, '') : ''
-          return email
-            ? `A full backup will be created and sent to ${email} before wiping. This cannot be undone.`
-            : 'A backup file will be downloaded before wiping. Set an email in Profile to have it emailed automatically. This cannot be undone.'
-        })()}
+        message="A full backup will be created and you'll be able to share or download it before wiping. This cannot be undone."
         confirmLabel="Backup & Erase"
         onConfirm={resetAllData}
         onCancel={() => setShowResetConfirm(false)}
@@ -447,6 +472,85 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
         onConfirm={restoreSampleData}
         onCancel={() => setShowSampleConfirm(false)}
       />
+
+      {/* Share Fallback — shown when Web Share API unavailable/failed */}
+      {shareFallback && (
+        <Modal isOpen onClose={() => { setShareFallback(null); setResetting(false) }}>
+          <div className="p-5 space-y-4">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+              Save Your Backup
+            </h2>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              Your backup is ready. Save it before erasing — choose one option below:
+            </p>
+
+            <div className="space-y-2.5">
+              {/* Try Share again (some devices fail canShare but share works) */}
+              <button
+                type="button"
+                onClick={async () => {
+                  const file = new File(
+                    [shareFallback.json], shareFallback.filename,
+                    { type: 'application/octet-stream' },
+                  )
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({ files: [file] })
+                      proceedWithWipeAfterManualSave()
+                      return
+                    } catch { /* fall through */ }
+                  }
+                  showToast('Share not available — use Download instead')
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white"
+                style={{ backgroundColor: 'var(--purple)' }}
+              >
+                <Share2 size={16} /> Share to Email / Drive
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  downloadJsonFile(shareFallback.json, shareFallback.filename)
+                  showToast(`Saved ${shareFallback.filename}`)
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold"
+                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+              >
+                <Download size={16} /> Download File
+              </button>
+            </div>
+
+            {shareFallback.email && (
+              <p className="text-xs text-center" style={{ color: 'var(--text-tertiary)' }}>
+                Email on file: {shareFallback.email}
+              </p>
+            )}
+
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setShareFallback(null); setResetting(false) }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={proceedWithWipeAfterManualSave}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-red-500 border border-red-500/30"
+              >
+                Continue Reset
+              </button>
+            </div>
+
+            <p className="text-xs text-center" style={{ color: 'var(--text-tertiary)' }}>
+              ⚠️ Make sure your backup is saved before continuing
+            </p>
+          </div>
+        </Modal>
+      )}
     </>
   )
 }
