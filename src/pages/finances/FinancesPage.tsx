@@ -1463,7 +1463,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                           const depositPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).filter(p => p.label === 'Deposit').toArray())
                             .reduce((s, p) => s + p.amount, 0)
                           await db.bookings.update(paySnap.bookingId, {
-                            paymentReceived: allPaid >= (booking.baseRate + booking.extras + booking.travelFee),
+                            paymentReceived: allPaid >= bookingTotal(booking),
                             depositReceived: depositPaid >= booking.depositAmount,
                           })
                         }
