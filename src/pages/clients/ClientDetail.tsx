@@ -50,6 +50,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showMerge, setShowMerge] = useState(false)
   const [showSendIntro, setShowSendIntro] = useState(false)
+  const [showAllHistory, setShowAllHistory] = useState(false)
   const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: any; booking: any } | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const toggle = (key: string) => setExpanded(prev => {
@@ -542,7 +543,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         {/* Booking History */}
         {pastBookings.length > 0 && (
           <CollapsibleCard label={`History (${pastBookings.length})`} id="history" expanded={expanded} toggle={toggle}>
-            {pastBookings.slice(0, 10).map(b => (
+            {(showAllHistory ? pastBookings : pastBookings.slice(0, 10)).map(b => (
               <button key={b.id} onClick={() => onOpenBooking(b.id)}
                 className="flex items-center justify-between py-2 w-full text-left">
                 <div>
@@ -557,6 +558,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{formatCurrency(bookingTotal(b))}</span>
               </button>
             ))}
+            {pastBookings.length > 10 && (
+              <button
+                onClick={() => setShowAllHistory(v => !v)}
+                className="w-full text-center py-2 text-xs font-medium text-purple-500"
+              >
+                {showAllHistory ? 'Show less' : `Show all ${pastBookings.length} bookings`}
+              </button>
+            )}
           </CollapsibleCard>
         )}
 
