@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Check, User, UserCheck, ShieldCheck, Heart, ShieldAlert, Share2, Cake, CalendarDays, MapPin } from 'lucide-react'
+import { Check, User, UserCheck, ShieldCheck, Heart, ShieldAlert, Share2, Cake, CalendarDays, MapPin, StickyNote } from 'lucide-react'
 import { db, createClient } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
@@ -64,6 +64,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
   const [riskLevel, setRiskLevel] = useState<RiskLevel>('Unknown')
 
   // Details
+  const [notes, setNotes] = useState('')
   const [preferences, setPreferences] = useState('')
   const [boundaries, setBoundaries] = useState('')
   const [referenceSource, setReferenceSource] = useState('')
@@ -95,6 +96,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       setRiskLevel(client?.riskLevel ?? 'Unknown')
       setPreferences(client?.preferences ?? '')
       setBoundaries(client?.boundaries ?? '')
+      setNotes(client?.notes ?? '')
       setReferenceSource(client?.referenceSource ?? '')
       setVerificationNotes(client?.verificationNotes ?? '')
       setTags(client?.tags ?? [])
@@ -124,6 +126,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       riskLevel,
       preferences: preferences.trim(),
       boundaries: boundaries.trim(),
+      notes: notes.trim(),
       referenceSource: referenceSource.trim() || undefined,
       verificationNotes: verificationNotes.trim() || undefined,
       tags,
@@ -301,6 +304,11 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           placeholder="Likes, requests..." icon={<Heart size={12} />} />
         <FieldTextArea label="Boundaries" value={boundaries} onChange={setBoundaries}
           placeholder="Hard limits, boundaries..." icon={<ShieldAlert size={12} />} />
+
+        {/* ━━━ General Notes ━━━ */}
+        <SectionLabel label="General Notes" optional />
+        <FieldTextArea label="Notes" value={notes} onChange={setNotes}
+          placeholder="Any other notes about this client..." icon={<StickyNote size={12} />} />
 
         {/* ━━━ Screening & Referral ━━━ */}
         <SectionLabel label="Screening & Referral" optional />

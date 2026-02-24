@@ -4,7 +4,7 @@ import {
   ArrowLeft, Edit, Phone, MessageSquare, Mail, Copy, Check,
   Pin, PinOff, Gift, Heart, ChevronRight, Shield,
   ThumbsUp, ShieldAlert, Plus, RotateCcw, Trash2, Merge,
-  ChevronDown, MapPin, Send
+  ChevronDown, MapPin, Send, StickyNote
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted } from '../../db'
@@ -532,6 +532,21 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 </div>
               </div>
             )}
+          </CollapsibleCard>
+        )}
+
+        {/* General Notes */}
+        {client.notes && (
+          <CollapsibleCard label="General Notes" id="notes" expanded={expanded} toggle={toggle}>
+            <div className="flex gap-3 py-2">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                style={{ backgroundColor: 'rgba(168,85,247,0.12)' }}>
+                <StickyNote size={15} style={{ color: '#a855f7' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>{client.notes}</p>
+              </div>
+            </div>
           </CollapsibleCard>
         )}
 
