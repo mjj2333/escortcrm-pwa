@@ -404,50 +404,52 @@ export async function recordBookingPayment(opts: {
   notes?: string
 }): Promise<string> {
   const paymentId = newId()
-  await db.payments.add({
-    id: paymentId,
-    bookingId: opts.bookingId,
-    amount: opts.amount,
-    method: opts.method,
-    label: opts.label,
-    date: new Date(),
-    notes: opts.notes,
-  })
-  // Create matching income transaction
-  if (opts.amount > 0) {
-    await db.transactions.add({
-      id: newId(),
+  await db.transaction('rw', [db.payments, db.transactions, db.bookings], async () => {
+    await db.payments.add({
+      id: paymentId,
       bookingId: opts.bookingId,
-      paymentId,
       amount: opts.amount,
-      type: 'income',
-      category: opts.label === 'Tip' ? 'tip' : 'booking',
-      paymentMethod: opts.method,
+      method: opts.method,
+      label: opts.label,
       date: new Date(),
-      notes: opts.label === 'Cancellation Fee'
-        ? `Cancellation fee — ${opts.clientAlias ?? 'client'}`
-        : `${opts.label} — ${opts.clientAlias ?? 'client'}`,
+      notes: opts.notes,
     })
-  }
-  // Sync convenience booleans
-  const booking = await db.bookings.get(opts.bookingId)
-  if (booking) {
-    if (opts.label === 'Deposit') {
-      // Only mark deposit as received when total deposit payments cover the full deposit amount
-      const depositPayments = await db.payments
-        .where('bookingId').equals(opts.bookingId)
-        .filter(p => p.label === 'Deposit')
-        .toArray()
-      const totalDeposits = depositPayments.reduce((sum, p) => sum + p.amount, 0)
-      await db.bookings.update(opts.bookingId, {
-        depositReceived: totalDeposits >= booking.depositAmount,
+    // Create matching income transaction
+    if (opts.amount > 0) {
+      await db.transactions.add({
+        id: newId(),
+        bookingId: opts.bookingId,
+        paymentId,
+        amount: opts.amount,
+        type: 'income',
+        category: opts.label === 'Tip' ? 'tip' : 'booking',
+        paymentMethod: opts.method,
+        date: new Date(),
+        notes: opts.label === 'Cancellation Fee'
+          ? `Cancellation fee — ${opts.clientAlias ?? 'client'}`
+          : `${opts.label} — ${opts.clientAlias ?? 'client'}`,
       })
     }
-    const paid = await getBookingTotalPaid(opts.bookingId)
-    if (paid >= bookingTotal(booking)) {
-      await db.bookings.update(opts.bookingId, { paymentReceived: true })
+    // Sync convenience booleans
+    const booking = await db.bookings.get(opts.bookingId)
+    if (booking) {
+      if (opts.label === 'Deposit') {
+        // Only mark deposit as received when total deposit payments cover the full deposit amount
+        const depositPayments = await db.payments
+          .where('bookingId').equals(opts.bookingId)
+          .filter(p => p.label === 'Deposit')
+          .toArray()
+        const totalDeposits = depositPayments.reduce((sum, p) => sum + p.amount, 0)
+        await db.bookings.update(opts.bookingId, {
+          depositReceived: totalDeposits >= booking.depositAmount,
+        })
+      }
+      const paid = await getBookingTotalPaid(opts.bookingId)
+      if (paid >= bookingTotal(booking)) {
+        await db.bookings.update(opts.bookingId, { paymentReceived: true })
+      }
     }
-  }
+  })
   return paymentId
 }
 
@@ -455,34 +457,36 @@ export async function recordBookingPayment(opts: {
 export async function removeBookingPayment(paymentId: string): Promise<void> {
   const payment = await db.payments.get(paymentId)
   if (!payment) return
-  await db.payments.delete(paymentId)
-  // Find and remove the matching income transaction — prefer direct paymentId link, fall back to amount match for legacy data
-  const txns = await db.transactions.where('bookingId').equals(payment.bookingId).toArray()
-  const matching = txns.find(t => t.paymentId === paymentId)
-    ?? txns.find(t => t.type === 'income' && Math.abs(t.amount - payment.amount) < 0.01)
-  if (matching) await db.transactions.delete(matching.id)
-  // Sync convenience booleans
-  if (payment.label === 'Deposit') {
-    // Recalculate whether total deposit payments still cover the full deposit amount
-    const remainingDeposits = await db.payments
-      .where('bookingId').equals(payment.bookingId)
-      .filter(p => p.label === 'Deposit')
-      .toArray()
-    const totalDeposits = remainingDeposits.reduce((sum, p) => sum + p.amount, 0)
+  await db.transaction('rw', [db.payments, db.transactions, db.bookings], async () => {
+    await db.payments.delete(paymentId)
+    // Find and remove the matching income transaction — prefer direct paymentId link, fall back to amount match for legacy data
+    const txns = await db.transactions.where('bookingId').equals(payment.bookingId).toArray()
+    const matching = txns.find(t => t.paymentId === paymentId)
+      ?? txns.find(t => t.type === 'income' && Math.abs(t.amount - payment.amount) < 0.01)
+    if (matching) await db.transactions.delete(matching.id)
+    // Sync convenience booleans
+    if (payment.label === 'Deposit') {
+      // Recalculate whether total deposit payments still cover the full deposit amount
+      const remainingDeposits = await db.payments
+        .where('bookingId').equals(payment.bookingId)
+        .filter(p => p.label === 'Deposit')
+        .toArray()
+      const totalDeposits = remainingDeposits.reduce((sum, p) => sum + p.amount, 0)
+      const booking = await db.bookings.get(payment.bookingId)
+      if (booking) {
+        await db.bookings.update(payment.bookingId, {
+          depositReceived: totalDeposits >= booking.depositAmount,
+        })
+      }
+    }
     const booking = await db.bookings.get(payment.bookingId)
     if (booking) {
-      await db.bookings.update(payment.bookingId, {
-        depositReceived: totalDeposits >= booking.depositAmount,
-      })
+      const paid = await getBookingTotalPaid(payment.bookingId)
+      if (paid < bookingTotal(booking)) {
+        await db.bookings.update(payment.bookingId, { paymentReceived: false })
+      }
     }
-  }
-  const booking = await db.bookings.get(payment.bookingId)
-  if (booking) {
-    const paid = await getBookingTotalPaid(payment.bookingId)
-    if (paid < bookingTotal(booking)) {
-      await db.bookings.update(payment.bookingId, { paymentReceived: false })
-    }
-  }
+  })
 }
 
 /** Get total paid for a booking from the payment ledger. */
@@ -493,19 +497,21 @@ export async function getBookingTotalPaid(bookingId: string): Promise<number> {
 
 /** Complete a booking's payment: record a payment for any remaining balance. */
 export async function completeBookingPayment(booking: Booking, clientAlias?: string): Promise<void> {
-  const total = bookingTotal(booking)
-  const paid = await getBookingTotalPaid(booking.id)
-  const remaining = total - paid
-  if (remaining > 0) {
-    await recordBookingPayment({
-      bookingId: booking.id,
-      amount: remaining,
-      method: booking.paymentMethod,
-      label: 'Payment',
-      clientAlias,
-    })
-  }
-  await db.bookings.update(booking.id, { paymentReceived: true })
+  await db.transaction('rw', [db.payments, db.transactions, db.bookings], async () => {
+    const total = bookingTotal(booking)
+    const paid = await getBookingTotalPaid(booking.id)
+    const remaining = total - paid
+    if (remaining > 0) {
+      await recordBookingPayment({
+        bookingId: booking.id,
+        amount: remaining,
+        method: booking.paymentMethod,
+        label: 'Payment',
+        clientAlias,
+      })
+    }
+    await db.bookings.update(booking.id, { paymentReceived: true })
+  })
 }
 
 /**
