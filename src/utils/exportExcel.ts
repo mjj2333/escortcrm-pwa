@@ -3,7 +3,7 @@
 
 import ExcelJS from 'exceljs'
 import { db, bookingTotal } from '../db'
-import type { Client, Booking, Transaction, BookingPayment, IncidentLog } from '../types'
+import type { Client, Booking, Transaction, BookingPayment, IncidentLog, JournalEntry, IncallVenue, SafetyContact, SafetyCheck } from '../types'
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -318,19 +318,155 @@ function buildIncidentsSheet(
   styleSheet(ws, 5)
 }
 
+function buildJournalSheet(
+  wb: ExcelJS.Workbook,
+  entries: JournalEntry[],
+  clientMap: Map<string, string>,
+  bookings: Booking[],
+) {
+  if (entries.length === 0) return
+  const bookingMap = new Map(bookings.map(b => [b.id, b]))
+
+  const ws = wb.addWorksheet('Journal')
+  ws.columns = [
+    { header: 'Date', key: 'date', width: 12 },
+    { header: 'Client', key: 'client', width: 16 },
+    { header: 'Booking Date', key: 'bookingDate', width: 18 },
+    { header: 'Tags', key: 'tags', width: 28 },
+    { header: 'Actual Duration', key: 'duration', width: 14 },
+    { header: 'Timing Notes', key: 'timingNotes', width: 24 },
+    { header: 'Notes', key: 'notes', width: 36 },
+  ]
+  const sorted = [...entries].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  )
+  for (const e of sorted) {
+    const booking = bookingMap.get(e.bookingId)
+    ws.addRow({
+      date: fmtDate(e.date),
+      client: (e.clientId && clientMap.get(e.clientId)) || '',
+      bookingDate: booking ? fmtDateTime(booking.dateTime) : '',
+      tags: e.tags?.join(', ') ?? '',
+      duration: e.actualDuration ? durationLabel(e.actualDuration) : '',
+      timingNotes: e.timingNotes ?? '',
+      notes: e.notes,
+    })
+  }
+  styleSheet(ws, 7)
+}
+
+function buildVenuesSheet(wb: ExcelJS.Workbook, venues: IncallVenue[]) {
+  if (venues.length === 0) return
+  const ws = wb.addWorksheet('Venues')
+  ws.columns = [
+    { header: 'Name', key: 'name', width: 18 },
+    { header: 'Type', key: 'type', width: 12 },
+    { header: 'City', key: 'city', width: 14 },
+    { header: 'Address', key: 'address', width: 24 },
+    { header: 'Access Method', key: 'access', width: 14 },
+    { header: 'Cost/Hour', key: 'costHour', width: 11 },
+    { header: 'Cost/Day', key: 'costDay', width: 10 },
+    { header: 'Hotel Friendly', key: 'hotelFriendly', width: 13 },
+    { header: 'Favorite', key: 'favorite', width: 9 },
+    { header: 'Notes', key: 'notes', width: 30 },
+  ]
+  for (const v of venues) {
+    const row = ws.addRow({
+      name: v.name,
+      type: v.venueType,
+      city: v.city,
+      address: v.address,
+      access: v.accessMethod ?? '',
+      costHour: v.costPerHour ?? '',
+      costDay: v.costPerDay ?? '',
+      hotelFriendly: v.hotelFriendly ? 'Yes' : '',
+      favorite: v.isFavorite ? 'Yes' : '',
+      notes: v.notes ?? '',
+    })
+    if (typeof v.costPerHour === 'number') row.getCell(6).numFmt = MONEY_FMT
+    if (typeof v.costPerDay === 'number') row.getCell(7).numFmt = MONEY_FMT
+  }
+  styleSheet(ws, 10)
+}
+
+function buildSafetyContactsSheet(wb: ExcelJS.Workbook, contacts: SafetyContact[]) {
+  if (contacts.length === 0) return
+  const ws = wb.addWorksheet('Safety Contacts')
+  ws.columns = [
+    { header: 'Name', key: 'name', width: 18 },
+    { header: 'Phone', key: 'phone', width: 16 },
+    { header: 'Relationship', key: 'relationship', width: 16 },
+    { header: 'Primary', key: 'primary', width: 9 },
+    { header: 'Active', key: 'active', width: 9 },
+  ]
+  for (const c of contacts) {
+    ws.addRow({
+      name: c.name,
+      phone: c.phone,
+      relationship: c.relationship,
+      primary: c.isPrimary ? 'Yes' : '',
+      active: c.isActive ? 'Yes' : '',
+    })
+  }
+  styleSheet(ws, 5)
+}
+
+function buildSafetyChecksSheet(
+  wb: ExcelJS.Workbook,
+  checks: SafetyCheck[],
+  clientMap: Map<string, string>,
+  bookings: Booking[],
+  contactMap: Map<string, string>,
+) {
+  if (checks.length === 0) return
+  const bookingMap = new Map(bookings.map(b => [b.id, b]))
+
+  const ws = wb.addWorksheet('Safety Checks')
+  ws.columns = [
+    { header: 'Scheduled', key: 'scheduled', width: 18 },
+    { header: 'Status', key: 'status', width: 12 },
+    { header: 'Checked In At', key: 'checkedIn', width: 18 },
+    { header: 'Buffer (min)', key: 'buffer', width: 11 },
+    { header: 'Safety Contact', key: 'contact', width: 16 },
+    { header: 'Client', key: 'client', width: 16 },
+    { header: 'Booking Date', key: 'bookingDate', width: 18 },
+  ]
+  const sorted = [...checks].sort(
+    (a, b) => new Date(b.scheduledTime).getTime() - new Date(a.scheduledTime).getTime(),
+  )
+  for (const sc of sorted) {
+    const booking = bookingMap.get(sc.bookingId)
+    ws.addRow({
+      scheduled: fmtDateTime(sc.scheduledTime),
+      status: sc.status,
+      checkedIn: fmtDateTime(sc.checkedInAt),
+      buffer: sc.bufferMinutes,
+      contact: (sc.safetyContactId && contactMap.get(sc.safetyContactId)) || '',
+      client: booking?.clientId ? (clientMap.get(booking.clientId) ?? '') : '',
+      bookingDate: booking ? fmtDateTime(booking.dateTime) : '',
+    })
+  }
+  styleSheet(ws, 7)
+}
+
 // ── Main export ──────────────────────────────────────────────────────────
 
 export async function exportAllToExcel(): Promise<void> {
   // Load all data
-  const [clients, bookings, transactions, payments, incidents] = await Promise.all([
+  const [clients, bookings, transactions, payments, incidents, journalEntries, incallVenues, safetyContacts, safetyChecks] = await Promise.all([
     db.clients.toArray(),
     db.bookings.toArray(),
     db.transactions.toArray(),
     db.payments.toArray(),
     db.incidents.toArray(),
+    db.journalEntries.toArray(),
+    db.incallVenues.toArray(),
+    db.safetyContacts.toArray(),
+    db.safetyChecks.toArray(),
   ])
 
   const clientMap = new Map(clients.map(c => [c.id, c.alias]))
+  const contactMap = new Map(safetyContacts.map(c => [c.id, c.name]))
 
   const wb = new ExcelJS.Workbook()
   wb.creator = 'Companion'
@@ -341,6 +477,10 @@ export async function exportAllToExcel(): Promise<void> {
   buildIncomeSheet(wb, transactions)
   buildExpensesSheet(wb, transactions)
   buildPaymentsSheet(wb, payments, clientMap, bookings)
+  buildJournalSheet(wb, journalEntries, clientMap, bookings)
+  buildVenuesSheet(wb, incallVenues)
+  buildSafetyContactsSheet(wb, safetyContacts)
+  buildSafetyChecksSheet(wb, safetyChecks, clientMap, bookings, contactMap)
   buildIncidentsSheet(wb, incidents, clientMap)
 
   // Generate and download

@@ -14,7 +14,7 @@ async function getExcelJS() {
   return ExcelJS
 }
 
-type DataType = 'clients' | 'bookings' | 'transactions' | 'safety_contacts' | 'incidents' | 'safety_checks' | 'venues'
+type DataType = 'clients' | 'bookings' | 'transactions' | 'safety_contacts' | 'incidents' | 'safety_checks' | 'venues' | 'journal'
 type Format = 'csv' | 'xlsx'
 
 interface ImportExportProps {
@@ -213,6 +213,28 @@ async function exportVenues(format: Format) {
     Notes: v.notes ?? '',
   }))
   downloadSheet(rows, 'venues', format)
+}
+
+async function exportJournal(format: Format) {
+  const entries = await db.journalEntries.orderBy('date').reverse().toArray()
+  const bookings = await db.bookings.toArray()
+  const clients = await db.clients.toArray()
+  const bookingMap = Object.fromEntries(bookings.map(b => [b.id, b]))
+  const clientMap = Object.fromEntries(clients.map(c => [c.id, c.alias]))
+
+  const rows = entries.map(e => {
+    const booking = e.bookingId ? bookingMap[e.bookingId] : undefined
+    return {
+      Date: fmtDate(e.date),
+      Client: e.clientId ? clientMap[e.clientId] ?? '' : '',
+      'Booking Date': booking ? fmtDateTime(booking.dateTime) : '',
+      Tags: e.tags?.join(', ') ?? '',
+      'Actual Duration': e.actualDuration ? `${Math.floor(e.actualDuration / 60)}h ${e.actualDuration % 60}m` : '',
+      'Timing Notes': e.timingNotes ?? '',
+      Notes: e.notes,
+    }
+  })
+  downloadSheet(rows, 'journal', format)
 }
 
 async function downloadSheet(rows: Record<string, unknown>[], name: string, format: Format) {
@@ -461,7 +483,7 @@ function parseCSV(text: string): Record<string, unknown>[] {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // Export-only data types — import is not meaningful for these
-const EXPORT_ONLY: DataType[] = ['bookings', 'incidents', 'safety_checks', 'venues']
+const EXPORT_ONLY: DataType[] = ['bookings', 'incidents', 'safety_checks', 'venues', 'journal']
 
 interface TabDef { key: DataType; label: string }
 
@@ -470,6 +492,7 @@ const DATA_TABS: TabDef[] = [
   { key: 'bookings',        label: 'Bookings' },
   { key: 'transactions',    label: 'Finances' },
   { key: 'venues',          label: 'Venues' },
+  { key: 'journal',         label: 'Journal' },
   { key: 'safety_contacts', label: 'Contacts' },
   { key: 'incidents',       label: 'Incidents' },
   { key: 'safety_checks',   label: 'Checks' },
@@ -495,6 +518,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
       else if (dataType === 'incidents')   await exportIncidents(format)
       else if (dataType === 'safety_checks') await exportSafetyChecks(format)
       else if (dataType === 'venues')         await exportVenues(format)
+      else if (dataType === 'journal')        await exportJournal(format)
       setStatus({ type: 'success', msg: `Exported ${dataType.replace('_', ' ')} as ${format.toUpperCase()}` })
     } catch (err) {
       setStatus({ type: 'error', msg: `Export failed: ${(err as Error).message}` })
@@ -542,6 +566,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
     incidents: 'Incident records are export-only. They are sensitive safety logs that should only be created within the app.',
     safety_checks: 'Safety check records are export-only. They are generated automatically when bookings are created.',
     venues: 'Venue records are export-only. Use the Incall Book to add and manage venues.',
+    journal: 'Journal entries are export-only. They are linked to specific bookings and should be created within the app.',
   }
 
   return (
@@ -560,7 +585,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
         </div>
 
         <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 60px)' }}>
-          {/* Data type selector — scrollable row to fit all 6 tabs */}
+          {/* Data type selector — scrollable row to fit all 8 tabs */}
           <div
             className="flex overflow-x-auto gap-1 mb-5 pb-0.5"
             style={{ scrollbarWidth: 'none' }}
