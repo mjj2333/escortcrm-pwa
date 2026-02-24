@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { format, isToday, isTomorrow, differenceInDays, startOfDay } from 'date-fns'
-import { db, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment, removeBookingPayment as removePayment, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../db'
+import { format, isToday, isTomorrow, differenceInDays, startOfDay, addMinutes } from 'date-fns'
+import { db, newId, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment, removeBookingPayment as removePayment, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../db'
 import { StatusBadge } from './StatusBadge'
 import { MiniTags } from './TagPicker'
 import { VerifiedBadge } from './VerifiedBadge'
@@ -211,6 +211,21 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
     }
 
     await db.bookings.update(booking.id, updates)
+    // Create safety check when manually advancing to In Progress
+    if (newStatus === 'In Progress' && booking.requiresSafetyCheck) {
+      const existing = await db.safetyChecks.where('bookingId').equals(booking.id).first()
+      if (!existing) {
+        const checkTime = addMinutes(new Date(booking.dateTime), booking.safetyCheckMinutesAfter || 15)
+        await db.safetyChecks.add({
+          id: newId(),
+          bookingId: booking.id,
+          safetyContactId: booking.safetyContactId,
+          scheduledTime: checkTime,
+          bufferMinutes: 15,
+          status: 'pending',
+        })
+      }
+    }
     if (navigator.vibrate) navigator.vibrate(newStatus === 'Cancelled' ? [20, 50, 20] : 20)
     closePanel()
     if (newStatus === 'Completed' && onCompleted) {

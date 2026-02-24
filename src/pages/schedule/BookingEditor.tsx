@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { db, createBooking, createClient, formatCurrency, recordBookingPayment, completeBookingPayment } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
-import { SectionLabel, FieldTextInput, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
+import { SectionLabel, FieldTextInput, FieldTextArea, FieldSelect, FieldToggle, FieldCurrency, FieldDateTime, fieldInputStyle } from '../../components/FormFields'
 import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../../utils/availability'
@@ -59,6 +59,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(booking?.paymentMethod ?? rebookFrom?.paymentMethod ?? '')
   const [requiresSafetyCheck, setRequiresSafetyCheck] = useState(booking?.requiresSafetyCheck ?? rebookFrom?.requiresSafetyCheck ?? true)
   const [recurrence, setRecurrence] = useState<RecurrencePattern>(booking?.recurrence ?? rebookFrom?.recurrence ?? 'none')
+  const [notes, setNotes] = useState(booking?.notes ?? '')
 
   // UI state
   const [showClientPicker, setShowClientPicker] = useState(false)
@@ -108,6 +109,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       setPaymentMethod(booking?.paymentMethod ?? rebookFrom?.paymentMethod ?? '')
       setRequiresSafetyCheck(booking?.requiresSafetyCheck ?? rebookFrom?.requiresSafetyCheck ?? true)
       setRecurrence(booking?.recurrence ?? rebookFrom?.recurrence ?? 'none')
+      setNotes(booking?.notes ?? '')
       setShowClientPicker(false)
       setClientSearch('')
       setUserEditedDeposit(!!booking || !!rebookFrom)
@@ -239,6 +241,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         paymentMethod: paymentMethod || undefined,
         requiresSafetyCheck,
         recurrence,
+        notes: notes.trim() || '',
         // Set timestamps when status changes
         ...(status === 'Confirmed' && booking.status !== 'Confirmed' && !booking.confirmedAt ? { confirmedAt: new Date() } : {}),
         ...(status === 'Completed' && booking.status !== 'Completed' ? { completedAt: new Date() } : {}),
@@ -295,6 +298,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         paymentMethod: paymentMethod || undefined,
         requiresSafetyCheck,
         recurrence,
+        notes: notes.trim() || undefined,
         // Set timestamps when creating with an advanced status
         ...(status === 'Confirmed' || status === 'In Progress' || status === 'Completed' ? { confirmedAt: new Date() } : {}),
         ...(status === 'Completed' ? { completedAt: new Date() } : {}),
@@ -705,6 +709,11 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
             <FieldSelect label="Recurrence" value={recurrence} options={recurrenceOptions} onChange={setRecurrence}
               displayFn={(v: string) => v === 'none' ? 'None' : v === 'weekly' ? 'Weekly' : v === 'biweekly' ? 'Every 2 Weeks' : 'Monthly'}
               hint="A new booking will auto-create when this one completes." />
+
+            <SectionLabel label="Notes" />
+            <FieldTextArea label="Booking Notes" value={notes} onChange={setNotes}
+              placeholder="General notes about this booking…"
+              hint="Private notes visible only to you." />
 
           </>
         )}

@@ -5,8 +5,8 @@ import {
   CheckCircle, XCircle, UserX, RotateCcw, Shield,
   ChevronRight, Trash2, Plus, DollarSign
 } from 'lucide-react'
-import { format } from 'date-fns'
-import { db, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, completeBookingPayment, recordBookingPayment, removeBookingPayment, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../../db'
+import { format, addMinutes } from 'date-fns'
+import { db, newId, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, completeBookingPayment, recordBookingPayment, removeBookingPayment, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
 import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -100,6 +100,21 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       }
     }
     await db.bookings.update(bookingId, updates)
+    // Create safety check when manually advancing to In Progress
+    if (status === 'In Progress' && booking!.requiresSafetyCheck) {
+      const existing = await db.safetyChecks.where('bookingId').equals(bookingId).first()
+      if (!existing) {
+        const checkTime = addMinutes(new Date(booking!.dateTime), booking!.safetyCheckMinutesAfter || 15)
+        await db.safetyChecks.add({
+          id: newId(),
+          bookingId,
+          safetyContactId: booking!.safetyContactId,
+          scheduledTime: checkTime,
+          bufferMinutes: 15,
+          status: 'pending',
+        })
+      }
+    }
     if (status === 'Completed') {
       setTimeout(() => setShowJournal(true), 400)
     }
