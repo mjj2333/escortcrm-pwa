@@ -132,9 +132,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
     }
 
     if (isEditing && client) {
-      await db.clients.update(client.id, data)
-
-      // Auto-advance Screening bookings when client becomes Screened
+      // Advance bookings FIRST — before client update triggers useLiveQuery re-render
       if (screeningStatus === 'Screened' && client.screeningStatus !== 'Screened') {
         const allBookings = await db.bookings.toArray()
         const toAdvance = allBookings.filter(b => b.clientId === client.id && b.status === 'Screening')
@@ -147,6 +145,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           })
         }
       }
+
+      await db.clients.update(client.id, data)
 
       showToast('Client updated')
       onClose()

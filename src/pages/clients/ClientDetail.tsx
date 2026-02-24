@@ -283,10 +283,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 onChange={async (e) => {
                   const newStatus = e.target.value as any
                   const cid = client.id
-                  await db.clients.update(cid, { screeningStatus: newStatus })
 
-                  // Auto-advance any "Screening" bookings when client becomes Screened
-                  // Uses same pattern as useAutoStatusTransitions (full scan + individual update)
+                  // Advance bookings FIRST — before client update triggers useLiveQuery re-render
                   if (newStatus === 'Screened') {
                     const allBookings = await db.bookings.toArray()
                     const toAdvance = allBookings.filter(b => b.clientId === cid && b.status === 'Screening')
@@ -300,7 +298,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                     }
                   }
 
-                  // Force all useLiveQuery hooks to re-evaluate
+                  // Now update client — this triggers re-render via useLiveQuery
+                  await db.clients.update(cid, { screeningStatus: newStatus })
                   setDbVersion(v => v + 1)
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
