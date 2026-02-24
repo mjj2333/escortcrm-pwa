@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { format, isToday, isTomorrow, differenceInDays, startOfDay } from 'date-fns'
-import { db, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment, removeBookingPayment as removePayment } from '../db'
+import { db, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment, removeBookingPayment as removePayment, downgradeBookingsOnUnscreen } from '../db'
 import { StatusBadge } from './StatusBadge'
 import { MiniTags } from './TagPicker'
 import { VerifiedBadge } from './VerifiedBadge'
@@ -175,8 +175,11 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
 
   async function setScreening(status: ScreeningStatus) {
     if (!client) return
+    const oldStatus = client.screeningStatus
     await db.clients.update(client.id, { screeningStatus: status })
-    if (navigator.vibrate) navigator.vibrate(15)
+    const count = await downgradeBookingsOnUnscreen(client.id, oldStatus, status)
+    if (count > 0 && navigator.vibrate) navigator.vibrate([15, 50, 15])
+    else if (navigator.vibrate) navigator.vibrate(15)
   }
 
   async function setBookingStatus(newStatus: BookingStatus) {

@@ -4,7 +4,7 @@ import type {
   SafetyContact, SafetyCheck, IncidentLog, ServiceRate, BookingPayment, JournalEntry, ScreeningDoc,
   IncallVenue, VenueDoc
 } from '../types'
-import type { PaymentLabel, PaymentMethod } from '../types'
+import type { PaymentLabel, PaymentMethod, ScreeningStatus, BookingStatus } from '../types'
 
 class EscortCRMDatabase extends Dexie {
   clients!: EntityTable<Client, 'id'>
@@ -364,6 +364,28 @@ export function bookingDurationFormatted(minutes: number): string {
 
 export function isUpcoming(b: Booking): boolean {
   return new Date(b.dateTime) > new Date() && b.status !== 'Cancelled' && b.status !== 'Completed' && b.status !== 'No Show'
+}
+
+/**
+ * When a client's screening status changes FROM Screened to something else,
+ * downgrade their future pre-session bookings back to "To Be Confirmed".
+ * This prevents confirmed bookings for unscreened clients.
+ */
+export async function downgradeBookingsOnUnscreen(
+  clientId: string,
+  oldStatus: ScreeningStatus,
+  newStatus: ScreeningStatus,
+): Promise<number> {
+  if (oldStatus !== 'Screened' || newStatus === 'Screened') return 0
+  const bookings = await db.bookings.where('clientId').equals(clientId).toArray()
+  const preSessionStatuses: BookingStatus[] = ['Pending Deposit', 'Confirmed']
+  const toDowngrade = bookings.filter(b =>
+    preSessionStatuses.includes(b.status) && new Date(b.dateTime) > new Date()
+  )
+  for (const b of toDowngrade) {
+    await db.bookings.update(b.id, { status: 'To Be Confirmed', confirmedAt: undefined })
+  }
+  return toDowngrade.length
 }
 
 // Helper: currency setting

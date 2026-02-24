@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Check, User, UserCheck, ShieldCheck, Heart, ShieldAlert, Share2, Cake, CalendarDays, MapPin, StickyNote } from 'lucide-react'
-import { db, createClient } from '../../db'
+import { db, createClient, downgradeBookingsOnUnscreen } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldHint, FieldTextInput, FieldTextArea, FieldDate, fieldInputStyle } from '../../components/FormFields'
@@ -136,6 +136,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
 
     if (isEditing && client) {
       await db.clients.update(client.id, data)
+      await downgradeBookingsOnUnscreen(client.id, client.screeningStatus, screeningStatus)
 
       showToast('Client updated')
       onClose()
