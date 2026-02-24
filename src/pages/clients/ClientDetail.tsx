@@ -4,7 +4,7 @@ import {
   ArrowLeft, Edit, Phone, MessageSquare, Mail, Copy, Check,
   Pin, PinOff, Gift, Heart, ChevronRight, Shield,
   ThumbsUp, ShieldAlert, Plus, RotateCcw, Trash2, Merge,
-  ChevronDown, MapPin, Send, StickyNote
+  MapPin, Send, StickyNote
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../../db'

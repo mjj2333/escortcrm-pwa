@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, ChevronRight, User, UserPlus, Search, AlertTriangle, Plus } from 'lucide-react'
+import { Check, ChevronRight, User, UserPlus, Search, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, createBooking, createClient, formatCurrency, recordBookingPayment, completeBookingPayment } from '../../db'
 import { Modal } from '../../components/Modal'
