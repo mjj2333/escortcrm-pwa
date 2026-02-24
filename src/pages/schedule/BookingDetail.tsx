@@ -409,8 +409,28 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Client Screening</span>
               <select
                 value={client.screeningStatus}
-                onChange={async (e) => {
-                  await db.clients.update(client.id, { screeningStatus: e.target.value as any })
+                onChange={(e) => {
+                  const newStatus = e.target.value as any
+                  const cid = client.id
+
+                  // Run in a detached async context so React re-renders can't kill it
+                  ;(async () => {
+                    // Advance bookings first — before client update triggers useLiveQuery re-render
+                    if (newStatus === 'Screened') {
+                      const allBookings = await db.bookings.toArray()
+                      const toAdvance = allBookings.filter(b => b.clientId === cid && b.status === 'Screening')
+                      for (const b of toAdvance) {
+                        const next = (b.depositAmount ?? 0) > 0 && !b.depositReceived
+                          ? 'Pending Deposit' as const : 'Confirmed' as const
+                        await db.bookings.update(b.id, {
+                          status: next,
+                          ...(next === 'Confirmed' ? { confirmedAt: new Date() } : {}),
+                        })
+                      }
+                    }
+                    // Then update client
+                    await db.clients.update(cid, { screeningStatus: newStatus })
+                  })()
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
                 style={{
