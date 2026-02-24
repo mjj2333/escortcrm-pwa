@@ -133,11 +133,6 @@ export default function App() {
     if (!pinEnabled) setIsLocked(false)
   }, [pinEnabled])
 
-  // One-time cleanup of stale localStorage keys from old goal system
-  useEffect(() => {
-    for (const k of ['goalName', 'goalTarget', 'goalPeriod']) localStorage.removeItem(k)
-  }, [])
-
   // Migrate existing bookings to payment ledger (one-time)
   useEffect(() => {
     migrateToPaymentLedger()

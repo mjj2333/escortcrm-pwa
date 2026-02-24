@@ -24,8 +24,7 @@ import nacl from 'tweetnacl'
 
 export const SENSITIVE_FIELDS: Record<string, string[]> = {
   clients: [
-    'nickname', 'phone', 'email', 'telegram', 'signal', 'whatsapp',
-    'address', 'notes', 'preferences',
+    'nickname', 'phone', 'email', 'address', 'notes', 'preferences',
     'boundaries', 'referenceSource', 'verificationNotes',
   ],
   bookings: ['locationAddress', 'locationNotes', 'notes', 'cancellationReason'],
@@ -36,11 +35,8 @@ export const SENSITIVE_FIELDS: Record<string, string[]> = {
   journalEntries: ['notes', 'timingNotes'],
   incallVenues: [
     'address', 'directions', 'contactName', 'contactPhone', 'contactEmail',
-    'accessNotes', 'bookingNotes', 'costNotes', 'notes',
+    'accessNotes', 'bookingNotes', 'notes',
   ],
-  screeningDocs: ['filename'],
-  venueDocs: ['filename'],
-  availability: ['notes'],
 }
 
 // ── Module state (memory-only) ─────────────────────────────────────────

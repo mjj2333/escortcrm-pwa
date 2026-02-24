@@ -103,24 +103,16 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   }
 
   async function deleteBooking() {
-    // Snapshot everything before deletion for undo (outside transaction — read-only)
+    // Snapshot everything before deletion for undo
     const bookingSnap = await db.bookings.get(bookingId)
     const paymentsSnap = await db.payments.where('bookingId').equals(bookingId).toArray()
     const txnsSnap = await db.transactions.where('bookingId').equals(bookingId).toArray()
     const checksSnap = await db.safetyChecks.where('bookingId').equals(bookingId).toArray()
-    const journalSnaps = await db.journalEntries.where('bookingId').equals(bookingId).toArray()
 
-    // Execute cascade delete atomically
-    await db.transaction('rw',
-      [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries],
-      async () => {
-        await db.payments.where('bookingId').equals(bookingId).delete()
-        await db.transactions.where('bookingId').equals(bookingId).delete()
-        await db.safetyChecks.where('bookingId').equals(bookingId).delete()
-        await db.journalEntries.where('bookingId').equals(bookingId).delete()
-        await db.bookings.delete(bookingId)
-      },
-    )
+    await db.payments.where('bookingId').equals(bookingId).delete()
+    await db.transactions.where('bookingId').equals(bookingId).delete()
+    await db.safetyChecks.where('bookingId').equals(bookingId).delete()
+    await db.bookings.delete(bookingId)
     setConfirmAction(null)
     onBack()
 
@@ -129,7 +121,6 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       if (paymentsSnap.length) await db.payments.bulkPut(paymentsSnap)
       if (txnsSnap.length) await db.transactions.bulkPut(txnsSnap)
       if (checksSnap.length) await db.safetyChecks.bulkPut(checksSnap)
-      if (journalSnaps.length) await db.journalEntries.bulkPut(journalSnaps)
     })
   }
 
@@ -415,28 +406,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Client Screening</span>
               <select
                 value={client.screeningStatus}
-                onChange={(e) => {
-                  const newStatus = e.target.value as any
-                  const cid = client.id
-
-                  // Run in a detached async context so React re-renders can't kill it
-                  ;(async () => {
-                    // Advance bookings first — before client update triggers useLiveQuery re-render
-                    if (newStatus === 'Screened') {
-                      const allBookings = await db.bookings.toArray()
-                      const toAdvance = allBookings.filter(b => b.clientId === cid && b.status === 'Screening')
-                      for (const b of toAdvance) {
-                        const next = (b.depositAmount ?? 0) > 0 && !b.depositReceived
-                          ? 'Pending Deposit' as const : 'Confirmed' as const
-                        await db.bookings.update(b.id, {
-                          status: next,
-                          ...(next === 'Confirmed' ? { confirmedAt: new Date() } : {}),
-                        })
-                      }
-                    }
-                    // Then update client
-                    await db.clients.update(cid, { screeningStatus: newStatus })
-                  })()
+                onChange={async (e) => {
+                  await db.clients.update(client.id, { screeningStatus: e.target.value as any })
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
                 style={{
