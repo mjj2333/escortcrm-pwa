@@ -20,6 +20,7 @@ function sendCompletionNotification(clientAlias: string, durationMin: number) {
 
 /**
  * Auto-advance booking statuses based on time:
+ * - Pending Deposit → Confirmed: when depositReceived becomes true
  * - Confirmed → In Progress: when booking dateTime has passed
  * - In Progress → Completed: 5 minutes after scheduled end time (dateTime + duration)
  *
@@ -59,6 +60,12 @@ export function useAutoStatusTransitions() {
             })
             continue
           }
+        }
+
+        // Pending Deposit → Confirmed when deposit is fully received
+        if (b.status === 'Pending Deposit' && b.depositReceived) {
+          await db.bookings.update(b.id, { status: 'Confirmed', confirmedAt: new Date() })
+          continue
         }
 
         if (b.status === 'Confirmed' && now >= startTime) {
