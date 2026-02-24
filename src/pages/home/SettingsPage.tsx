@@ -49,6 +49,7 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
   const [showBackup, setShowBackup] = useState(false)
   const [biometricOn, setBiometricOn] = useState(() => isBiometricEnabled())
   const biometricAvailable = useBiometricAvailable()
+  const [showBiometricVerify, setShowBiometricVerify] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [showSampleConfirm, setShowSampleConfirm] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
@@ -196,9 +197,8 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
               value={biometricOn}
               onChange={async (val) => {
                 if (val) {
-                  // We need the plaintext PIN to register — trigger PIN setup flow
-                  // which calls onSetPin with plaintextPin
-                  setShowPinSetup(true)
+                  // We need the plaintext PIN to register — verify existing PIN
+                  setShowBiometricVerify(true)
                 } else {
                   clearBiometric()
                   setBiometricOn(false)
@@ -413,12 +413,21 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
             } else {
               await initFieldEncryption(plaintextPin)
             }
-            // If biometric toggle is queued, register the credential now
-            if (biometricAvailable && biometricOn && !isBiometricEnabled()) {
-              const ok = await registerBiometric(plaintextPin)
-              setBiometricOn(ok)
-              if (!ok) clearBiometric()
-            }
+          }}
+        />
+      )}
+
+      {/* Biometric PIN Verify Overlay */}
+      {showBiometricVerify && (
+        <PinLock
+          correctPin={localStorage.getItem('pinCode')?.replace(/^"|"$/g, '') || ''}
+          isSetup={false}
+          onCancel={() => setShowBiometricVerify(false)}
+          onUnlock={async (plaintextPin) => {
+            setShowBiometricVerify(false)
+            const ok = await registerBiometric(plaintextPin)
+            setBiometricOn(ok)
+            if (!ok) clearBiometric()
           }}
         />
       )}
