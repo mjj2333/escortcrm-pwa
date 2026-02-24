@@ -132,23 +132,25 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
     }
 
     if (isEditing && client) {
-      await db.clients.update(client.id, data)
+      await db.transaction('rw', [db.clients, db.bookings], async () => {
+        await db.clients.update(client.id, data)
 
-      // Auto-advance Screening bookings when client becomes Screened
-      if (screeningStatus === 'Screened' && client.screeningStatus !== 'Screened') {
-        const screeningBookings = await db.bookings
-          .where('clientId').equals(client.id)
-          .filter(b => b.status === 'Screening')
-          .toArray()
-        for (const b of screeningBookings) {
-          const nextStatus = (b.depositAmount ?? 0) > 0 && !b.depositReceived
-            ? 'Pending Deposit' as const : 'Confirmed' as const
-          await db.bookings.update(b.id, {
-            status: nextStatus,
-            ...(nextStatus === 'Confirmed' ? { confirmedAt: new Date() } : {}),
-          })
+        // Auto-advance Screening bookings when client becomes Screened
+        if (screeningStatus === 'Screened' && client.screeningStatus !== 'Screened') {
+          const screeningBookings = await db.bookings
+            .where('clientId').equals(client.id)
+            .filter(b => b.status === 'Screening')
+            .toArray()
+          for (const b of screeningBookings) {
+            const nextStatus = (b.depositAmount ?? 0) > 0 && !b.depositReceived
+              ? 'Pending Deposit' as const : 'Confirmed' as const
+            await db.bookings.update(b.id, {
+              status: nextStatus,
+              ...(nextStatus === 'Confirmed' ? { confirmedAt: new Date() } : {}),
+            })
+          }
         }
-      }
+      })
 
       showToast('Client updated')
       onClose()

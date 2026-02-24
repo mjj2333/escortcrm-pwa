@@ -281,23 +281,27 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 value={client.screeningStatus}
                 onChange={async (e) => {
                   const newStatus = e.target.value as any
-                  await db.clients.update(client.id, { screeningStatus: newStatus })
 
-                  // Auto-advance any "Screening" bookings when client becomes Screened
-                  if (newStatus === 'Screened') {
-                    const screeningBookings = await db.bookings
-                      .where('clientId').equals(client.id)
-                      .filter(b => b.status === 'Screening')
-                      .toArray()
-                    for (const b of screeningBookings) {
-                      const nextStatus = (b.depositAmount ?? 0) > 0 && !b.depositReceived
-                        ? 'Pending Deposit' : 'Confirmed'
-                      await db.bookings.update(b.id, {
-                        status: nextStatus,
-                        ...(nextStatus === 'Confirmed' ? { confirmedAt: new Date() } : {}),
-                      })
+                  // Wrap in transaction so Dexie fires one atomic observation notification
+                  await db.transaction('rw', [db.clients, db.bookings], async () => {
+                    await db.clients.update(client.id, { screeningStatus: newStatus })
+
+                    // Auto-advance any "Screening" bookings when client becomes Screened
+                    if (newStatus === 'Screened') {
+                      const screeningBookings = await db.bookings
+                        .where('clientId').equals(client.id)
+                        .filter(b => b.status === 'Screening')
+                        .toArray()
+                      for (const b of screeningBookings) {
+                        const nextStatus = (b.depositAmount ?? 0) > 0 && !b.depositReceived
+                          ? 'Pending Deposit' : 'Confirmed'
+                        await db.bookings.update(b.id, {
+                          status: nextStatus,
+                          ...(nextStatus === 'Confirmed' ? { confirmedAt: new Date() } : {}),
+                        })
+                      }
                     }
-                  }
+                  })
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
                 style={{
