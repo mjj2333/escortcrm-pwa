@@ -466,10 +466,12 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
           <Card>
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>Session Journal</p>
-              <button onClick={() => setShowJournal(true)}
-                className="text-xs font-medium text-purple-500 active:opacity-70">
-                {journalEntry ? 'Edit' : '+ Add'}
-              </button>
+              {(isTerminal || journalEntry) && (
+                <button onClick={() => setShowJournal(true)}
+                  className="text-xs font-medium text-purple-500 active:opacity-70">
+                  {journalEntry ? 'Edit' : '+ Add'}
+                </button>
+              )}
             </div>
             {journalEntry ? (
               <div>
