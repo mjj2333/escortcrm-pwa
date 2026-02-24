@@ -322,9 +322,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
             <RiskLevelBar
               value={client.riskLevel}
               onChange={async (level) => {
-                await db.clients.update(client.id, { riskLevel: level })
                 const shouldRequireSafety = level === 'High Risk' || level === 'Unknown'
-                await db.clients.update(client.id, { requiresSafetyCheck: shouldRequireSafety })
+                await db.clients.update(client.id, { riskLevel: level, requiresSafetyCheck: shouldRequireSafety })
               }}
             />
           </div>
