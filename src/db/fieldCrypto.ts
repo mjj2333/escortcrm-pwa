@@ -24,7 +24,8 @@ import nacl from 'tweetnacl'
 
 export const SENSITIVE_FIELDS: Record<string, string[]> = {
   clients: [
-    'nickname', 'phone', 'email', 'address', 'notes', 'preferences',
+    'nickname', 'phone', 'email', 'telegram', 'signal', 'whatsapp',
+    'address', 'notes', 'preferences',
     'boundaries', 'referenceSource', 'verificationNotes',
   ],
   bookings: ['locationAddress', 'locationNotes', 'notes', 'cancellationReason'],
@@ -228,6 +229,14 @@ export async function initFieldEncryption(pin: string): Promise<void> {
     _key = nacl.randomBytes(32)
     await wrapAndStore(pin, _key)
     await migrateAllToEncrypted()
+  }
+  // Versioned re-encrypt: pick up newly added sensitive fields for existing users
+  // Bump this number whenever SENSITIVE_FIELDS is expanded.
+  const ENCRYPT_SCHEMA_VERSION = 2
+  const currentVersion = await db.meta.get('encrypt_schema_version')
+  if (!currentVersion || (currentVersion.value as number) < ENCRYPT_SCHEMA_VERSION) {
+    await migrateAllToEncrypted()
+    await db.meta.put({ key: 'encrypt_schema_version', value: ENCRYPT_SCHEMA_VERSION })
   }
 }
 
