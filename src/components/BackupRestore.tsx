@@ -63,7 +63,7 @@ async function decryptData(encoded: string, password: string): Promise<string> {
 // Backups from a NEWER version than this will be rejected to prevent
 // silent data loss (future tables/fields would be silently dropped).
 // Backups from OLDER versions are fine — missing tables are just empty.
-const CURRENT_BACKUP_VERSION = 2
+const CURRENT_BACKUP_VERSION = 3
 
 interface BackupPayload {
   version: number
@@ -78,10 +78,61 @@ interface BackupPayload {
     incidents: unknown[]
     serviceRates: unknown[]
     payments?: unknown[]
+    journalEntries?: unknown[]
+    screeningDocs?: unknown[]
+    incallVenues?: unknown[]
+    venueDocs?: unknown[]
   }
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// BLOB SERIALIZATION HELPERS
+// screeningDocs and venueDocs contain Blob `data` fields.
+// JSON.stringify serializes Blobs as {} — so we convert
+// to base64 on backup and back to Blob on restore.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const buf = await blob.arrayBuffer()
+  const bytes = new Uint8Array(buf)
+  let bin = ''
+  bytes.forEach(b => { bin += String.fromCharCode(b) })
+  return btoa(bin)
+}
+
+function base64ToBlob(b64: string, mimeType: string): Blob {
+  const bin = atob(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new Blob([bytes], { type: mimeType })
+}
+
+/** Serialize doc records: Blob data → { _base64: string } for JSON safety */
+async function serializeDocRecords(records: any[]): Promise<any[]> {
+  return Promise.all(records.map(async (rec) => {
+    if (rec.data instanceof Blob) {
+      return { ...rec, data: { _base64: await blobToBase64(rec.data) } }
+    }
+    return rec
+  }))
+}
+
+/** Deserialize doc records: { _base64: string } → Blob */
+function deserializeDocRecords(records: any[]): any[] {
+  return records.map(rec => {
+    if (rec.data && typeof rec.data === 'object' && rec.data._base64) {
+      return { ...rec, data: base64ToBlob(rec.data._base64, rec.mimeType || 'application/octet-stream') }
+    }
+    return rec
+  })
+}
+
 export async function createBackup(): Promise<BackupPayload> {
+  const [screeningDocs, venueDocs] = await Promise.all([
+    db.screeningDocs.toArray().then(serializeDocRecords),
+    db.venueDocs.toArray().then(serializeDocRecords),
+  ])
+
   return {
     version: CURRENT_BACKUP_VERSION,
     created: new Date().toISOString(),
@@ -95,6 +146,10 @@ export async function createBackup(): Promise<BackupPayload> {
       incidents: await db.incidents.toArray(),
       serviceRates: await db.serviceRates.toArray(),
       payments: await db.payments.toArray(),
+      journalEntries: await db.journalEntries.toArray(),
+      screeningDocs,
+      incallVenues: await db.incallVenues.toArray(),
+      venueDocs,
     },
   }
 }
@@ -116,6 +171,10 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     incidents:      ['id'],
     serviceRates:   ['id'],
     payments:       ['id', 'bookingId'],
+    journalEntries: ['id', 'bookingId', 'clientId'],
+    screeningDocs:  ['id', 'clientId'],
+    incallVenues:   ['id', 'name'],
+    venueDocs:      ['id', 'venueId'],
   }
 
   const t = payload.tables
@@ -145,19 +204,27 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   await db.incidents.clear()
   await db.serviceRates.clear()
   await db.payments.clear()
+  await db.journalEntries.clear()
+  await db.screeningDocs.clear()
+  await db.incallVenues.clear()
+  await db.venueDocs.clear()
 
   // ─── Reconstitute Date objects from ISO strings ──────────────────────
   // JSON.stringify converts Dates to ISO strings; JSON.parse leaves them
   // as strings. IndexedDB indexes distinguish types, so string dates break
   // every .where() and .orderBy() on date-indexed fields.
   const dateFields: Record<string, string[]> = {
-    clients:      ['dateAdded', 'lastSeen', 'birthday', 'clientSince'],
-    bookings:     ['dateTime', 'createdAt', 'confirmedAt', 'completedAt', 'cancelledAt'],
-    transactions: ['date'],
-    availability: ['date'],
-    safetyChecks: ['scheduledTime', 'checkedInAt'],
-    incidents:    ['date'],
-    payments:     ['date'],
+    clients:        ['dateAdded', 'lastSeen', 'birthday', 'clientSince'],
+    bookings:       ['dateTime', 'createdAt', 'confirmedAt', 'completedAt', 'cancelledAt'],
+    transactions:   ['date'],
+    availability:   ['date'],
+    safetyChecks:   ['scheduledTime', 'checkedInAt'],
+    incidents:      ['date'],
+    payments:       ['date'],
+    journalEntries: ['date', 'createdAt', 'updatedAt'],
+    screeningDocs:  ['uploadedAt'],
+    incallVenues:   ['createdAt', 'updatedAt'],
+    venueDocs:      ['uploadedAt'],
   }
 
   for (const [tableName, fields] of Object.entries(dateFields)) {
@@ -183,6 +250,16 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   if (t.incidents?.length) { await db.incidents.bulkAdd(t.incidents as any); total += t.incidents.length }
   if (t.serviceRates?.length) { await db.serviceRates.bulkAdd(t.serviceRates as any); total += t.serviceRates.length }
   if (t.payments?.length) { await db.payments.bulkAdd(t.payments as any); total += t.payments.length }
+  if (t.journalEntries?.length) { await db.journalEntries.bulkAdd(t.journalEntries as any); total += t.journalEntries.length }
+  if (t.screeningDocs?.length) {
+    const deserialized = deserializeDocRecords(t.screeningDocs as any[])
+    await db.screeningDocs.bulkAdd(deserialized as any); total += deserialized.length
+  }
+  if (t.incallVenues?.length) { await db.incallVenues.bulkAdd(t.incallVenues as any); total += t.incallVenues.length }
+  if (t.venueDocs?.length) {
+    const deserialized = deserializeDocRecords(t.venueDocs as any[])
+    await db.venueDocs.bulkAdd(deserialized as any); total += deserialized.length
+  }
 
   return { total }
 }
@@ -389,7 +466,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
               {working ? 'Creating...' : 'Download Full Backup'}
             </button>
             <p className="text-[10px] text-center mt-2" style={{ color: 'var(--text-secondary)' }}>
-              Includes all clients, bookings, finances, availability, safety data, and settings
+              Includes all clients, bookings, finances, journals, venues, documents, availability, safety data, and settings
             </p>
           </div>
 
