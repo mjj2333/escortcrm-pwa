@@ -69,6 +69,15 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Prevent iOS Safari from zooming in when focusing inputs with font-size < 16px.
+   This avoids the jarring auto-zoom that occurs on any input/textarea/select
+   with font-size below 16px in iOS Safari, including in PWA standalone mode. */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
 /* Smooth transitions — scoped to interactive elements only */
 button, a, [role="button"], input, select, textarea {
   transition-property: background-color, border-color, color, opacity;

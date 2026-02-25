@@ -53,6 +53,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
   const [isGiftMode, setIsGiftMode] = useState(!!initialCode)
   const [validating, setValidating] = useState(false)
   const [error, setError] = useState('')
+  const [tappedCheckout, setTappedCheckout] = useState(false)
 
   // Check URL params for successful checkout redirect
   useEffect(() => {
@@ -62,6 +63,21 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [])
+
+  // When user taps a payment link, it opens in Safari (separate from PWA).
+  // When they return to the app, auto-show the email verify section.
+  useEffect(() => {
+    if (!tappedCheckout) return
+    function handleReturn() {
+      if (document.visibilityState === 'visible') {
+        setShowVerify(true)
+        setIsGiftMode(false)
+        setTappedCheckout(false)
+      }
+    }
+    document.addEventListener('visibilitychange', handleReturn)
+    return () => document.removeEventListener('visibilitychange', handleReturn)
+  }, [tappedCheckout])
 
   async function handleVerify() {
     const input = verifyInput.trim()
@@ -182,6 +198,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
               href={STRIPE_MONTHLY_LINK}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => setTappedCheckout(true)}
               className="w-full p-4 rounded-xl border-2 text-left transition-all active:scale-[0.98] block"
               style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-card)' }}
             >
@@ -210,6 +227,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
               href={STRIPE_LIFETIME_LINK}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => setTappedCheckout(true)}
               className="w-full p-4 rounded-xl border-2 text-left transition-all active:scale-[0.98] relative overflow-hidden block"
               style={{ borderColor: '#a855f7', backgroundColor: 'var(--bg-card)' }}
             >

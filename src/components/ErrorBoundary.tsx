@@ -84,14 +84,14 @@ export class ErrorBoundary extends Component<Props, State> {
             Reload app
           </button>
 
-          {/* Show error details in development */}
-          {import.meta.env.DEV && this.state.error && (
+          {/* Error details — always available (collapsed) for bug reports */}
+          {this.state.error && (
             <details className="mt-6 text-left max-w-sm w-full">
               <summary
                 className="text-xs cursor-pointer mb-1"
                 style={{ color: 'var(--text-secondary, #888)' }}
               >
-                Error details (dev only)
+                Error details
               </summary>
               <pre
                 className="text-xs p-3 rounded-lg overflow-auto max-h-40"
@@ -105,6 +105,16 @@ export class ErrorBoundary extends Component<Props, State> {
                 {this.state.error.message}
                 {this.state.errorInfo}
               </pre>
+              <button
+                onClick={() => {
+                  const text = `Error: ${this.state.error?.message}\n\nStack: ${this.state.errorInfo}`
+                  navigator.clipboard?.writeText(text)
+                }}
+                className="text-xs mt-1.5 px-3 py-1.5 rounded-lg"
+                style={{ backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' }}
+              >
+                Copy error report
+              </button>
             </details>
           )}
         </div>
