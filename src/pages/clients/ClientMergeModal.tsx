@@ -287,7 +287,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
               className="flex items-center gap-2 px-3 py-2.5 rounded-lg mb-3"
               style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}
             >
-              <Search size={15} style={{ color: 'var(--text-secondary)' }} />
+              <Search size={16} style={{ color: 'var(--text-secondary)' }} />
               <input
                 type="text"
                 placeholder="Name, phone, or real name…"
@@ -430,8 +430,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
               <button
                 onClick={executeMerge}
                 disabled={working}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white ${working ? 'opacity-40' : 'active:opacity-90'}`}
-                style={{ backgroundColor: '#a855f7' }}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-purple-600 ${working ? 'opacity-40' : 'active:opacity-90'}`}
               >
                 {working ? 'Merging…' : 'Merge Clients'}
               </button>

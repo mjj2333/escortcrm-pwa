@@ -358,8 +358,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           <div className="flex gap-2">
             <button
               onClick={() => setShowBookingEditor(true)}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white active:opacity-80"
-              style={{ backgroundColor: '#a855f7' }}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white active:opacity-80 bg-purple-600"
             >
               <Plus size={16} /> New Booking
             </button>

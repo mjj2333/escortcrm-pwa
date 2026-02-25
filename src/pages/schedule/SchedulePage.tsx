@@ -244,17 +244,17 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
         </button>
 
         {/* View toggle */}
-        <div data-tour="tour-schedule-view" className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
+        <div data-tour="tour-schedule-view" className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           <button
             onClick={() => setViewMode('calendar')}
-            className={`px-3 py-1.5 text-xs font-medium ${viewMode === 'calendar' ? 'bg-purple-500 text-white' : ''}`}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium ${viewMode === 'calendar' ? 'bg-purple-600 text-white' : ''}`}
             style={viewMode !== 'calendar' ? { color: 'var(--text-secondary)' } : {}}
           >
             <CalendarDays size={14} />
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`px-3 py-1.5 text-xs font-medium ${viewMode === 'list' ? 'bg-purple-500 text-white' : ''}`}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium ${viewMode === 'list' ? 'bg-purple-600 text-white' : ''}`}
             style={viewMode !== 'list' ? { color: 'var(--text-secondary)' } : {}}
           >
             <List size={14} />
@@ -701,7 +701,7 @@ function DayDetailModal({
       <div
         className="w-full max-w-lg rounded-t-2xl overflow-hidden flex flex-col"
         style={{
-          backgroundColor: 'var(--bg-primary)',
+          backgroundColor: 'var(--bg-card)',
           maxHeight: '75vh',
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.25s ease-out',

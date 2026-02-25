@@ -61,7 +61,7 @@ export function SampleDataBanner() {
       {showConfirm && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center px-6"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
           onClick={() => setShowConfirm(false)}
         >
           <div

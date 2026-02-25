@@ -353,12 +353,12 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
 
       <div className="px-4 py-3 max-w-lg mx-auto space-y-4">
         {/* Period Selector */}
-        <div className="flex rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           {(['Week', 'Month', 'Quarter', 'Year', 'All'] as TimePeriod[]).map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+              className={`flex-1 py-2 rounded-md text-xs font-medium transition-colors ${
                 period === p ? 'bg-purple-600 text-white' : ''
               }`}
               style={period !== p ? { color: 'var(--text-secondary)' } : {}}
@@ -1371,12 +1371,12 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       <div style={{ backgroundColor: 'var(--bg-secondary)' }}>
         {/* Filter */}
         <div className="px-4 pt-3 pb-2">
-          <div className="flex rounded-xl overflow-hidden mb-3" style={{ backgroundColor: 'var(--bg-primary)' }}>
+          <div className="flex gap-1 p-1 rounded-lg mb-3" style={{ backgroundColor: 'var(--bg-primary)' }}>
             {(['all', 'income', 'expense'] as const).map(f => (
               <button
                 key={f}
                 onClick={() => setFilterType(f)}
-                className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${
+                className={`flex-1 py-2 rounded-md text-xs font-medium capitalize transition-colors ${
                   filterType === f ? 'bg-purple-600 text-white' : ''
                 }`}
                 style={filterType !== f ? { color: 'var(--text-secondary)' } : {}}
@@ -1389,7 +1389,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
             className="flex items-center gap-2 px-3 py-2 rounded-lg"
             style={{ backgroundColor: 'var(--bg-primary)' }}
           >
-            <Search size={14} style={{ color: 'var(--text-secondary)' }} />
+            <Search size={16} style={{ color: 'var(--text-secondary)' }} />
             <input
               type="text"
               placeholder="Search transactions..."

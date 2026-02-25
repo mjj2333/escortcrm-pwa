@@ -386,7 +386,7 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
           borderColor: 'var(--border)',
           transform: `translateX(${offset}px)`,
           transition: swiping ? 'none' : 'transform 0.25s ease-out',
-          borderRadius: 'var(--radius-xl)',
+          borderRadius: '0.75rem',
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

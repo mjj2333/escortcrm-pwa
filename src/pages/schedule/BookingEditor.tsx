@@ -746,7 +746,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       {/* Availability Conflict Warning */}
       {conflictWarning && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }} onClick={() => setConflictWarning(null)}>
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setConflictWarning(null)}>
           <div className="w-full max-w-sm rounded-2xl p-6"
             style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
             onClick={e => e.stopPropagation()}>

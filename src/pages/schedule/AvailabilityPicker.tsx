@@ -93,22 +93,19 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
   const showSaveButton = selectedStatus === 'Available' || selectedStatus === 'Limited'
 
   return (
-    <div className="fixed inset-0 flex items-end justify-center" style={{ zIndex: 9999 }}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50"
         onClick={onClose}
-        style={{ zIndex: 0 }}
       />
 
       {/* Panel */}
       <div
-        className="w-full max-w-lg rounded-t-2xl overflow-y-auto"
+        className="relative w-full max-w-lg rounded-t-2xl overflow-y-auto"
         style={{
           backgroundColor: 'var(--bg-card)',
           maxHeight: '80vh',
-          position: 'relative',
-          zIndex: 1,
         }}
         onClick={e => e.stopPropagation()}
       >

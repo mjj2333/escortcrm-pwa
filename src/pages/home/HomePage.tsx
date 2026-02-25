@@ -532,7 +532,7 @@ function AllActiveBookingsModal({
       <div
         className="w-full max-w-lg rounded-t-2xl overflow-hidden flex flex-col"
         style={{
-          backgroundColor: 'var(--bg-primary)',
+          backgroundColor: 'var(--bg-card)',
           maxHeight: '80vh',
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.25s ease-out',

@@ -98,11 +98,11 @@ export function IncallBookPage({ isOpen, onClose }: IncallBookPageProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col">
-      <div className="absolute inset-0 bg-black/60" onClick={screen.view === 'list' ? onClose : undefined} />
+      <div className="absolute inset-0 bg-black/50" onClick={screen.view === 'list' ? onClose : undefined} />
 
       <div
         className="relative mt-8 flex-1 flex flex-col rounded-t-2xl overflow-hidden animate-slide-up"
-        style={{ backgroundColor: 'var(--bg-primary)' }}
+        style={{ backgroundColor: 'var(--bg-card)' }}
       >
         {/* Header */}
         <div

@@ -24,12 +24,12 @@ export function Modal({ isOpen, onClose, title, children, actions }: ModalProps)
   return (
     <div className="fixed inset-0 z-50 flex flex-col">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Sheet */}
       <div
         className="relative mt-8 flex-1 flex flex-col rounded-t-2xl overflow-hidden animate-slide-up"
-        style={{ backgroundColor: 'var(--bg-primary)' }}
+        style={{ backgroundColor: 'var(--bg-card)' }}
       >
         {/* Header */}
         <div

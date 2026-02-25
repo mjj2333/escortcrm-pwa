@@ -254,7 +254,7 @@ export function SafetyPage() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors ${
-                tab === t.id ? 'bg-purple-500 text-white' : ''
+                tab === t.id ? 'bg-purple-600 text-white' : ''
               }`}
               style={tab !== t.id ? { color: 'var(--text-secondary)' } : {}}
             >
