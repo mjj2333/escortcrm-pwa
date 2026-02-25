@@ -128,10 +128,14 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
     const paymentsSnap = await db.payments.where('bookingId').equals(bookingId).toArray()
     const txnsSnap = await db.transactions.where('bookingId').equals(bookingId).toArray()
     const checksSnap = await db.safetyChecks.where('bookingId').equals(bookingId).toArray()
+    const journalSnap = await db.journalEntries.where('bookingId').equals(bookingId).toArray()
+    const incidentsSnap = await db.incidents.where('bookingId').equals(bookingId).toArray()
 
     await db.payments.where('bookingId').equals(bookingId).delete()
     await db.transactions.where('bookingId').equals(bookingId).delete()
     await db.safetyChecks.where('bookingId').equals(bookingId).delete()
+    await db.journalEntries.where('bookingId').equals(bookingId).delete()
+    await db.incidents.where('bookingId').equals(bookingId).delete()
     await db.bookings.delete(bookingId)
     setConfirmAction(null)
     onBack()
@@ -141,6 +145,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       if (paymentsSnap.length) await db.payments.bulkPut(paymentsSnap)
       if (txnsSnap.length) await db.transactions.bulkPut(txnsSnap)
       if (checksSnap.length) await db.safetyChecks.bulkPut(checksSnap)
+      if (journalSnap.length) await db.journalEntries.bulkPut(journalSnap)
+      if (incidentsSnap.length) await db.incidents.bulkPut(incidentsSnap)
     })
   }
 
