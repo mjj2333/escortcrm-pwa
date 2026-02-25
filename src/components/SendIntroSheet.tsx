@@ -67,7 +67,7 @@ interface SendIntroSheetProps {
 }
 
 export function SendIntroSheet({ isOpen, onClose, client }: SendIntroSheetProps) {
-  const serviceRates = useLiveQuery(() => db.serviceRates.where('isActive').equals(1).toArray()) ?? []
+  const serviceRates = useLiveQuery(() => db.serviceRates.toArray().then(r => r.filter(s => s.isActive))) ?? []
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState(false)
 

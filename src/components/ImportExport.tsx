@@ -368,7 +368,7 @@ async function importSafetyContacts(rows: Record<string, unknown>[]): Promise<nu
 
     // Enforce single-primary constraint: clear any existing primary if this one is marked primary
     if (isPrimary) {
-      await db.safetyContacts.where('isPrimary').equals(1).modify({ isPrimary: false })
+      await db.safetyContacts.filter(c => c.isPrimary).modify({ isPrimary: false })
     }
 
     const contact: SafetyContact = {
