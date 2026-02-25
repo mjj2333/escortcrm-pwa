@@ -1243,7 +1243,7 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
       onClose={onClose}
       title="Income Goals"
       actions={
-        <button onClick={save} className="p-1 text-purple-500">
+        <button onClick={save} className="p-2 text-purple-500">
           <Check size={20} />
         </button>
       }
@@ -1307,7 +1307,7 @@ function TaxSettingsEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
       onClose={onClose}
       title="Tax Settings"
       actions={
-        <button onClick={save} className="p-1 text-purple-500">
+        <button onClick={save} className="p-2 text-purple-500">
           <Check size={20} />
         </button>
       }

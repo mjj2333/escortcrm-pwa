@@ -77,7 +77,7 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientAlias, exis
       onClose={onClose}
       title={existingEntry ? 'Edit Journal' : 'Session Notes'}
       actions={
-        <button onClick={handleSave} className="p-1 text-purple-500">
+        <button onClick={handleSave} className="p-2 text-purple-500">
           <Check size={20} />
         </button>
       }

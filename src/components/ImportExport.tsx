@@ -571,7 +571,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Import / Export</h2>
-          <button onClick={onClose} className="p-1" style={{ color: 'var(--text-secondary)' }}>
+          <button onClick={onClose} className="p-2" style={{ color: 'var(--text-secondary)' }}>
             <X size={20} />
           </button>
         </div>

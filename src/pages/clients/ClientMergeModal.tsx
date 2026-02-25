@@ -258,7 +258,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
           <button
             onClick={executeMerge}
             disabled={working}
-            className={`p-1 ${working ? 'opacity-40' : 'text-purple-500'}`}
+            className={`p-2 ${working ? 'opacity-40' : 'text-purple-500'}`}
           >
             <Check size={20} />
           </button>

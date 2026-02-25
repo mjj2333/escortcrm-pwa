@@ -36,13 +36,13 @@ export function Modal({ isOpen, onClose, title, children, actions }: ModalProps)
           className="flex items-center justify-between px-4 py-3 border-b shrink-0"
           style={{ borderColor: 'var(--border)' }}
         >
-          <button onClick={onClose} className="p-1" style={{ color: 'var(--text-secondary)' }}>
+          <button onClick={onClose} className="p-2 -ml-1" style={{ color: 'var(--text-secondary)' }}>
             <X size={20} />
           </button>
           <h2 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>
             {title}
           </h2>
-          <div className="w-7">
+          <div className="w-9 -mr-1">
             {actions}
           </div>
         </div>

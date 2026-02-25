@@ -447,7 +447,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
             <Database size={18} style={{ color: '#a855f7' }} />
             <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Backup & Restore</h2>
           </div>
-          <button onClick={onClose} className="p-1" style={{ color: 'var(--text-secondary)' }}>
+          <button onClick={onClose} className="p-2" style={{ color: 'var(--text-secondary)' }}>
             <X size={20} />
           </button>
         </div>

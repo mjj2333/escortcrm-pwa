@@ -109,7 +109,7 @@ export function IncallBookPage({ isOpen, onClose }: IncallBookPageProps) {
           className="flex items-center justify-between px-4 py-3 border-b shrink-0"
           style={{ borderColor: 'var(--border)' }}
         >
-          <button onClick={handleBack} className="p-1" style={{ color: 'var(--text-secondary)' }}>
+          <button onClick={handleBack} className="p-2 -ml-1" style={{ color: 'var(--text-secondary)' }}>
             {screen.view === 'list' ? <X size={20} /> : <ArrowLeft size={20} />}
           </button>
           <h2 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>
@@ -117,12 +117,12 @@ export function IncallBookPage({ isOpen, onClose }: IncallBookPageProps) {
           </h2>
           <div className="w-7">
             {screen.view === 'list' && (
-              <button onClick={() => setScreen({ view: 'editor' })} className="p-1 text-purple-500">
+              <button onClick={() => setScreen({ view: 'editor' })} className="p-2 text-purple-500">
                 <Plus size={20} />
               </button>
             )}
             {screen.view === 'detail' && (
-              <button onClick={() => setScreen({ view: 'editor', venueId: (screen as any).venueId })} className="p-1 text-purple-500">
+              <button onClick={() => setScreen({ view: 'editor', venueId: (screen as any).venueId })} className="p-2 text-purple-500">
                 <Edit size={18} />
               </button>
             )}

@@ -57,7 +57,7 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
         <button
           onClick={handleSave}
           disabled={!isValid}
-          className={`p-1 ${isValid ? 'text-purple-500' : 'opacity-30'}`}
+          className={`p-2 ${isValid ? 'text-purple-500' : 'opacity-30'}`}
         >
           <Check size={20} />
         </button>

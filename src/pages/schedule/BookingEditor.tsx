@@ -346,7 +346,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       title={isEditing ? 'Edit Booking' : 'New Booking'}
       actions={
         <button onClick={handleSave} disabled={!isValid}
-          className={`p-1 ${isValid ? 'text-purple-500' : 'opacity-30'}`}>
+          className={`p-2 ${isValid ? 'text-purple-500' : 'opacity-30'}`}>
           <Check size={20} />
         </button>
       }
