@@ -85,23 +85,30 @@ export async function seedSampleData(): Promise<void> {
   // ═══════════════════════════════════════════════════════════
   // PROFILE (localStorage)
   // ═══════════════════════════════════════════════════════════
-  // useLocalStorage stores values via JSON.stringify, so sample data must match
-  localStorage.setItem('profileWorkingName', JSON.stringify('Valentina Rose'))
-  localStorage.setItem('profileWorkEmail', JSON.stringify('valentina@protonmail.com'))
-  localStorage.setItem('profileWorkPhone', JSON.stringify('(555) 800-7777'))
-  localStorage.setItem('profileWebsite', JSON.stringify('https://valentinarose.com'))
-  localStorage.setItem('profileTagline', JSON.stringify('Refined companionship for discerning gentlemen'))
-  localStorage.setItem('profileSetupDone', JSON.stringify(true))
-  localStorage.setItem('defaultDepositType', JSON.stringify('percent'))
-  localStorage.setItem('defaultDepositPercentage', JSON.stringify(25))
-  localStorage.setItem('defaultDepositFlat', JSON.stringify(0))
-  localStorage.setItem('currency', JSON.stringify('USD'))
-  localStorage.setItem('introTemplate', JSON.stringify(
+  // useLocalStorage stores values via JSON.stringify, so sample data must match.
+  // We also dispatch ls-sync events so already-mounted useLocalStorage hooks
+  // pick up the new values (ProfilePage is always in the DOM).
+  function setLS(key: string, value: unknown) {
+    const json = JSON.stringify(value)
+    localStorage.setItem(key, json)
+    window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key, value } }))
+  }
+  setLS('profileWorkingName', 'Valentina Rose')
+  setLS('profileWorkEmail', 'valentina@protonmail.com')
+  setLS('profileWorkPhone', '(555) 800-7777')
+  setLS('profileWebsite', 'https://valentinarose.com')
+  setLS('profileTagline', 'Refined companionship for discerning gentlemen')
+  setLS('profileSetupDone', true)
+  setLS('defaultDepositType', 'percent')
+  setLS('defaultDepositPercentage', 25)
+  setLS('defaultDepositFlat', 0)
+  setLS('currency', 'USD')
+  setLS('introTemplate',
     'Hi {client}! Thank you for your inquiry. ✨\n\nMy name is {name}. Here is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nYou can learn more at {website} or reach me at {email}.\n\nLooking forward to hearing from you!\n\n— {name}'
-  ))
-  localStorage.setItem('directionsTemplate', JSON.stringify(
+  )
+  setLS('directionsTemplate',
     'Hi! Here are the directions to our meeting:\n\n📍 {address}\n\n{directions}\n\nSee you soon!\n— {name}'
-  ))
+  )
 
   // ═══════════════════════════════════════════════════════════
   // CLIENTS (9)
@@ -779,19 +786,23 @@ export async function clearSampleData(): Promise<void> {
     }
   )
 
-  // Clear profile localStorage
-  localStorage.removeItem('profileWorkingName')
-  localStorage.removeItem('profileWorkEmail')
-  localStorage.removeItem('profileWorkPhone')
-  localStorage.removeItem('profileWebsite')
-  localStorage.removeItem('profileTagline')
-  localStorage.removeItem('profileSetupDone')
-  localStorage.removeItem('defaultDepositType')
-  localStorage.removeItem('defaultDepositPercentage')
-  localStorage.removeItem('defaultDepositFlat')
-  localStorage.removeItem('currency')
-  localStorage.removeItem('introTemplate')
-  localStorage.removeItem('directionsTemplate')
+  // Clear profile localStorage and notify mounted hooks
+  function clearLS(key: string, defaultValue: unknown) {
+    localStorage.removeItem(key)
+    window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key, value: defaultValue } }))
+  }
+  clearLS('profileWorkingName', '')
+  clearLS('profileWorkEmail', '')
+  clearLS('profileWorkPhone', '')
+  clearLS('profileWebsite', '')
+  clearLS('profileTagline', '')
+  clearLS('profileSetupDone', false)
+  clearLS('defaultDepositType', 'percent')
+  clearLS('defaultDepositPercentage', 25)
+  clearLS('defaultDepositFlat', 0)
+  clearLS('currency', 'USD')
+  clearLS('introTemplate', '')
+  clearLS('directionsTemplate', '')
 
   markSampleDataCleared()
 }

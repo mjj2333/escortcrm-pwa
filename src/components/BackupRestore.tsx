@@ -294,6 +294,12 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     for (const [key, val] of Object.entries(payload.profile)) {
       if (typeof val === 'string') {
         localStorage.setItem(key, val)
+        // Notify mounted useLocalStorage hooks
+        try {
+          window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key, value: JSON.parse(val) } }))
+        } catch {
+          window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key, value: val } }))
+        }
       }
     }
   }
