@@ -129,6 +129,17 @@ export function useBookingReminders(enabled: boolean) {
 
     checkReminders()
     const interval = setInterval(checkReminders, 60_000)
-    return () => clearInterval(interval)
+
+    // Also run when the app returns to foreground — background tabs may defer
+    // setInterval by minutes, causing reminders to fall outside their windows.
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') checkReminders()
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [enabled])
 }

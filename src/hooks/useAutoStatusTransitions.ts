@@ -35,6 +35,8 @@ function sendCompletionNotification(clientAlias: string, durationMin: number) {
 export function useAutoStatusTransitions() {
   useEffect(() => {
     let running = false
+    // Track which safety checks have already fired an overdue notification this session
+    const overdueNotified = new Set<string>()
 
     async function checkAndUpdate() {
       if (running) return
@@ -140,8 +142,40 @@ export function useAutoStatusTransitions() {
       const pendingChecks = await db.safetyChecks.where('status').equals('pending').toArray()
       for (const check of pendingChecks) {
         const deadline = new Date(check.scheduledTime).getTime() + check.bufferMinutes * 60_000
+        const fiveBeforeDeadline = deadline - 5 * 60_000
+
+        // Nudge: 5 minutes before the grace period expires
+        if (now >= fiveBeforeDeadline && now < deadline && !overdueNotified.has(`remind-${check.id}`)) {
+          overdueNotified.add(`remind-${check.id}`)
+          if ('Notification' in window && Notification.permission === 'granted') {
+            const booking = bookings.find(b => b.id === check.bookingId)
+            const client = booking?.clientId ? await db.clients.get(booking.clientId) : undefined
+            new Notification('⏰ Safety check-in due soon', {
+              body: client?.alias
+                ? `${client.alias} — Check in now to confirm you're safe.`
+                : 'Your safety check-in is due. Open the app to check in.',
+              icon: '/icon-192.png',
+              tag: `safety-remind-${check.id}`,
+            })
+          }
+        }
+
         if (now >= deadline) {
           await db.safetyChecks.update(check.id, { status: 'overdue' })
+          // Fire an urgent notification — this is safety-critical
+          if (!overdueNotified.has(check.id) && 'Notification' in window && Notification.permission === 'granted') {
+            overdueNotified.add(check.id)
+            const booking = bookings.find(b => b.id === check.bookingId)
+            const client = booking?.clientId ? await db.clients.get(booking.clientId) : undefined
+            new Notification('🚨 Safety check-in OVERDUE', {
+              body: client?.alias
+                ? `${client.alias} — You missed your check-in. Open the app to check in or send an alert.`
+                : 'You missed your safety check-in. Open the app to check in or send an alert.',
+              icon: '/icon-192.png',
+              tag: `safety-overdue-${check.id}`,
+              requireInteraction: true,
+            })
+          }
         }
       }
       } finally {
