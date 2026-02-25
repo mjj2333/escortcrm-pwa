@@ -1,11 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sparkles, Trash2 } from 'lucide-react'
-import { isSampleDataActive, clearSampleData } from '../data/sampleData'
+import { isSampleDataActive, clearSampleData, SAMPLE_DATA_EVENT } from '../data/sampleData'
 
 export function SampleDataBanner() {
   const [visible, setVisible] = useState(isSampleDataActive())
   const [clearing, setClearing] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+
+  // Re-check when sample data is seeded or cleared
+  useEffect(() => {
+    function onSampleDataChange() {
+      setVisible(isSampleDataActive())
+    }
+    window.addEventListener(SAMPLE_DATA_EVENT, onSampleDataChange)
+    return () => window.removeEventListener(SAMPLE_DATA_EVENT, onSampleDataChange)
+  }, [])
 
   if (!visible) return null
 

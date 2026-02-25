@@ -6,6 +6,7 @@ import type {
 } from '../types'
 
 const SAMPLE_DATA_KEY = 'companion_sample_data'
+export const SAMPLE_DATA_EVENT = 'sample-data-change'
 
 export function isSampleDataActive(): boolean {
   return localStorage.getItem(SAMPLE_DATA_KEY) === 'active'
@@ -762,6 +763,7 @@ export async function seedSampleData(): Promise<void> {
   )
 
   localStorage.setItem(SAMPLE_DATA_KEY, 'active')
+  window.dispatchEvent(new Event(SAMPLE_DATA_EVENT))
 }
 
 /**
@@ -805,4 +807,5 @@ export async function clearSampleData(): Promise<void> {
   clearLS('directionsTemplate', '')
 
   markSampleDataCleared()
+  window.dispatchEvent(new Event(SAMPLE_DATA_EVENT))
 }
