@@ -81,7 +81,9 @@ export function FieldTextArea({ label, value, onChange, placeholder, hint, icon 
 
 function deriveCurrencySymbol(): string {
   try {
-    const currency = localStorage.getItem('currency') || 'USD'
+    const raw = localStorage.getItem('currency') || 'USD'
+    let currency: string
+    try { currency = JSON.parse(raw) } catch { currency = raw }
     const parts = new Intl.NumberFormat(navigator.language || 'en-US', {
       style: 'currency', currency,
     }).formatToParts(0)

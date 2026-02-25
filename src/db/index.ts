@@ -417,7 +417,12 @@ export const CURRENCY_KEY = 'currency'
 export const DEFAULT_CURRENCY = 'USD'
 
 export function getCurrency(): string {
-  try { return localStorage.getItem(CURRENCY_KEY) || DEFAULT_CURRENCY } catch { return DEFAULT_CURRENCY }
+  try {
+    const raw = localStorage.getItem(CURRENCY_KEY)
+    if (!raw) return DEFAULT_CURRENCY
+    // useLocalStorage stores values with JSON.stringify, so we need to parse
+    try { return JSON.parse(raw) } catch { return raw }
+  } catch { return DEFAULT_CURRENCY }
 }
 
 // Helper: format currency — reads currency from localStorage, locale from browser
