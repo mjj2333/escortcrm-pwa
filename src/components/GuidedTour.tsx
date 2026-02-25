@@ -181,7 +181,10 @@ export function GuidedTour({ steps, onComplete, onTabChange }: GuidedTourProps) 
       const r = el.getBoundingClientRect()
       // Add padding around the element
       const pad = 6
-      setRect(new DOMRect(r.x - pad, r.y - pad, r.width + pad * 2, r.height + pad * 2))
+      // Cap height so the tooltip always has room to render
+      const maxH = window.innerHeight * 0.35
+      const clippedH = Math.min(r.height, maxH)
+      setRect(new DOMRect(r.x - pad, r.y - pad, r.width + pad * 2, clippedH + pad * 2))
       // Scroll element into view if needed
       const inView = r.top >= 0 && r.bottom <= window.innerHeight - 80
       if (!inView) {
@@ -189,7 +192,8 @@ export function GuidedTour({ steps, onComplete, onTabChange }: GuidedTourProps) 
         // Re-measure after scroll
         setTimeout(() => {
           const r2 = el.getBoundingClientRect()
-          setRect(new DOMRect(r2.x - pad, r2.y - pad, r2.width + pad * 2, r2.height + pad * 2))
+          const clippedH2 = Math.min(r2.height, maxH)
+          setRect(new DOMRect(r2.x - pad, r2.y - pad, r2.width + pad * 2, clippedH2 + pad * 2))
         }, 400)
       }
       return true
