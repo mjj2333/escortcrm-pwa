@@ -74,6 +74,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
   const [error, setError] = useState('')
   const [shake, setShake] = useState(false)
   const [biometricFailed, setBiometricFailed] = useState(false)
+  const [biometricPending, setBiometricPending] = useState(false)
 
   // Rate limiting state
   const [lockedOut, setLockedOut] = useState(false)
@@ -85,16 +86,19 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
   // Auto-trigger biometric on mount when it's available and not in setup mode
   useEffect(() => {
     if (!showBiometric) return
+    setBiometricPending(true)
     attemptBiometric()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function attemptBiometric() {
+    setBiometricPending(true)
     const pin = await assertBiometric()
     if (pin !== null) {
       clearAttempts()
       onUnlock(pin)
     } else {
       setBiometricFailed(true) // fall back to PIN UI
+      setBiometricPending(false)
     }
   }
 
@@ -220,6 +224,29 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
     : lockedOut
     ? `Locked — try again in ${countdown}`
     : 'Enter your PIN to unlock'
+
+  // While biometric prompt is active, show minimal lock screen (no PIN pad flash)
+  if (biometricPending) {
+    return (
+      <div
+        className="fixed inset-0 z-[100] flex flex-col items-center justify-center"
+        style={{ backgroundColor: 'var(--bg-primary)' }}
+      >
+        <div className="flex flex-col items-center gap-6">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: 'rgba(168,85,247,0.15)' }}
+          >
+            <Fingerprint size={28} className="text-purple-500" />
+          </div>
+          <div className="text-center">
+            <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Unlock</h1>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Verifying identity…</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
