@@ -11,6 +11,7 @@ export function SampleDataBanner() {
   useEffect(() => {
     function onSampleDataChange() {
       setVisible(isSampleDataActive())
+      setShowConfirm(false)
     }
     window.addEventListener(SAMPLE_DATA_EVENT, onSampleDataChange)
     return () => window.removeEventListener(SAMPLE_DATA_EVENT, onSampleDataChange)
