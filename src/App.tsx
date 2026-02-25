@@ -16,7 +16,7 @@ const BookingDetail = lazy(() => import('./pages/schedule/BookingDetail').then(m
 const SettingsPage = lazy(() => import('./pages/home/SettingsPage').then(m => ({ default: m.SettingsPage })))
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
-import { Paywall, TrialBanner, isActivated, revalidateActivation, initTrialState } from './components/Paywall'
+import { Paywall, FreeBanner, isActivated, revalidateActivation } from './components/Paywall'
 import { ProGate } from './components/ProGate'
 import { ToastContainer, showToast } from './components/Toast'
 
@@ -77,18 +77,13 @@ export default function App() {
   const [deepLinkCode, setDeepLinkCode] = useState<string | undefined>()
 
   // Revalidate activation with server on each app launch
-  // initTrialState() must run first so needsPaywall() has accurate trial data
   useEffect(() => {
-    initTrialState().then(() => {
-      // Only check revalidation if user has an actual paid activation —
-      // trial-only users have no subscription to revoke
-      const hadPaidActivation = isActivated()
-      revalidateActivation().then(valid => {
-        if (hadPaidActivation && !valid) {
-          // Subscription was revoked server-side — force paywall
-          setShowPaywall(true)
-        }
-      })
+    const hadPaidActivation = isActivated()
+    revalidateActivation().then(valid => {
+      if (hadPaidActivation && !valid) {
+        // Subscription was revoked server-side — force paywall
+        setShowPaywall(true)
+      }
     })
   }, [])
   // Check for ?code= URL param (deep link from share)
@@ -257,7 +252,7 @@ export default function App() {
         return <ClientsPage onOpenClient={openClient} />
       case 3:
         return (
-          <ProGate feature="Finances & Analytics" onUpgrade={() => setShowPaywall(true)}>
+          <ProGate feature="Finances & Analytics" onUpgrade={() => setShowPaywall(true)} bypass={showSetup}>
             <FinancesPage onOpenBooking={openBooking} />
           </ProGate>
         )
@@ -306,7 +301,7 @@ export default function App() {
           You're offline — payment verification and gift codes unavailable
         </div>
       )}
-      <TrialBanner onUpgrade={() => setShowPaywall(true)} />
+      <FreeBanner onUpgrade={() => setShowPaywall(true)} />
       <ToastContainer />
       <Suspense fallback={<div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }} />}>
         {renderContent()}

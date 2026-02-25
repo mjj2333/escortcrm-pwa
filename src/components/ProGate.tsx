@@ -10,6 +10,8 @@ interface ProGateProps {
   onUpgrade?: () => void
   /** If true, render an inline card instead of an overlay over children */
   inline?: boolean
+  /** If true, temporarily bypass the gate (e.g. during guided tour) */
+  bypass?: boolean
 }
 
 /**
@@ -17,8 +19,8 @@ interface ProGateProps {
  * Free users see a blurred preview with an upgrade CTA overlay.
  * Pro users see the content normally.
  */
-export function ProGate({ children, feature, onUpgrade, inline }: ProGateProps) {
-  if (isPro()) return <>{children}</>
+export function ProGate({ children, feature, onUpgrade, inline, bypass }: ProGateProps) {
+  if (isPro() || bypass) return <>{children}</>
 
   if (inline) {
     return (
