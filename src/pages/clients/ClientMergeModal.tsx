@@ -73,6 +73,7 @@ function buildMergeFields(source: Client, target: Client): MergeField[] {
     (['Screened', 'In Progress', 'Unscreened'] as const).indexOf(source.screeningStatus) <
     (['Screened', 'In Progress', 'Unscreened'] as const).indexOf(target.screeningStatus)
       ? 'source' : 'target')
+  add('screeningMethod', 'Screening Method', source.screeningMethod ?? '—', target.screeningMethod ?? '—', target.screeningMethod ? 'target' : 'source')
   add('riskLevel', 'Risk Level', source.riskLevel, target.riskLevel,
     // prefer higher risk level (safer to err high)
     (['High Risk', 'Medium Risk', 'Low Risk', 'Unknown'] as const).indexOf(source.riskLevel) <
@@ -83,6 +84,7 @@ function buildMergeFields(source: Client, target: Client): MergeField[] {
   add('boundaries', 'Boundaries', source.boundaries || '—', target.boundaries || '—', target.boundaries ? 'target' : 'source')
   add('referenceSource', 'Reference Source', source.referenceSource ?? '—', target.referenceSource ?? '—', target.referenceSource ? 'target' : 'source')
   add('verificationNotes', 'Verification Notes', source.verificationNotes ?? '—', target.verificationNotes ?? '—', target.verificationNotes ? 'target' : 'source')
+  add('address', 'Address', source.address ?? '—', target.address ?? '—', target.address ? 'target' : 'source')
   add('birthday', 'Birthday', fmtDate(source.birthday), fmtDate(target.birthday), target.birthday ? 'target' : 'source')
   add('clientSince', 'Client Since', fmtDate(source.clientSince), fmtDate(target.clientSince),
     // prefer earliest clientSince
@@ -173,6 +175,8 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
         boundaries:        resolveField('boundaries'),
         referenceSource:   resolveField('referenceSource'),
         verificationNotes: resolveField('verificationNotes'),
+        address:           resolveField('address'),
+        screeningMethod:   resolveField('screeningMethod'),
         birthday:          resolveField('birthday'),
         clientSince:       resolveField('clientSince'),
         // Always use earliest dateAdded
@@ -202,10 +206,22 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
         await db.incidents.update(inc.id, { clientId: targetClient.id })
       }
 
-      // 4. Apply merged fields to target
+      // 4. Re-point journal entries from source → target
+      const sourceJournals = await db.journalEntries.where('clientId').equals(sourceClient.id).toArray()
+      for (const j of sourceJournals) {
+        await db.journalEntries.update(j.id, { clientId: targetClient.id })
+      }
+
+      // 5. Re-point screening docs from source → target
+      const sourceScreeningDocs = await db.screeningDocs.where('clientId').equals(sourceClient.id).toArray()
+      for (const doc of sourceScreeningDocs) {
+        await db.screeningDocs.update(doc.id, { clientId: targetClient.id })
+      }
+
+      // 6. Apply merged fields to target
       await db.clients.update(targetClient.id, merged)
 
-      // 5. Delete source
+      // 7. Delete source
       await db.clients.delete(sourceClient.id)
 
       showToast(`Merged into ${targetClient.alias}`)

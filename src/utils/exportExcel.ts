@@ -86,14 +86,20 @@ function buildClientsSheet(wb: ExcelJS.Workbook, clients: Client[]) {
     { header: 'Primary Contact', key: 'contact', width: 14 },
     { header: 'Secondary Contact', key: 'secondary', width: 14 },
     { header: 'Screening', key: 'screening', width: 13 },
+    { header: 'Screening Method', key: 'screeningMethod', width: 16 },
     { header: 'Risk', key: 'risk', width: 13 },
     { header: 'Blacklisted', key: 'blocked', width: 11 },
     { header: 'Date Added', key: 'dateAdded', width: 12 },
     { header: 'Last Seen', key: 'lastSeen', width: 12 },
+    { header: 'Client Since', key: 'clientSince', width: 12 },
+    { header: 'Birthday', key: 'birthday', width: 12 },
+    { header: 'Address', key: 'address', width: 22 },
     { header: 'Tags', key: 'tags', width: 20 },
     { header: 'Notes', key: 'notes', width: 30 },
     { header: 'Preferences', key: 'preferences', width: 24 },
     { header: 'Boundaries', key: 'boundaries', width: 24 },
+    { header: 'Reference Source', key: 'referenceSource', width: 18 },
+    { header: 'Verification Notes', key: 'verificationNotes', width: 24 },
   ]
   for (const c of clients) {
     ws.addRow({
@@ -107,17 +113,23 @@ function buildClientsSheet(wb: ExcelJS.Workbook, clients: Client[]) {
       contact: c.preferredContact,
       secondary: c.secondaryContact ?? '',
       screening: c.screeningStatus,
+      screeningMethod: c.screeningMethod ?? '',
       risk: c.riskLevel,
       blocked: c.isBlocked ? 'Yes' : '',
       dateAdded: fmtDate(c.dateAdded),
       lastSeen: fmtDate(c.lastSeen),
+      clientSince: fmtDate(c.clientSince),
+      birthday: fmtDate(c.birthday),
+      address: c.address ?? '',
       tags: c.tags?.map(t => t.name).join(', ') ?? '',
       notes: c.notes,
       preferences: c.preferences,
       boundaries: c.boundaries,
+      referenceSource: c.referenceSource ?? '',
+      verificationNotes: c.verificationNotes ?? '',
     })
   }
-  styleSheet(ws, 14)
+  styleSheet(ws, ws.columns.length)
 }
 
 function buildBookingsSheet(
@@ -170,7 +182,7 @@ function buildBookingsSheet(
       row.getCell(col).numFmt = MONEY_FMT
     }
   }
-  styleSheet(ws, 15)
+  styleSheet(ws, ws.columns.length)
 }
 
 function buildIncomeSheet(wb: ExcelJS.Workbook, transactions: Transaction[]) {
@@ -206,7 +218,7 @@ function buildIncomeSheet(wb: ExcelJS.Workbook, transactions: Transaction[]) {
     totRow.font = { ...BODY_FONT, bold: true }
   }
 
-  styleSheet(ws, 5)
+  styleSheet(ws, ws.columns.length)
 }
 
 function buildExpensesSheet(wb: ExcelJS.Workbook, transactions: Transaction[]) {
@@ -241,7 +253,7 @@ function buildExpensesSheet(wb: ExcelJS.Workbook, transactions: Transaction[]) {
     totRow.font = { ...BODY_FONT, bold: true }
   }
 
-  styleSheet(ws, 5)
+  styleSheet(ws, ws.columns.length)
 }
 
 function buildPaymentsSheet(
@@ -286,7 +298,7 @@ function buildPaymentsSheet(
     totRow.font = { ...BODY_FONT, bold: true }
   }
 
-  styleSheet(ws, 6)
+  styleSheet(ws, ws.columns.length)
 }
 
 function buildIncidentsSheet(
@@ -315,7 +327,7 @@ function buildIncidentsSheet(
       action: i.actionTaken,
     })
   }
-  styleSheet(ws, 5)
+  styleSheet(ws, ws.columns.length)
 }
 
 // ── Main export ──────────────────────────────────────────────────────────

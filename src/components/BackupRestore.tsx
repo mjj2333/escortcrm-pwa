@@ -63,7 +63,7 @@ async function decryptData(encoded: string, password: string): Promise<string> {
 // Backups from a NEWER version than this will be rejected to prevent
 // silent data loss (future tables/fields would be silently dropped).
 // Backups from OLDER versions are fine — missing tables are just empty.
-const CURRENT_BACKUP_VERSION = 2
+const CURRENT_BACKUP_VERSION = 3
 
 interface BackupPayload {
   version: number
@@ -78,10 +78,74 @@ interface BackupPayload {
     incidents: unknown[]
     serviceRates: unknown[]
     payments?: unknown[]
+    journalEntries?: unknown[]
+    incallVenues?: unknown[]
+    // screeningDocs and venueDocs have Blob data — encoded as base64
+    screeningDocs?: unknown[]
+    venueDocs?: unknown[]
   }
+  // Profile & settings from localStorage
+  profile?: Record<string, string>
 }
 
+// ── Blob ↔ Base64 helpers ──────────────────────────────────────────────
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      // Strip the data:…;base64, prefix
+      resolve(result.split(',')[1] ?? '')
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+function base64ToBlob(b64: string, mimeType: string): Blob {
+  const binary = atob(b64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return new Blob([bytes], { type: mimeType })
+}
+
+// localStorage keys to include in backup
+const PROFILE_LS_KEYS = [
+  'profileWorkingName', 'profileWorkEmail', 'profileWorkPhone',
+  'profileWebsite', 'profileTagline', 'profileSetupDone',
+  'defaultDepositType', 'defaultDepositPercentage', 'defaultDepositFlat',
+  'currency', 'introTemplate', 'directionsTemplate',
+  'taxRate', 'setAsideRate',
+  'goalWeekly', 'goalMonthly', 'goalQuarterly', 'goalYearly',
+  'darkMode', 'oledBlack', 'remindersEnabled',
+  'financeCards_v2', 'financeHintDismissed',
+]
+
 export async function createBackup(): Promise<BackupPayload> {
+  // Serialize screeningDocs (Blob → base64)
+  const rawScreeningDocs = await db.screeningDocs.toArray()
+  const screeningDocs = await Promise.all(rawScreeningDocs.map(async doc => ({
+    ...doc,
+    data: await blobToBase64(doc.data),
+    _blobMime: doc.mimeType,
+  })))
+
+  // Serialize venueDocs (Blob → base64)
+  const rawVenueDocs = await db.venueDocs.toArray()
+  const venueDocs = await Promise.all(rawVenueDocs.map(async doc => ({
+    ...doc,
+    data: await blobToBase64(doc.data),
+    _blobMime: doc.mimeType,
+  })))
+
+  // Snapshot localStorage profile settings
+  const profile: Record<string, string> = {}
+  for (const key of PROFILE_LS_KEYS) {
+    const val = localStorage.getItem(key)
+    if (val !== null) profile[key] = val
+  }
+
   return {
     version: CURRENT_BACKUP_VERSION,
     created: new Date().toISOString(),
@@ -95,7 +159,12 @@ export async function createBackup(): Promise<BackupPayload> {
       incidents: await db.incidents.toArray(),
       serviceRates: await db.serviceRates.toArray(),
       payments: await db.payments.toArray(),
+      journalEntries: await db.journalEntries.toArray(),
+      incallVenues: await db.incallVenues.toArray(),
+      screeningDocs,
+      venueDocs,
     },
+    profile,
   }
 }
 
@@ -116,6 +185,10 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     incidents:      ['id'],
     serviceRates:   ['id'],
     payments:       ['id', 'bookingId'],
+    journalEntries: ['id', 'bookingId', 'clientId'],
+    incallVenues:   ['id', 'name'],
+    screeningDocs:  ['id', 'clientId'],
+    venueDocs:      ['id', 'venueId'],
   }
 
   const t = payload.tables
@@ -145,19 +218,27 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   await db.incidents.clear()
   await db.serviceRates.clear()
   await db.payments.clear()
+  await db.journalEntries.clear()
+  await db.incallVenues.clear()
+  await db.screeningDocs.clear()
+  await db.venueDocs.clear()
 
   // ─── Reconstitute Date objects from ISO strings ──────────────────────
   // JSON.stringify converts Dates to ISO strings; JSON.parse leaves them
   // as strings. IndexedDB indexes distinguish types, so string dates break
   // every .where() and .orderBy() on date-indexed fields.
   const dateFields: Record<string, string[]> = {
-    clients:      ['dateAdded', 'lastSeen', 'birthday', 'clientSince'],
-    bookings:     ['dateTime', 'createdAt', 'confirmedAt', 'completedAt', 'cancelledAt'],
-    transactions: ['date'],
-    availability: ['date'],
-    safetyChecks: ['scheduledTime', 'checkedInAt'],
-    incidents:    ['date'],
-    payments:     ['date'],
+    clients:        ['dateAdded', 'lastSeen', 'birthday', 'clientSince'],
+    bookings:       ['dateTime', 'createdAt', 'confirmedAt', 'completedAt', 'cancelledAt'],
+    transactions:   ['date'],
+    availability:   ['date'],
+    safetyChecks:   ['scheduledTime', 'checkedInAt'],
+    incidents:      ['date'],
+    payments:       ['date'],
+    journalEntries: ['date', 'createdAt', 'updatedAt'],
+    incallVenues:   ['createdAt', 'updatedAt'],
+    screeningDocs:  ['uploadedAt'],
+    venueDocs:      ['uploadedAt'],
   }
 
   for (const [tableName, fields] of Object.entries(dateFields)) {
@@ -174,15 +255,48 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     }
   }
 
-  if (t.clients?.length) { await db.clients.bulkAdd(t.clients as any); total += t.clients.length }
-  if (t.bookings?.length) { await db.bookings.bulkAdd(t.bookings as any); total += t.bookings.length }
-  if (t.transactions?.length) { await db.transactions.bulkAdd(t.transactions as any); total += t.transactions.length }
-  if (t.availability?.length) { await db.availability.bulkAdd(t.availability as any); total += t.availability.length }
+  // ─── Reconstitute Blobs from base64 ─────────────────────────────────
+  if (Array.isArray(t.screeningDocs)) {
+    for (const rec of t.screeningDocs) {
+      const r = rec as Record<string, unknown>
+      if (typeof r.data === 'string' && r.data.length > 0) {
+        r.data = base64ToBlob(r.data as string, (r._blobMime as string) || (r.mimeType as string) || 'application/octet-stream')
+      }
+      delete r._blobMime
+    }
+  }
+  if (Array.isArray(t.venueDocs)) {
+    for (const rec of t.venueDocs) {
+      const r = rec as Record<string, unknown>
+      if (typeof r.data === 'string' && r.data.length > 0) {
+        r.data = base64ToBlob(r.data as string, (r._blobMime as string) || (r.mimeType as string) || 'application/octet-stream')
+      }
+      delete r._blobMime
+    }
+  }
+
+  if (t.clients?.length)        { await db.clients.bulkAdd(t.clients as any); total += t.clients.length }
+  if (t.bookings?.length)       { await db.bookings.bulkAdd(t.bookings as any); total += t.bookings.length }
+  if (t.transactions?.length)   { await db.transactions.bulkAdd(t.transactions as any); total += t.transactions.length }
+  if (t.availability?.length)   { await db.availability.bulkAdd(t.availability as any); total += t.availability.length }
   if (t.safetyContacts?.length) { await db.safetyContacts.bulkAdd(t.safetyContacts as any); total += t.safetyContacts.length }
-  if (t.safetyChecks?.length) { await db.safetyChecks.bulkAdd(t.safetyChecks as any); total += t.safetyChecks.length }
-  if (t.incidents?.length) { await db.incidents.bulkAdd(t.incidents as any); total += t.incidents.length }
-  if (t.serviceRates?.length) { await db.serviceRates.bulkAdd(t.serviceRates as any); total += t.serviceRates.length }
-  if (t.payments?.length) { await db.payments.bulkAdd(t.payments as any); total += t.payments.length }
+  if (t.safetyChecks?.length)   { await db.safetyChecks.bulkAdd(t.safetyChecks as any); total += t.safetyChecks.length }
+  if (t.incidents?.length)      { await db.incidents.bulkAdd(t.incidents as any); total += t.incidents.length }
+  if (t.serviceRates?.length)   { await db.serviceRates.bulkAdd(t.serviceRates as any); total += t.serviceRates.length }
+  if (t.payments?.length)       { await db.payments.bulkAdd(t.payments as any); total += t.payments.length }
+  if (t.journalEntries?.length) { await db.journalEntries.bulkAdd(t.journalEntries as any); total += t.journalEntries.length }
+  if (t.incallVenues?.length)   { await db.incallVenues.bulkAdd(t.incallVenues as any); total += t.incallVenues.length }
+  if (t.screeningDocs?.length)  { await db.screeningDocs.bulkAdd(t.screeningDocs as any); total += t.screeningDocs.length }
+  if (t.venueDocs?.length)      { await db.venueDocs.bulkAdd(t.venueDocs as any); total += t.venueDocs.length }
+
+  // ─── Restore localStorage profile settings ──────────────────────────
+  if (payload.profile && typeof payload.profile === 'object') {
+    for (const [key, val] of Object.entries(payload.profile)) {
+      if (typeof val === 'string') {
+        localStorage.setItem(key, val)
+      }
+    }
+  }
 
   return { total }
 }
@@ -389,7 +503,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
               {working ? 'Creating...' : 'Download Full Backup'}
             </button>
             <p className="text-[10px] text-center mt-2" style={{ color: 'var(--text-secondary)' }}>
-              Includes all clients, bookings, finances, availability, safety data, and settings
+              Includes all clients, bookings, finances, venues, journals, safety data, screening docs, and settings
             </p>
           </div>
 
