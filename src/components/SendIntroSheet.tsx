@@ -5,14 +5,14 @@ import { db, formatCurrency, bookingDurationFormatted } from '../db'
 import { showToast } from './Toast'
 import { contactMethodMeta, getContactValue, openChannel } from '../utils/contactChannel'
 import { fieldInputStyle } from './FormFields'
-import type { Client, ContactMethod } from '../types'
+import type { Client, ContactMethod, ServiceRate } from '../types'
 
 const contactMethodIcons: Record<ContactMethod, typeof Phone> = {
   'Phone': Phone, 'Text': MessageSquare, 'Email': Mail, 'Telegram': Send,
   'Signal': MessageSquare, 'WhatsApp': Phone, 'Other': MessageSquare,
 }
 
-function buildIntroMessage(client: Client): string {
+function buildIntroMessage(client: Client, serviceRates: ServiceRate[]): string {
   const workingName = localStorage.getItem('profileWorkingName')?.replace(/^"|"$/g, '') || ''
   const workEmail = localStorage.getItem('profileWorkEmail')?.replace(/^"|"$/g, '') || ''
   const workPhone = localStorage.getItem('profileWorkPhone')?.replace(/^"|"$/g, '') || ''
@@ -25,12 +25,39 @@ function buildIntroMessage(client: Client): string {
     try { template = JSON.parse(raw) } catch { template = raw }
   }
 
+  // Build rates string
+  const activeRates = serviceRates.filter(r => r.isActive)
+  let ratesStr: string
+  if (activeRates.length > 0) {
+    ratesStr = activeRates
+      .map(r => `• ${r.name} (${bookingDurationFormatted(r.duration)}) — ${formatCurrency(r.rate)}`)
+      .join('\n')
+  } else {
+    ratesStr = 'Please inquire about rates.'
+  }
+
+  // Build deposit string
+  const depositType = localStorage.getItem('defaultDepositType')?.replace(/^"|"$/g, '') || 'percent'
+  const depositPct = parseInt(localStorage.getItem('defaultDepositPercentage')?.replace(/^"|"$/g, '') || '25')
+  const depositFlat = parseFloat(localStorage.getItem('defaultDepositFlat')?.replace(/^"|"$/g, '') || '0')
+
+  let depositStr: string
+  if (depositType === 'flat' && depositFlat > 0) {
+    depositStr = formatCurrency(depositFlat)
+  } else if (depositPct > 0) {
+    depositStr = `${depositPct}%`
+  } else {
+    depositStr = 'a deposit'
+  }
+
   return template
     .replace(/\{client\}/g, client.alias || 'there')
     .replace(/\{name\}/g, workingName)
     .replace(/\{email\}/g, workEmail)
     .replace(/\{phone\}/g, workPhone)
     .replace(/\{website\}/g, website)
+    .replace(/\{rates\}/g, ratesStr)
+    .replace(/\{deposit\}/g, depositStr)
 }
 
 interface SendIntroSheetProps {
@@ -47,41 +74,9 @@ export function SendIntroSheet({ isOpen, onClose, client }: SendIntroSheetProps)
   useEffect(() => {
     if (isOpen) {
       setSent(false)
-      // Build message after rates load — defer slightly
-      const timer = setTimeout(() => {
-        let msg = buildIntroMessage(client)
-
-        // Build rates string
-        const activeRates = serviceRates.filter(r => r.isActive)
-        if (activeRates.length > 0) {
-          const ratesStr = activeRates
-            .map(r => `• ${r.name} (${bookingDurationFormatted(r.duration)}) — ${formatCurrency(r.rate)}`)
-            .join('\n')
-          msg = msg.replace(/\{rates\}/g, ratesStr)
-        } else {
-          msg = msg.replace(/\{rates\}/g, 'Please inquire about rates.')
-        }
-
-        // Build deposit string
-        const depositType = localStorage.getItem('defaultDepositType')?.replace(/^"|"$/g, '') || 'percent'
-        const depositPct = parseInt(localStorage.getItem('defaultDepositPercentage')?.replace(/^"|"$/g, '') || '25')
-        const depositFlat = parseFloat(localStorage.getItem('defaultDepositFlat')?.replace(/^"|"$/g, '') || '0')
-
-        let depositStr: string
-        if (depositType === 'flat' && depositFlat > 0) {
-          depositStr = formatCurrency(depositFlat)
-        } else if (depositPct > 0) {
-          depositStr = `${depositPct}%`
-        } else {
-          depositStr = 'a deposit'
-        }
-        msg = msg.replace(/\{deposit\}/g, depositStr)
-
-        setMessage(msg)
-      }, 50)
-      return () => clearTimeout(timer)
+      setMessage(buildIntroMessage(client, serviceRates))
     }
-  }, [isOpen, client.id, serviceRates.length])
+  }, [isOpen, client.id, serviceRates])
 
   if (!isOpen) return null
 

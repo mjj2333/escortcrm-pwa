@@ -85,15 +85,23 @@ export async function seedSampleData(): Promise<void> {
   // ═══════════════════════════════════════════════════════════
   // PROFILE (localStorage)
   // ═══════════════════════════════════════════════════════════
-  localStorage.setItem('profileWorkingName', 'Valentina Rose')
-  localStorage.setItem('profileWorkEmail', 'valentina@protonmail.com')
-  localStorage.setItem('profileWorkPhone', '(555) 800-7777')
-  localStorage.setItem('profileWebsite', 'https://valentinarose.com')
-  localStorage.setItem('profileTagline', 'Refined companionship for discerning gentlemen')
-  localStorage.setItem('profileSetupDone', 'true')
-  localStorage.setItem('defaultDepositType', 'percent')
-  localStorage.setItem('defaultDepositPercentage', '25')
-  localStorage.setItem('currency', 'USD')
+  // useLocalStorage stores values via JSON.stringify, so sample data must match
+  localStorage.setItem('profileWorkingName', JSON.stringify('Valentina Rose'))
+  localStorage.setItem('profileWorkEmail', JSON.stringify('valentina@protonmail.com'))
+  localStorage.setItem('profileWorkPhone', JSON.stringify('(555) 800-7777'))
+  localStorage.setItem('profileWebsite', JSON.stringify('https://valentinarose.com'))
+  localStorage.setItem('profileTagline', JSON.stringify('Refined companionship for discerning gentlemen'))
+  localStorage.setItem('profileSetupDone', JSON.stringify(true))
+  localStorage.setItem('defaultDepositType', JSON.stringify('percent'))
+  localStorage.setItem('defaultDepositPercentage', JSON.stringify(25))
+  localStorage.setItem('defaultDepositFlat', JSON.stringify(0))
+  localStorage.setItem('currency', JSON.stringify('USD'))
+  localStorage.setItem('introTemplate', JSON.stringify(
+    'Hi {client}! Thank you for your inquiry. ✨\n\nMy name is {name}. Here is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nYou can learn more at {website} or reach me at {email}.\n\nLooking forward to hearing from you!\n\n— {name}'
+  ))
+  localStorage.setItem('directionsTemplate', JSON.stringify(
+    'Hi! Here are the directions to our meeting:\n\n📍 {address}\n\n{directions}\n\nSee you soon!\n— {name}'
+  ))
 
   // ═══════════════════════════════════════════════════════════
   // CLIENTS (9)
@@ -777,6 +785,13 @@ export async function clearSampleData(): Promise<void> {
   localStorage.removeItem('profileWorkPhone')
   localStorage.removeItem('profileWebsite')
   localStorage.removeItem('profileTagline')
+  localStorage.removeItem('profileSetupDone')
+  localStorage.removeItem('defaultDepositType')
+  localStorage.removeItem('defaultDepositPercentage')
+  localStorage.removeItem('defaultDepositFlat')
+  localStorage.removeItem('currency')
+  localStorage.removeItem('introTemplate')
+  localStorage.removeItem('directionsTemplate')
 
   markSampleDataCleared()
 }
