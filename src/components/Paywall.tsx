@@ -196,7 +196,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                    $14.99
+                    $4.99
                     <span className="text-xs font-normal" style={{ color: 'var(--text-secondary)' }}>
                       /mo
                     </span>
@@ -229,7 +229,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-purple-500">$89.99</p>
+                  <p className="text-lg font-bold text-purple-500">$49.99</p>
                   <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
                     pay once
                   </p>

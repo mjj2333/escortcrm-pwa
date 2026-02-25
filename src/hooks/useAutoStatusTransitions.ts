@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { addWeeks, addMonths, addMinutes } from 'date-fns'
 import { db, createBooking, completeBookingPayment, newId } from '../db'
-import { isPro } from '../components/planLimits'
+import { isPro, canAddBooking } from '../components/planLimits'
 
 function sendCompletionNotification(clientAlias: string, durationMin: number) {
   if (!('Notification' in window)) return
@@ -95,6 +95,9 @@ export function useAutoStatusTransitions() {
             // Only auto-create if client is still screened
             const recurClient = b.clientId ? await db.clients.get(b.clientId) : null
             if (recurClient && recurClient.screeningStatus !== 'Screened') continue
+
+            // Respect free plan booking limit
+            if (!await canAddBooking()) continue
 
             const currentDate = new Date(b.dateTime)
             let nextDate: Date

@@ -290,9 +290,21 @@ function validateEnum<T extends string>(value: string, allowed: T[], fallback: T
   return allowed.includes(value as T) ? (value as T) : fallback
 }
 
-async function importClients(rows: Record<string, unknown>[]): Promise<number> {
-  let count = 0
+async function importClients(rows: Record<string, unknown>[]): Promise<{ imported: number; skipped: number }> {
+  const { isPro, getActiveClientCount, FREE_CLIENT_LIMIT } = await import('./planLimits')
+  const pro = isPro()
+  let imported = 0
+  let skipped = 0
   for (const row of rows) {
+    // Check limit before each add (count grows as we import)
+    if (!pro) {
+      const current = await getActiveClientCount()
+      if (current >= FREE_CLIENT_LIMIT) {
+        skipped += rows.length - imported - skipped
+        break
+      }
+    }
+
     const alias = String(row['Alias'] ?? row['alias'] ?? '').trim()
     if (!alias) continue
 
@@ -327,9 +339,9 @@ async function importClients(rows: Record<string, unknown>[]): Promise<number> {
       requiresSafetyCheck: false,
     }
     await db.clients.add(client)
-    count++
+    imported++
   }
-  return count
+  return { imported, skipped }
 }
 
 async function importTransactions(rows: Record<string, unknown>[]): Promise<number> {
@@ -516,8 +528,13 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
       }
 
       let count = 0
+      let skippedMsg = ''
       if (dataType === 'clients') {
-        count = await importClients(rows)
+        const result = await importClients(rows)
+        count = result.imported
+        if (result.skipped > 0) {
+          skippedMsg = ` (${result.skipped} skipped — free plan limit of 5 clients reached)`
+        }
       } else if (dataType === 'transactions') {
         count = await importTransactions(rows)
       } else if (dataType === 'safety_contacts') {
@@ -528,7 +545,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
         return
       }
 
-      setStatus({ type: 'success', msg: `Imported ${count} ${dataType.replace('_', ' ')} from ${file.name}` })
+      setStatus({ type: 'success', msg: `Imported ${count} ${dataType.replace('_', ' ')} from ${file.name}${skippedMsg}` })
     } catch (err) {
       setStatus({ type: 'error', msg: `Import failed: ${(err as Error).message}` })
     }
