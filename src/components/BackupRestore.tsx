@@ -208,21 +208,6 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     }
   }
 
-  // Clear all tables first
-  await db.clients.clear()
-  await db.bookings.clear()
-  await db.transactions.clear()
-  await db.availability.clear()
-  await db.safetyContacts.clear()
-  await db.safetyChecks.clear()
-  await db.incidents.clear()
-  await db.serviceRates.clear()
-  await db.payments.clear()
-  await db.journalEntries.clear()
-  await db.incallVenues.clear()
-  await db.screeningDocs.clear()
-  await db.venueDocs.clear()
-
   // ─── Reconstitute Date objects from ISO strings ──────────────────────
   // JSON.stringify converts Dates to ISO strings; JSON.parse leaves them
   // as strings. IndexedDB indexes distinguish types, so string dates break
@@ -275,19 +260,41 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     }
   }
 
-  if (t.clients?.length)        { await db.clients.bulkAdd(t.clients as any); total += t.clients.length }
-  if (t.bookings?.length)       { await db.bookings.bulkAdd(t.bookings as any); total += t.bookings.length }
-  if (t.transactions?.length)   { await db.transactions.bulkAdd(t.transactions as any); total += t.transactions.length }
-  if (t.availability?.length)   { await db.availability.bulkAdd(t.availability as any); total += t.availability.length }
-  if (t.safetyContacts?.length) { await db.safetyContacts.bulkAdd(t.safetyContacts as any); total += t.safetyContacts.length }
-  if (t.safetyChecks?.length)   { await db.safetyChecks.bulkAdd(t.safetyChecks as any); total += t.safetyChecks.length }
-  if (t.incidents?.length)      { await db.incidents.bulkAdd(t.incidents as any); total += t.incidents.length }
-  if (t.serviceRates?.length)   { await db.serviceRates.bulkAdd(t.serviceRates as any); total += t.serviceRates.length }
-  if (t.payments?.length)       { await db.payments.bulkAdd(t.payments as any); total += t.payments.length }
-  if (t.journalEntries?.length) { await db.journalEntries.bulkAdd(t.journalEntries as any); total += t.journalEntries.length }
-  if (t.incallVenues?.length)   { await db.incallVenues.bulkAdd(t.incallVenues as any); total += t.incallVenues.length }
-  if (t.screeningDocs?.length)  { await db.screeningDocs.bulkAdd(t.screeningDocs as any); total += t.screeningDocs.length }
-  if (t.venueDocs?.length)      { await db.venueDocs.bulkAdd(t.venueDocs as any); total += t.venueDocs.length }
+  // Clear all tables and restore data atomically
+  await db.transaction('rw',
+    [db.clients, db.bookings, db.transactions, db.availability, db.safetyContacts,
+     db.safetyChecks, db.incidents, db.serviceRates, db.payments, db.journalEntries,
+     db.incallVenues, db.screeningDocs, db.venueDocs],
+    async () => {
+      await db.clients.clear()
+      await db.bookings.clear()
+      await db.transactions.clear()
+      await db.availability.clear()
+      await db.safetyContacts.clear()
+      await db.safetyChecks.clear()
+      await db.incidents.clear()
+      await db.serviceRates.clear()
+      await db.payments.clear()
+      await db.journalEntries.clear()
+      await db.incallVenues.clear()
+      await db.screeningDocs.clear()
+      await db.venueDocs.clear()
+
+      if (t.clients?.length)        { await db.clients.bulkAdd(t.clients as any); total += t.clients.length }
+      if (t.bookings?.length)       { await db.bookings.bulkAdd(t.bookings as any); total += t.bookings.length }
+      if (t.transactions?.length)   { await db.transactions.bulkAdd(t.transactions as any); total += t.transactions.length }
+      if (t.availability?.length)   { await db.availability.bulkAdd(t.availability as any); total += t.availability.length }
+      if (t.safetyContacts?.length) { await db.safetyContacts.bulkAdd(t.safetyContacts as any); total += t.safetyContacts.length }
+      if (t.safetyChecks?.length)   { await db.safetyChecks.bulkAdd(t.safetyChecks as any); total += t.safetyChecks.length }
+      if (t.incidents?.length)      { await db.incidents.bulkAdd(t.incidents as any); total += t.incidents.length }
+      if (t.serviceRates?.length)   { await db.serviceRates.bulkAdd(t.serviceRates as any); total += t.serviceRates.length }
+      if (t.payments?.length)       { await db.payments.bulkAdd(t.payments as any); total += t.payments.length }
+      if (t.journalEntries?.length) { await db.journalEntries.bulkAdd(t.journalEntries as any); total += t.journalEntries.length }
+      if (t.incallVenues?.length)   { await db.incallVenues.bulkAdd(t.incallVenues as any); total += t.incallVenues.length }
+      if (t.screeningDocs?.length)  { await db.screeningDocs.bulkAdd(t.screeningDocs as any); total += t.screeningDocs.length }
+      if (t.venueDocs?.length)      { await db.venueDocs.bulkAdd(t.venueDocs as any); total += t.venueDocs.length }
+    }
+  )
 
   // ─── Restore localStorage profile settings ──────────────────────────
   if (payload.profile && typeof payload.profile === 'object') {

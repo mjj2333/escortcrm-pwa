@@ -128,30 +128,34 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     const journalSnaps = await db.journalEntries.where('clientId').equals(clientId).toArray()
     const screeningDocSnaps = await db.screeningDocs.where('clientId').equals(clientId).toArray()
 
-    // Execute cascade delete
-    for (const bid of bookingIds) {
-      await db.payments.where('bookingId').equals(bid).delete()
-      await db.transactions.where('bookingId').equals(bid).delete()
-      await db.safetyChecks.where('bookingId').equals(bid).delete()
-    }
-    await db.bookings.where('clientId').equals(clientId).delete()
-    await db.incidents.where('clientId').equals(clientId).delete()
-    await db.journalEntries.where('clientId').equals(clientId).delete()
-    await db.screeningDocs.where('clientId').equals(clientId).delete()
-    await db.clients.delete(clientId)
+    // Execute cascade delete atomically
+    await db.transaction('rw', [db.clients, db.bookings, db.payments, db.transactions, db.safetyChecks, db.incidents, db.journalEntries, db.screeningDocs], async () => {
+      for (const bid of bookingIds) {
+        await db.payments.where('bookingId').equals(bid).delete()
+        await db.transactions.where('bookingId').equals(bid).delete()
+        await db.safetyChecks.where('bookingId').equals(bid).delete()
+      }
+      await db.bookings.where('clientId').equals(clientId).delete()
+      await db.incidents.where('clientId').equals(clientId).delete()
+      await db.journalEntries.where('clientId').equals(clientId).delete()
+      await db.screeningDocs.where('clientId').equals(clientId).delete()
+      await db.clients.delete(clientId)
+    })
     setShowDeleteConfirm(false)
     onBack()
 
     const alias = clientSnap?.alias ?? 'Client'
     showUndoToast(`Deleted ${alias}`, async () => {
-      if (clientSnap) await db.clients.put(clientSnap)
-      if (bookingSnaps.length) await db.bookings.bulkPut(bookingSnaps)
-      if (paymentSnaps.length) await db.payments.bulkPut(paymentSnaps)
-      if (txnSnaps.length) await db.transactions.bulkPut(txnSnaps)
-      if (checkSnaps.length) await db.safetyChecks.bulkPut(checkSnaps)
-      if (incidentSnaps.length) await db.incidents.bulkPut(incidentSnaps)
-      if (journalSnaps.length) await db.journalEntries.bulkPut(journalSnaps)
-      if (screeningDocSnaps.length) await db.screeningDocs.bulkPut(screeningDocSnaps)
+      await db.transaction('rw', [db.clients, db.bookings, db.payments, db.transactions, db.safetyChecks, db.incidents, db.journalEntries, db.screeningDocs], async () => {
+        if (clientSnap) await db.clients.put(clientSnap)
+        if (bookingSnaps.length) await db.bookings.bulkPut(bookingSnaps)
+        if (paymentSnaps.length) await db.payments.bulkPut(paymentSnaps)
+        if (txnSnaps.length) await db.transactions.bulkPut(txnSnaps)
+        if (checkSnaps.length) await db.safetyChecks.bulkPut(checkSnaps)
+        if (incidentSnaps.length) await db.incidents.bulkPut(incidentSnaps)
+        if (journalSnaps.length) await db.journalEntries.bulkPut(journalSnaps)
+        if (screeningDocSnaps.length) await db.screeningDocs.bulkPut(screeningDocSnaps)
+      })
     })
   }
 

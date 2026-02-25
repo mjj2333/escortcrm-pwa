@@ -131,22 +131,26 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
     const journalSnap = await db.journalEntries.where('bookingId').equals(bookingId).toArray()
     const incidentsSnap = await db.incidents.where('bookingId').equals(bookingId).toArray()
 
-    await db.payments.where('bookingId').equals(bookingId).delete()
-    await db.transactions.where('bookingId').equals(bookingId).delete()
-    await db.safetyChecks.where('bookingId').equals(bookingId).delete()
-    await db.journalEntries.where('bookingId').equals(bookingId).delete()
-    await db.incidents.where('bookingId').equals(bookingId).delete()
-    await db.bookings.delete(bookingId)
+    await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries, db.incidents], async () => {
+      await db.payments.where('bookingId').equals(bookingId).delete()
+      await db.transactions.where('bookingId').equals(bookingId).delete()
+      await db.safetyChecks.where('bookingId').equals(bookingId).delete()
+      await db.journalEntries.where('bookingId').equals(bookingId).delete()
+      await db.incidents.where('bookingId').equals(bookingId).delete()
+      await db.bookings.delete(bookingId)
+    })
     setConfirmAction(null)
     onBack()
 
     showUndoToast('Booking deleted', async () => {
-      if (bookingSnap) await db.bookings.put(bookingSnap)
-      if (paymentsSnap.length) await db.payments.bulkPut(paymentsSnap)
-      if (txnsSnap.length) await db.transactions.bulkPut(txnsSnap)
-      if (checksSnap.length) await db.safetyChecks.bulkPut(checksSnap)
-      if (journalSnap.length) await db.journalEntries.bulkPut(journalSnap)
-      if (incidentsSnap.length) await db.incidents.bulkPut(incidentsSnap)
+      await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries, db.incidents], async () => {
+        if (bookingSnap) await db.bookings.put(bookingSnap)
+        if (paymentsSnap.length) await db.payments.bulkPut(paymentsSnap)
+        if (txnsSnap.length) await db.transactions.bulkPut(txnsSnap)
+        if (checksSnap.length) await db.safetyChecks.bulkPut(checksSnap)
+        if (journalSnap.length) await db.journalEntries.bulkPut(journalSnap)
+        if (incidentsSnap.length) await db.incidents.bulkPut(incidentsSnap)
+      })
     })
   }
 

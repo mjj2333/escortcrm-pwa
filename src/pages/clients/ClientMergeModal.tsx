@@ -194,35 +194,37 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
         requiresSafetyCheck: sourceClient.requiresSafetyCheck || targetClient.requiresSafetyCheck,
       }
 
-      // 2. Re-point bookings from source → target
-      const sourceBookings = await db.bookings.where('clientId').equals(sourceClient.id).toArray()
-      for (const b of sourceBookings) {
-        await db.bookings.update(b.id, { clientId: targetClient.id })
-      }
+      await db.transaction('rw', [db.clients, db.bookings, db.incidents, db.journalEntries, db.screeningDocs], async () => {
+        // 2. Re-point bookings from source → target
+        const sourceBookings = await db.bookings.where('clientId').equals(sourceClient.id).toArray()
+        for (const b of sourceBookings) {
+          await db.bookings.update(b.id, { clientId: targetClient.id })
+        }
 
-      // 3. Re-point incidents from source → target
-      const sourceIncidents = await db.incidents.where('clientId').equals(sourceClient.id).toArray()
-      for (const inc of sourceIncidents) {
-        await db.incidents.update(inc.id, { clientId: targetClient.id })
-      }
+        // 3. Re-point incidents from source → target
+        const sourceIncidents = await db.incidents.where('clientId').equals(sourceClient.id).toArray()
+        for (const inc of sourceIncidents) {
+          await db.incidents.update(inc.id, { clientId: targetClient.id })
+        }
 
-      // 4. Re-point journal entries from source → target
-      const sourceJournals = await db.journalEntries.where('clientId').equals(sourceClient.id).toArray()
-      for (const j of sourceJournals) {
-        await db.journalEntries.update(j.id, { clientId: targetClient.id })
-      }
+        // 4. Re-point journal entries from source → target
+        const sourceJournals = await db.journalEntries.where('clientId').equals(sourceClient.id).toArray()
+        for (const j of sourceJournals) {
+          await db.journalEntries.update(j.id, { clientId: targetClient.id })
+        }
 
-      // 5. Re-point screening docs from source → target
-      const sourceScreeningDocs = await db.screeningDocs.where('clientId').equals(sourceClient.id).toArray()
-      for (const doc of sourceScreeningDocs) {
-        await db.screeningDocs.update(doc.id, { clientId: targetClient.id })
-      }
+        // 5. Re-point screening docs from source → target
+        const sourceScreeningDocs = await db.screeningDocs.where('clientId').equals(sourceClient.id).toArray()
+        for (const doc of sourceScreeningDocs) {
+          await db.screeningDocs.update(doc.id, { clientId: targetClient.id })
+        }
 
-      // 6. Apply merged fields to target
-      await db.clients.update(targetClient.id, merged)
+        // 6. Apply merged fields to target
+        await db.clients.update(targetClient.id, merged)
 
-      // 7. Delete source
-      await db.clients.delete(sourceClient.id)
+        // 7. Delete source
+        await db.clients.delete(sourceClient.id)
+      })
 
       showToast(`Merged into ${targetClient.alias}`)
       onMergeComplete()

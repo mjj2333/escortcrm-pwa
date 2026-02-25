@@ -49,61 +49,63 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
     const method = feeMethod as PaymentMethod | undefined
     const depOut = depositOutcome || undefined
 
-    if (mode === 'noshow') {
-      await db.bookings.update(booking.id, {
-        status: 'No Show' as BookingStatus,
-        cancelledAt: new Date(),
-        cancelledBy: 'client' as CancelledBy,
-        depositOutcome: depOut,
-      })
-      // Escalate client risk
-      if (booking.clientId) {
-        const clientBookings = await db.bookings.where('clientId').equals(booking.clientId).toArray()
-        const noShows = clientBookings.filter(b => b.status === 'No Show').length
-        const currentClient = await db.clients.get(booking.clientId)
-        if (currentClient) {
-          let riskLevel = currentClient.riskLevel
-          if (noShows >= 2) riskLevel = 'High Risk'
-          else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
-          await db.clients.update(booking.clientId, { riskLevel })
+    await db.transaction('rw', [db.bookings, db.clients, db.payments, db.transactions], async () => {
+      if (mode === 'noshow') {
+        await db.bookings.update(booking.id, {
+          status: 'No Show' as BookingStatus,
+          cancelledAt: new Date(),
+          cancelledBy: 'client' as CancelledBy,
+          depositOutcome: depOut,
+        })
+        // Escalate client risk
+        if (booking.clientId) {
+          const clientBookings = await db.bookings.where('clientId').equals(booking.clientId).toArray()
+          const noShows = clientBookings.filter(b => b.status === 'No Show').length
+          const currentClient = await db.clients.get(booking.clientId)
+          if (currentClient) {
+            let riskLevel = currentClient.riskLevel
+            if (noShows >= 2) riskLevel = 'High Risk'
+            else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
+            await db.clients.update(booking.clientId, { riskLevel })
+          }
         }
+      } else {
+        await db.bookings.update(booking.id, {
+          status: 'Cancelled' as BookingStatus,
+          cancelledAt: new Date(),
+          cancellationReason: cancelReason.trim() || undefined,
+          cancelledBy,
+          depositOutcome: depOut,
+        })
       }
-    } else {
-      await db.bookings.update(booking.id, {
-        status: 'Cancelled' as BookingStatus,
-        cancelledAt: new Date(),
-        cancellationReason: cancelReason.trim() || undefined,
-        cancelledBy,
-        depositOutcome: depOut,
-      })
-    }
 
-    if (fee > 0) {
-      await recordBookingPayment({
-        bookingId: booking.id,
-        amount: fee,
-        method: method || undefined,
-        label: 'Cancellation Fee',
-        clientAlias: client?.alias,
-        notes: mode === 'noshow'
-          ? 'No-show fee'
-          : cancelReason.trim() ? `Cancellation fee — ${cancelReason.trim()}` : 'Cancellation fee',
-      })
-    }
+      if (fee > 0) {
+        await recordBookingPayment({
+          bookingId: booking.id,
+          amount: fee,
+          method: method || undefined,
+          label: 'Cancellation Fee',
+          clientAlias: client?.alias,
+          notes: mode === 'noshow'
+            ? 'No-show fee'
+            : cancelReason.trim() ? `Cancellation fee — ${cancelReason.trim()}` : 'Cancellation fee',
+        })
+      }
 
-    // Financial adjustments based on deposit outcome
-    if (depOut === 'returned' && totalDeposits > 0) {
-      // Create an expense transaction to offset the original deposit income
-      await db.transactions.add({
-        id: newId(),
-        bookingId: booking.id,
-        amount: totalDeposits,
-        type: 'expense',
-        category: 'refund',
-        date: new Date(),
-        notes: `Deposit returned — ${client?.alias ?? 'client'}`,
-      })
-    }
+      // Financial adjustments based on deposit outcome
+      if (depOut === 'returned' && totalDeposits > 0) {
+        // Create an expense transaction to offset the original deposit income
+        await db.transactions.add({
+          id: newId(),
+          bookingId: booking.id,
+          amount: totalDeposits,
+          type: 'expense',
+          category: 'refund',
+          date: new Date(),
+          notes: `Deposit returned — ${client?.alias ?? 'client'}`,
+        })
+      }
+    })
 
     showToast(
       mode === 'noshow'
