@@ -956,9 +956,9 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
   return (
     <div className="p-4 pb-8 space-y-1">
       <SectionLabel label="Basic Info" />
-      <FieldTextInput label="Name *" value={name} onChange={setName} placeholder="e.g. Downtown Studio" />
+      <FieldTextInput label="Name" value={name} onChange={setName} placeholder="e.g. Downtown Studio" required />
       <FieldSelect label="Type" value={venueType} options={venueTypes} onChange={v => setVenueType(v as VenueType)} />
-      <FieldTextInput label="City *" value={city} onChange={setCity} placeholder="e.g. Vancouver" />
+      <FieldTextInput label="City" value={city} onChange={setCity} placeholder="e.g. Vancouver" required />
       <FieldTextInput label="Address" value={address} onChange={setAddress} placeholder="Full street address" />
 
       {/* Hotel friendly toggle */}

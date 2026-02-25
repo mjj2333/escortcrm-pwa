@@ -276,7 +276,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                             onClick={() => handleRevoke(code.id)}
                             className="p-1.5 rounded-lg"
                             style={{ backgroundColor: 'rgba(239,68,68,0.1)' }}
-                            title="Revoke code"
+                            title="Revoke Code"
                           >
                             <Trash2 size={13} style={{ color: '#ef4444' }} />
                           </button>

@@ -726,7 +726,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
             hint="A new booking will auto-create when this one completes." />
 
           <FieldTextArea label="Booking Notes" value={notes} onChange={setNotes}
-            placeholder="General notes about this booking…"
+            placeholder="General notes about this booking..."
             hint="Private notes visible only to you." />
           </div>
         </CollapsibleCard>

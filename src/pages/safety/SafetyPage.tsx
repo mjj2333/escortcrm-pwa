@@ -301,7 +301,7 @@ export function SafetyPage() {
                               onClick={() => setEditingCheck(check)}
                               className="ml-auto p-1 rounded opacity-50 active:opacity-100"
                               style={{ color: 'var(--text-secondary)' }}
-                              aria-label="Edit check"
+                              aria-label="Edit safety check"
                             >
                               <Edit2 size={13} />
                             </button>

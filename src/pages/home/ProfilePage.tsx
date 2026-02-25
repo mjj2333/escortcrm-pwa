@@ -159,8 +159,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
                 <button type="button" onClick={() => setShowAddRate(false)}
                   className="flex-1 py-2 rounded-lg text-sm" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
                 <button type="button" onClick={addRate} disabled={!newRateName.trim() || newRateAmount <= 0}
-                  className="flex-1 py-2 rounded-lg text-sm font-bold text-white"
-                  style={{ backgroundColor: newRateName.trim() && newRateAmount > 0 ? '#a855f7' : '#666' }}>Add Rate</button>
+                  className={`flex-1 py-2 rounded-lg text-sm font-bold text-white ${newRateName.trim() && newRateAmount > 0 ? 'bg-purple-600 active:bg-purple-700' : 'opacity-40 bg-purple-600'}`}>Add Rate</button>
               </div>
             </div>
           ) : (

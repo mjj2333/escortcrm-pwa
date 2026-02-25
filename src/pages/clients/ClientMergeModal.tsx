@@ -290,7 +290,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
               <Search size={16} style={{ color: 'var(--text-secondary)' }} />
               <input
                 type="text"
-                placeholder="Name, phone, or real name…"
+                placeholder="Name, phone, or real name..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="flex-1 bg-transparent text-sm outline-none"

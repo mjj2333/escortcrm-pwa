@@ -284,7 +284,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
         >
           <input
             type="search"
-            placeholder="Search by client name or alias…"
+            placeholder="Search by client name or alias..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={baseInputStyle}
