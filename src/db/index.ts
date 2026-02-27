@@ -6,7 +6,7 @@ import type {
 } from '../types'
 import type { PaymentLabel, PaymentMethod, ScreeningStatus, BookingStatus } from '../types'
 
-class EscortCRMDatabase extends Dexie {
+class CompanionDatabase extends Dexie {
   clients!: EntityTable<Client, 'id'>
   bookings!: EntityTable<Booking, 'id'>
   transactions!: EntityTable<Transaction, 'id'>
@@ -23,7 +23,7 @@ class EscortCRMDatabase extends Dexie {
   meta!: Dexie.Table<{ key: string; value: unknown }, string>
 
   constructor() {
-    super('EscortCRM')
+    super('Companion')
 
     this.version(1).stores({
       clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
@@ -196,7 +196,7 @@ class EscortCRMDatabase extends Dexie {
   }
 }
 
-export const db = new EscortCRMDatabase()
+export const db = new CompanionDatabase()
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // FIELD ENCRYPTION HOOKS
