@@ -4,6 +4,7 @@ import { Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, newId } from '../../db'
 import { Modal } from '../../components/Modal'
+import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldSelect, FieldTextArea, FieldDate, fieldInputStyle } from '../../components/FormFields'
 import type { IncidentSeverity } from '../../types'
 
@@ -37,15 +38,20 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
 
   async function handleSave() {
     if (!isValid) return
-    await db.incidents.add({
-      id: newId(),
-      clientId: clientId || undefined,
-      date: new Date(date + 'T00:00:00'),
-      severity,
-      description: description.trim(),
-      actionTaken: actionTaken.trim(),
-    })
-    onClose()
+    try {
+      await db.incidents.add({
+        id: newId(),
+        clientId: clientId || undefined,
+        date: new Date(date + 'T00:00:00'),
+        severity,
+        description: description.trim(),
+        actionTaken: actionTaken.trim(),
+      })
+      showToast('Incident logged')
+      onClose()
+    } catch (err) {
+      showToast(`Save failed: ${(err as Error).message}`)
+    }
   }
 
   return (

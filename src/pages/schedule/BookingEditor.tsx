@@ -224,6 +224,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
     const dt = new Date(dateTime)
     const finalTravelFee = (locationType === 'Outcall' || locationType === 'Travel') ? travelFee : 0
 
+    try {
     if (isEditing && booking) {
       await db.bookings.update(booking.id, {
         clientId,
@@ -335,6 +336,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
     setConflictWarning(null)
     showToast(isEditing ? 'Booking updated' : 'Booking created')
     onClose()
+    } catch (err) {
+      showToast(`Save failed: ${(err as Error).message}`)
+    }
   }
 
 

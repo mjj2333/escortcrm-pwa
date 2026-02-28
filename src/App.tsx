@@ -148,7 +148,7 @@ export default function App() {
 
   // Migrate existing bookings to payment ledger (one-time)
   useEffect(() => {
-    migrateToPaymentLedger()
+    migrateToPaymentLedger().catch(() => {})
   }, [])
 
   const { pushNav, replaceNav } = useHashNav(activeTab, screen, setActiveTab, setScreen)
@@ -298,7 +298,7 @@ export default function App() {
           A new version is available.{' '}
           <button
             onClick={applyUpdate}
-            style={{ background: 'none', border: 'none', color: '#fff', textDecoration: 'underline', fontWeight: 700, fontSize: '13px', cursor: 'pointer', padding: 0 }}
+            style={{ background: 'none', border: 'none', color: '#fff', textDecoration: 'underline', fontWeight: 700, fontSize: '13px', cursor: 'pointer', padding: '8px 12px', margin: '-8px -12px' }}
           >
             Refresh to update
           </button>

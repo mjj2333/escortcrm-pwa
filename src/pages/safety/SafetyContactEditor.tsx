@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Check } from 'lucide-react'
 import { db, newId } from '../../db'
 import { Modal } from '../../components/Modal'
+import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldTextInput, FieldToggle } from '../../components/FormFields'
 import type { SafetyContact } from '../../types'
 
@@ -31,35 +32,41 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
   async function handleSave() {
     if (!isValid) return
 
-    if (isEditing && contact) {
-      if (isPrimary && !contact.isPrimary) {
-        const existing = await db.safetyContacts.filter(c => c.isPrimary).toArray()
-        for (const c of existing) {
-          await db.safetyContacts.update(c.id, { isPrimary: false })
+    try {
+      if (isEditing && contact) {
+        if (isPrimary && !contact.isPrimary) {
+          const existing = await db.safetyContacts.filter(c => c.isPrimary).toArray()
+          for (const c of existing) {
+            await db.safetyContacts.update(c.id, { isPrimary: false })
+          }
         }
-      }
-      await db.safetyContacts.update(contact.id, {
-        name: name.trim(),
-        phone: phone.trim(),
-        isPrimary,
-      })
-    } else {
-      if (isPrimary) {
-        const existing = await db.safetyContacts.filter(c => c.isPrimary).toArray()
-        for (const c of existing) {
-          await db.safetyContacts.update(c.id, { isPrimary: false })
+        await db.safetyContacts.update(contact.id, {
+          name: name.trim(),
+          phone: phone.trim(),
+          isPrimary,
+        })
+        showToast('Contact updated')
+      } else {
+        if (isPrimary) {
+          const existing = await db.safetyContacts.filter(c => c.isPrimary).toArray()
+          for (const c of existing) {
+            await db.safetyContacts.update(c.id, { isPrimary: false })
+          }
         }
+        await db.safetyContacts.add({
+          id: newId(),
+          name: name.trim(),
+          phone: phone.trim(),
+          relationship: '',
+          isPrimary,
+          isActive: true,
+        })
+        showToast('Contact added')
       }
-      await db.safetyContacts.add({
-        id: newId(),
-        name: name.trim(),
-        phone: phone.trim(),
-        relationship: '',
-        isPrimary,
-        isActive: true,
-      })
+      onClose()
+    } catch (err) {
+      showToast(`Save failed: ${(err as Error).message}`)
     }
-    onClose()
   }
 
   return (

@@ -462,7 +462,7 @@ export function SafetyPage() {
                           </button>
                         </div>
                       </div>
-                      <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                      <p className="text-sm" style={{ color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {incident.description}
                       </p>
                       {linkedClient && (

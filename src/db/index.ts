@@ -554,21 +554,23 @@ export async function getBookingTotalPaid(bookingId: string): Promise<number> {
 
 /** Complete a booking's payment: record a payment for any remaining balance. */
 export async function completeBookingPayment(booking: Booking, clientAlias?: string): Promise<void> {
-  const total = bookingTotal(booking)
-  const paid = await getBookingTotalPaid(booking.id)
-  const remaining = total - paid
-  if (remaining > 0) {
-    await recordBookingPayment({
-      bookingId: booking.id,
-      amount: remaining,
-      method: booking.paymentMethod,
-      label: 'Payment',
-      clientAlias,
-    })
-  } else {
-    // No payment needed but ensure the boolean is set
-    await db.bookings.update(booking.id, { paymentReceived: true })
-  }
+  await db.transaction('rw', [db.payments, db.transactions, db.bookings], async () => {
+    const total = bookingTotal(booking)
+    const paid = await getBookingTotalPaid(booking.id)
+    const remaining = total - paid
+    if (remaining > 0) {
+      await recordBookingPayment({
+        bookingId: booking.id,
+        amount: remaining,
+        method: booking.paymentMethod,
+        label: 'Payment',
+        clientAlias,
+      })
+    } else {
+      // No payment needed but ensure the boolean is set
+      await db.bookings.update(booking.id, { paymentReceived: true })
+    }
+  })
 }
 
 /**

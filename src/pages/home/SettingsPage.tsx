@@ -169,11 +169,16 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
   }
 
   async function restoreSampleData() {
-    // Clear existing data first, then reset flag so seed function proceeds
-    await clearSampleData()
-    localStorage.removeItem('companion_sample_data')
-    await seedSampleData()
-    setShowSampleConfirm(false)
+    try {
+      // Clear existing data first, then reset flag so seed function proceeds
+      await clearSampleData()
+      localStorage.removeItem('companion_sample_data')
+      await seedSampleData()
+      setShowSampleConfirm(false)
+      showToast('Sample data restored')
+    } catch (err) {
+      showToast(`Restore failed: ${(err as Error).message}`)
+    }
   }
 
   return (

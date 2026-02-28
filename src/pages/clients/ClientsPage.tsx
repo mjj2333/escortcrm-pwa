@@ -143,7 +143,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
             <button
               key={mode}
               onClick={() => setSortMode(mode)}
-              className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
+              className="text-[10px] font-semibold px-2.5 py-2 rounded-full"
               style={{
                 backgroundColor: sortMode === mode ? 'var(--bg-card)' : 'transparent',
                 color: sortMode === mode ? 'var(--text-primary)' : 'var(--text-secondary)',

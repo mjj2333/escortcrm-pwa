@@ -20,7 +20,7 @@ import { TransactionEditor } from './TransactionEditor'
 import { StatusBadge } from '../../components/StatusBadge'
 import { bookingStatusColors } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
-import { showUndoToast } from '../../components/Toast'
+import { showToast, showUndoToast } from '../../components/Toast'
 import { FinancesPageSkeleton } from '../../components/Skeleton'
 import type { LocationType, PaymentMethod } from '../../types'
 
@@ -113,10 +113,13 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   const isCardVisible = (key: CardKey) => visibleCards.includes(key)
 
   const rawTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray())
+  const rawBookings = useLiveQuery(() => db.bookings.toArray())
+  const rawClients = useLiveQuery(() => db.clients.toArray())
+  const rawPayments = useLiveQuery(() => db.payments.toArray())
   const allTransactions = rawTransactions ?? []
-  const allBookings = useLiveQuery(() => db.bookings.toArray()) ?? []
-  const clients = useLiveQuery(() => db.clients.toArray()) ?? []
-  const allPayments = useLiveQuery(() => db.payments.toArray()) ?? []
+  const allBookings = rawBookings ?? []
+  const clients = rawClients ?? []
+  const allPayments = rawPayments ?? []
   // Settings
   const [taxRate] = useLocalStorage('taxRate', 25)
   const [setAsideRate] = useLocalStorage('setAsideRate', 30)
@@ -338,7 +341,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
     return Object.entries(counts).sort((a, b) => b[1] - a[1])
   }, [clients])
 
-  if (rawTransactions === undefined) return <FinancesPageSkeleton />
+  if (rawTransactions === undefined || rawBookings === undefined || rawClients === undefined || rawPayments === undefined) return <FinancesPageSkeleton />
 
   return (
     <div className="pb-20">
@@ -1439,36 +1442,40 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 </p>
                 <button
                   onClick={async () => {
-                    // Snapshot for undo
-                    const txnSnap = await db.transactions.get(t.id)
-                    const paySnap = txnSnap?.paymentId ? await db.payments.get(txnSnap.paymentId) : undefined
+                    try {
+                      // Snapshot for undo
+                      const txnSnap = await db.transactions.get(t.id)
+                      const paySnap = txnSnap?.paymentId ? await db.payments.get(txnSnap.paymentId) : undefined
 
-                    if (txnSnap?.paymentId) {
-                      await removeBookingPayment(txnSnap.paymentId)
-                      const stillExists = await db.transactions.get(t.id)
-                      if (stillExists) await db.transactions.delete(t.id)
-                    } else {
-                      await db.transactions.delete(t.id)
-                    }
-
-                    showUndoToast('Transaction deleted', async () => {
-                      if (txnSnap) await db.transactions.put(txnSnap)
-                      if (paySnap) {
-                        await db.payments.put(paySnap)
-                        // Re-sync booking payment booleans
-                        const booking = await db.bookings.get(paySnap.bookingId)
-                        if (booking) {
-                          const allPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).toArray())
-                            .reduce((s, p) => s + p.amount, 0)
-                          const depositPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).filter(p => p.label === 'Deposit').toArray())
-                            .reduce((s, p) => s + p.amount, 0)
-                          await db.bookings.update(paySnap.bookingId, {
-                            paymentReceived: allPaid >= bookingTotal(booking),
-                            depositReceived: depositPaid >= booking.depositAmount,
-                          })
-                        }
+                      if (txnSnap?.paymentId) {
+                        await removeBookingPayment(txnSnap.paymentId)
+                        const stillExists = await db.transactions.get(t.id)
+                        if (stillExists) await db.transactions.delete(t.id)
+                      } else {
+                        await db.transactions.delete(t.id)
                       }
-                    })
+
+                      showUndoToast('Transaction deleted', async () => {
+                        if (txnSnap) await db.transactions.put(txnSnap)
+                        if (paySnap) {
+                          await db.payments.put(paySnap)
+                          // Re-sync booking payment booleans
+                          const booking = await db.bookings.get(paySnap.bookingId)
+                          if (booking) {
+                            const allPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).toArray())
+                              .reduce((s, p) => s + p.amount, 0)
+                            const depositPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).filter(p => p.label === 'Deposit').toArray())
+                              .reduce((s, p) => s + p.amount, 0)
+                            await db.bookings.update(paySnap.bookingId, {
+                              paymentReceived: allPaid >= bookingTotal(booking),
+                              depositReceived: depositPaid >= booking.depositAmount,
+                            })
+                          }
+                        }
+                      })
+                    } catch (err) {
+                      showToast(`Delete failed: ${(err as Error).message}`)
+                    }
                   }}
                   className="p-1 opacity-40 active:opacity-100"
                   style={{ color: 'var(--text-secondary)' }}

@@ -41,14 +41,18 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
 
   async function handleSave() {
     if (!isValid) return
-    const txn = createTransaction({
-      amount, type, category, paymentMethod,
-      date: new Date(date + 'T00:00:00'),
-      notes: notes.trim(),
-    })
-    await db.transactions.add(txn)
-    showToast(type === 'expense' ? 'Expense recorded' : 'Income recorded')
-    onClose()
+    try {
+      const txn = createTransaction({
+        amount, type, category, paymentMethod,
+        date: new Date(date + 'T00:00:00'),
+        notes: notes.trim(),
+      })
+      await db.transactions.add(txn)
+      showToast(type === 'expense' ? 'Expense recorded' : 'Income recorded')
+      onClose()
+    } catch (err) {
+      showToast(`Save failed: ${(err as Error).message}`)
+    }
   }
 
   return (

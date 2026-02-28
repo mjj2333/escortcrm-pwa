@@ -135,22 +135,26 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       clientSince: clientSince ? new Date(clientSince + 'T00:00:00') : undefined,
     }
 
-    if (isEditing && client) {
-      await db.clients.update(client.id, data)
-      await advanceBookingsOnScreen(client.id, client.screeningStatus, screeningStatus)
-      await downgradeBookingsOnUnscreen(client.id, client.screeningStatus, screeningStatus)
+    try {
+      if (isEditing && client) {
+        await db.clients.update(client.id, data)
+        await advanceBookingsOnScreen(client.id, client.screeningStatus, screeningStatus)
+        await downgradeBookingsOnUnscreen(client.id, client.screeningStatus, screeningStatus)
 
-      showToast('Client updated')
-      onClose()
-    } else {
-      if (!await canAddClient()) {
-        showToast('Free plan limit reached — upgrade to add more clients')
-        return
+        showToast('Client updated')
+        onClose()
+      } else {
+        if (!await canAddClient()) {
+          showToast('Free plan limit reached — upgrade to add more clients')
+          return
+        }
+        const newClient = createClient(data)
+        await db.clients.add(newClient)
+        showToast('Client added')
+        onClose(newClient.id)
       }
-      const newClient = createClient(data)
-      await db.clients.add(newClient)
-      showToast('Client added')
-      onClose(newClient.id)
+    } catch (err) {
+      showToast(`Save failed: ${(err as Error).message}`)
     }
   }
 

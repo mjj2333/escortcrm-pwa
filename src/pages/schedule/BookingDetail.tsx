@@ -110,71 +110,79 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const depositRemaining = booking.depositAmount - totalDeposits
 
   async function updateStatus(status: BookingStatus) {
-    const updates: Partial<Booking> = { status }
-    if (status === 'Confirmed') updates.confirmedAt = new Date()
-    if (status === 'Completed') updates.completedAt = new Date()
-    // Write status to DB first so subsequent queries see the latest state
-    await db.bookings.update(bookingId, updates)
-    if (status === 'Completed') {
-      // Record remaining payment via ledger (after status is persisted)
-      const updatedBooking = await db.bookings.get(bookingId)
-      const c = await db.clients.get(booking!.clientId ?? '')
-      if (updatedBooking) await completeBookingPayment(updatedBooking, c?.alias)
-      // Update client lastSeen
-      if (booking!.clientId) {
-        await db.clients.update(booking!.clientId, { lastSeen: new Date() })
+    try {
+      const updates: Partial<Booking> = { status }
+      if (status === 'Confirmed') updates.confirmedAt = new Date()
+      if (status === 'Completed') updates.completedAt = new Date()
+      // Write status to DB first so subsequent queries see the latest state
+      await db.bookings.update(bookingId, updates)
+      if (status === 'Completed') {
+        // Record remaining payment via ledger (after status is persisted)
+        const updatedBooking = await db.bookings.get(bookingId)
+        const c = await db.clients.get(booking!.clientId ?? '')
+        if (updatedBooking) await completeBookingPayment(updatedBooking, c?.alias)
+        // Update client lastSeen
+        if (booking!.clientId) {
+          await db.clients.update(booking!.clientId, { lastSeen: new Date() })
+        }
       }
-    }
-    // Create safety check when manually advancing to In Progress
-    if (status === 'In Progress' && booking!.requiresSafetyCheck) {
-      const existing = await db.safetyChecks.where('bookingId').equals(bookingId).first()
-      if (!existing) {
-        const checkTime = addMinutes(new Date(booking!.dateTime), booking!.safetyCheckMinutesAfter || 15)
-        await db.safetyChecks.add({
-          id: newId(),
-          bookingId,
-          safetyContactId: booking!.safetyContactId,
-          scheduledTime: checkTime,
-          bufferMinutes: 15,
-          status: 'pending',
-        })
+      // Create safety check when manually advancing to In Progress
+      if (status === 'In Progress' && booking!.requiresSafetyCheck) {
+        const existing = await db.safetyChecks.where('bookingId').equals(bookingId).first()
+        if (!existing) {
+          const checkTime = addMinutes(new Date(booking!.dateTime), booking!.safetyCheckMinutesAfter || 15)
+          await db.safetyChecks.add({
+            id: newId(),
+            bookingId,
+            safetyContactId: booking!.safetyContactId,
+            scheduledTime: checkTime,
+            bufferMinutes: 15,
+            status: 'pending',
+          })
+        }
       }
-    }
-    if (status === 'Completed') {
-      setTimeout(() => setShowJournal(true), 400)
+      if (status === 'Completed') {
+        setTimeout(() => setShowJournal(true), 400)
+      }
+    } catch (err) {
+      showToast(`Status update failed: ${(err as Error).message}`)
     }
   }
 
   async function deleteBooking() {
-    // Snapshot everything before deletion for undo
-    const bookingSnap = await db.bookings.get(bookingId)
-    const paymentsSnap = await db.payments.where('bookingId').equals(bookingId).toArray()
-    const txnsSnap = await db.transactions.where('bookingId').equals(bookingId).toArray()
-    const checksSnap = await db.safetyChecks.where('bookingId').equals(bookingId).toArray()
-    const journalSnap = await db.journalEntries.where('bookingId').equals(bookingId).toArray()
-    const incidentsSnap = await db.incidents.where('bookingId').equals(bookingId).toArray()
+    try {
+      // Snapshot everything before deletion for undo
+      const bookingSnap = await db.bookings.get(bookingId)
+      const paymentsSnap = await db.payments.where('bookingId').equals(bookingId).toArray()
+      const txnsSnap = await db.transactions.where('bookingId').equals(bookingId).toArray()
+      const checksSnap = await db.safetyChecks.where('bookingId').equals(bookingId).toArray()
+      const journalSnap = await db.journalEntries.where('bookingId').equals(bookingId).toArray()
+      const incidentsSnap = await db.incidents.where('bookingId').equals(bookingId).toArray()
 
-    await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries, db.incidents], async () => {
-      await db.payments.where('bookingId').equals(bookingId).delete()
-      await db.transactions.where('bookingId').equals(bookingId).delete()
-      await db.safetyChecks.where('bookingId').equals(bookingId).delete()
-      await db.journalEntries.where('bookingId').equals(bookingId).delete()
-      await db.incidents.where('bookingId').equals(bookingId).delete()
-      await db.bookings.delete(bookingId)
-    })
-    setConfirmAction(null)
-    onBack()
-
-    showUndoToast('Booking deleted', async () => {
       await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries, db.incidents], async () => {
-        if (bookingSnap) await db.bookings.put(bookingSnap)
-        if (paymentsSnap.length) await db.payments.bulkPut(paymentsSnap)
-        if (txnsSnap.length) await db.transactions.bulkPut(txnsSnap)
-        if (checksSnap.length) await db.safetyChecks.bulkPut(checksSnap)
-        if (journalSnap.length) await db.journalEntries.bulkPut(journalSnap)
-        if (incidentsSnap.length) await db.incidents.bulkPut(incidentsSnap)
+        await db.payments.where('bookingId').equals(bookingId).delete()
+        await db.transactions.where('bookingId').equals(bookingId).delete()
+        await db.safetyChecks.where('bookingId').equals(bookingId).delete()
+        await db.journalEntries.where('bookingId').equals(bookingId).delete()
+        await db.incidents.where('bookingId').equals(bookingId).delete()
+        await db.bookings.delete(bookingId)
       })
-    })
+      setConfirmAction(null)
+      onBack()
+
+      showUndoToast('Booking deleted', async () => {
+        await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries, db.incidents], async () => {
+          if (bookingSnap) await db.bookings.put(bookingSnap)
+          if (paymentsSnap.length) await db.payments.bulkPut(paymentsSnap)
+          if (txnsSnap.length) await db.transactions.bulkPut(txnsSnap)
+          if (checksSnap.length) await db.safetyChecks.bulkPut(checksSnap)
+          if (journalSnap.length) await db.journalEntries.bulkPut(journalSnap)
+          if (incidentsSnap.length) await db.incidents.bulkPut(incidentsSnap)
+        })
+      })
+    } catch (err) {
+      showToast(`Delete failed: ${(err as Error).message}`)
+    }
   }
 
   function openPaymentForm(defaultLabel?: PaymentLabel, defaultAmount?: number) {
@@ -188,23 +196,31 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   async function submitPayment() {
     const amount = parseFloat(payAmount)
     if (!amount || amount <= 0) return
-    await recordBookingPayment({
-      bookingId,
-      amount,
-      method: payMethod || undefined,
-      label: payLabel,
-      clientAlias: client?.alias,
-      notes: payNotes.trim() || undefined,
-    })
-    setShowPaymentForm(false)
-    showToast(`${payLabel} of ${formatCurrency(amount)} recorded`)
+    try {
+      await recordBookingPayment({
+        bookingId,
+        amount,
+        method: payMethod || undefined,
+        label: payLabel,
+        clientAlias: client?.alias,
+        notes: payNotes.trim() || undefined,
+      })
+      setShowPaymentForm(false)
+      showToast(`${payLabel} of ${formatCurrency(amount)} recorded`)
+    } catch (err) {
+      showToast(`Payment failed: ${(err as Error).message}`)
+    }
   }
 
   async function confirmDeletePayment() {
     if (!deletePaymentId) return
-    await removeBookingPayment(deletePaymentId)
-    setDeletePaymentId(null)
-    showToast('Payment removed')
+    try {
+      await removeBookingPayment(deletePaymentId)
+      setDeletePaymentId(null)
+      showToast('Payment removed')
+    } catch (err) {
+      showToast(`Delete failed: ${(err as Error).message}`)
+    }
   }
 
   return (
