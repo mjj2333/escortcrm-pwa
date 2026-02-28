@@ -743,49 +743,49 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         <div className="h-8" />
       </div>
 
-      {/* Availability Conflict Warning */}
-      {conflictWarning && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setConflictWarning(null)}>
-          <div className="w-full max-w-sm rounded-2xl p-6"
-            style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-            onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: conflictWarning.isDoubleBook ? 'rgba(239,68,68,0.15)' : 'rgba(249,115,22,0.15)' }}>
-                <AlertTriangle size={20} style={{ color: conflictWarning.isDoubleBook ? '#ef4444' : '#f97316' }} />
-              </div>
-              <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
-                {conflictWarning.isDoubleBook ? 'Double Booking' : 'Availability Conflict'}
-              </h3>
+    </Modal>
+    {/* Availability Conflict Warning — outside Modal to avoid transform containing block */}
+    {conflictWarning && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setConflictWarning(null)}>
+        <div className="w-full max-w-sm rounded-2xl p-6"
+          style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+          onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: conflictWarning.isDoubleBook ? 'rgba(239,68,68,0.15)' : 'rgba(249,115,22,0.15)' }}>
+              <AlertTriangle size={20} style={{ color: conflictWarning.isDoubleBook ? '#ef4444' : '#f97316' }} />
             </div>
-            <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>{conflictWarning.reason}</p>
-            {!conflictWarning.isDoubleBook && (
-              <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
-                If you continue, this day will be set to <strong style={{ color: '#f97316' }}>Limited</strong> and
-                only this booking's time slot will be open.
-              </p>
-            )}
-            {conflictWarning.isDoubleBook && (
-              <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
-                This booking will overlap with another appointment. Are you sure you want to proceed?
-              </p>
-            )}
-            <div className="flex gap-3">
-              <button onClick={() => setConflictWarning(null)}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold"
-                style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Go Back</button>
-              <button onClick={() => saveBooking(!conflictWarning.isDoubleBook)}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
-                style={{ background: conflictWarning.isDoubleBook
-                  ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-                  : 'linear-gradient(135deg, #f97316, #ef4444)' }}>
-                Book Anyway</button>
-            </div>
+            <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
+              {conflictWarning.isDoubleBook ? 'Double Booking' : 'Availability Conflict'}
+            </h3>
+          </div>
+          <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>{conflictWarning.reason}</p>
+          {!conflictWarning.isDoubleBook && (
+            <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+              If you continue, this day will be set to <strong style={{ color: '#f97316' }}>Limited</strong> and
+              only this booking's time slot will be open.
+            </p>
+          )}
+          {conflictWarning.isDoubleBook && (
+            <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+              This booking will overlap with another appointment. Are you sure you want to proceed?
+            </p>
+          )}
+          <div className="flex gap-3">
+            <button onClick={() => setConflictWarning(null)}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold"
+              style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Go Back</button>
+            <button onClick={() => saveBooking(!conflictWarning.isDoubleBook)}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
+              style={{ background: conflictWarning.isDoubleBook
+                ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                : 'linear-gradient(135deg, #f97316, #ef4444)' }}>
+              Book Anyway</button>
           </div>
         </div>
-      )}
-    </Modal>
+      </div>
+    )}
     <VenuePicker
       isOpen={showVenuePicker}
       onClose={() => setShowVenuePicker(false)}

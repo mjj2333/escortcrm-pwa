@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, X, FileText, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { db, newId } from '../db'
@@ -18,27 +18,31 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
 
   const [previewDoc, setPreviewDoc] = useState<VenueDoc | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [thumbUrls, setThumbUrls] = useState<Map<string, string>>(new Map())
+  const thumbUrlsRef = useRef(new Map<string, string>())
+  const [, forceRender] = useState(0)
   const fileInput = useRef<HTMLInputElement>(null)
 
+  const docIdKey = useMemo(() => docs.map(d => d.id).join(), [docs])
+
   useEffect(() => {
-    const newUrls = new Map<string, string>()
+    const prev = thumbUrlsRef.current
+    const next = new Map<string, string>()
     for (const doc of docs) {
-      const existing = thumbUrls.get(doc.id)
+      const existing = prev.get(doc.id)
       if (existing) {
-        newUrls.set(doc.id, existing)
+        next.set(doc.id, existing)
       } else if (doc.mimeType.startsWith('image/')) {
-        const url = URL.createObjectURL(doc.data)
-        newUrls.set(doc.id, url)
+        next.set(doc.id, URL.createObjectURL(doc.data))
       }
     }
-    // Revoke URLs for removed docs
-    for (const [id, url] of thumbUrls) {
-      if (!newUrls.has(id)) URL.revokeObjectURL(url)
+    // Revoke URLs only for removed docs
+    for (const [id, url] of prev) {
+      if (!next.has(id)) URL.revokeObjectURL(url)
     }
-    setThumbUrls(newUrls)
-    return () => { for (const url of newUrls.values()) URL.revokeObjectURL(url) }
-  }, [docs.map(d => d.id).join()])
+    thumbUrlsRef.current = next
+    forceRender(n => n + 1)
+    return () => { for (const url of thumbUrlsRef.current.values()) URL.revokeObjectURL(url) }
+  }, [docIdKey])
 
   useEffect(() => {
     if (previewDoc) {
@@ -90,8 +94,8 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
             className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden"
             style={{ border: '1px solid var(--border)' }}
           >
-            {doc.mimeType.startsWith('image/') && thumbUrls.get(doc.id) ? (
-              <img src={thumbUrls.get(doc.id)} className="w-full h-full object-cover" alt="" />
+            {doc.mimeType.startsWith('image/') && thumbUrlsRef.current.get(doc.id) ? (
+              <img src={thumbUrlsRef.current.get(doc.id)} className="w-full h-full object-cover" alt="" />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center gap-0.5" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                 <FileText size={16} style={{ color: 'var(--text-secondary)' }} />

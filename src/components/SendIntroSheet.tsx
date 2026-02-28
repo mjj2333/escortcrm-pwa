@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Send, Copy, Phone, Mail, MessageSquare } from 'lucide-react'
 import { db, formatCurrency, bookingDurationFormatted } from '../db'
@@ -70,13 +70,16 @@ export function SendIntroSheet({ isOpen, onClose, client }: SendIntroSheetProps)
   const serviceRates = useLiveQuery(() => db.serviceRates.toArray().then(r => r.filter(s => s.isActive))) ?? []
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState(false)
+  const prevOpenRef = useRef(false)
 
   useEffect(() => {
-    if (isOpen) {
+    const justOpened = isOpen && !prevOpenRef.current
+    prevOpenRef.current = isOpen
+    if (justOpened) {
       setSent(false)
       setMessage(buildIntroMessage(client, serviceRates))
     }
-  }, [isOpen, client.id, serviceRates])
+  }, [isOpen, client.id])
 
   if (!isOpen) return null
 

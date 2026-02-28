@@ -97,6 +97,13 @@ export function FieldCurrency({ label, value, onChange, hint }:
   { label: string; value: number; onChange: (v: number) => void; hint?: string }
 ) {
   const symbol = deriveCurrencySymbol()
+  const [rawText, setRawText] = React.useState('')
+  const [focused, setFocused] = React.useState(false)
+
+  const displayValue = focused
+    ? rawText
+    : (value > 0 ? value.toLocaleString() : '')
+
   return (
     <div className="mb-3">
       <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -107,10 +114,24 @@ export function FieldCurrency({ label, value, onChange, hint }:
         <input
           type="text"
           inputMode="decimal"
-          value={value > 0 ? value.toLocaleString() : ''}
+          value={displayValue}
+          onFocus={() => {
+            setFocused(true)
+            setRawText(value > 0 ? String(value) : '')
+          }}
+          onBlur={() => {
+            setFocused(false)
+            const v = parseFloat(rawText)
+            if (rawText === '' || isNaN(v)) {
+              onChange(0)
+            } else {
+              onChange(Math.max(0, v))
+            }
+          }}
           onChange={e => {
             const raw = e.target.value.replace(/[^0-9.]/g, '')
-            if (raw === '' || raw === '.') { onChange(0); return }
+            setRawText(raw)
+            if (raw === '' || raw === '.') return
             const v = parseFloat(raw)
             // Clamp to 0 — negative rates/fees/deposits corrupt payment totals
             if (!isNaN(v)) onChange(Math.max(0, v))

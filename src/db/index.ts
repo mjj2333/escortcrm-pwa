@@ -429,11 +429,15 @@ export function getCurrency(): string {
 export function formatCurrency(amount: number): string {
   const currency = getCurrency()
   const locale = typeof navigator !== 'undefined' ? navigator.language : 'en-US'
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount)
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  } catch {
+    return '$' + amount.toLocaleString()
+  }
 }
 
 export function formatNumber(n: number): string {

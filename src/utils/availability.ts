@@ -97,9 +97,8 @@ export async function checkBookingConflict(
   if (!avail) return { hasConflict: false, reason: '' }
 
   const bookingStart = dateToTimeStr(bookingDateTime)
-  const bookingEnd = addMinutesToTime(bookingStart, durationMinutes)
   const bStartMins = timeToMinutes(bookingStart)
-  const bEndMins = timeToMinutes(bookingEnd)
+  const bEndMins = bStartMins + durationMinutes
 
   switch (avail.status) {
     case 'Off':

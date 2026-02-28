@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { TabBar } from './components/TabBar'
 import { PinLock, hashPin } from './components/PinLock'
 import { WelcomeSplash } from './components/WelcomeSplash'
@@ -55,12 +55,12 @@ export default function App() {
 
   // Online/offline detection
   const isOnline = useOnlineStatus()
-  const [wasOffline, setWasOffline] = useState(false)
+  const wasOfflineRef = useRef(false)
   useEffect(() => {
     if (!isOnline) {
-      setWasOffline(true)
-    } else if (wasOffline) {
-      setWasOffline(false)
+      wasOfflineRef.current = true
+    } else if (wasOfflineRef.current) {
+      wasOfflineRef.current = false
       showToast('Back online', 'success')
     }
   }, [isOnline])

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, X, FileText, ZoomIn, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
@@ -19,37 +19,41 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
 
   const [previewDoc, setPreviewDoc] = useState<ScreeningDoc | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [thumbUrls, setThumbUrls] = useState<Map<string, string>>(new Map())
+  const thumbUrlsRef = useRef(new Map<string, string>())
+  const [, forceRender] = useState(0)
   const fileInput = useRef<HTMLInputElement>(null)
+
+  const docIdKey = useMemo(() => docs.map(d => d.id).join(','), [docs])
 
   // Generate object URLs for thumbnails
   useEffect(() => {
-    const newUrls = new Map<string, string>()
-    const toRevoke: string[] = []
+    const prev = thumbUrlsRef.current
+    const next = new Map<string, string>()
 
     for (const doc of docs) {
-      const existing = thumbUrls.get(doc.id)
+      const existing = prev.get(doc.id)
       if (existing) {
-        newUrls.set(doc.id, existing)
+        next.set(doc.id, existing)
       } else if (doc.mimeType.startsWith('image/')) {
-        const url = URL.createObjectURL(doc.data)
-        newUrls.set(doc.id, url)
-        toRevoke.push(url) // will be cleaned up on next cycle if removed
+        next.set(doc.id, URL.createObjectURL(doc.data))
       }
     }
 
-    // Revoke URLs for deleted docs
-    thumbUrls.forEach((url, id) => {
-      if (!newUrls.has(id)) URL.revokeObjectURL(url)
-    })
+    // Revoke URLs only for removed docs
+    for (const [id, url] of prev) {
+      if (!next.has(id)) URL.revokeObjectURL(url)
+    }
 
-    setThumbUrls(newUrls)
+    thumbUrlsRef.current = next
+    forceRender(n => n + 1)
 
     return () => {
-      // Cleanup on unmount
-      newUrls.forEach(url => URL.revokeObjectURL(url))
+      // Revoke all on unmount
+      for (const url of thumbUrlsRef.current.values()) URL.revokeObjectURL(url)
     }
-  }, [docs.map(d => d.id).join(',')])
+  }, [docIdKey])
+
+  const getThumbUrl = useCallback((id: string) => thumbUrlsRef.current.get(id), [docIdKey])
 
   // Generate preview URL
   useEffect(() => {
@@ -88,8 +92,8 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
   }
 
   async function handleDelete(doc: ScreeningDoc) {
-    const url = thumbUrls.get(doc.id)
-    if (url) URL.revokeObjectURL(url)
+    const url = thumbUrlsRef.current.get(doc.id)
+    if (url) { URL.revokeObjectURL(url); thumbUrlsRef.current.delete(doc.id) }
     await db.screeningDocs.delete(doc.id)
     if (previewDoc?.id === doc.id) setPreviewDoc(null)
     showToast('Document removed')
@@ -136,9 +140,9 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
                 className="w-20 h-20 rounded-xl overflow-hidden flex items-center justify-center active:opacity-70"
                 style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}
               >
-                {isImage(doc) && thumbUrls.has(doc.id) ? (
+                {isImage(doc) && getThumbUrl(doc.id) ? (
                   <img
-                    src={thumbUrls.get(doc.id)}
+                    src={getThumbUrl(doc.id)}
                     alt={doc.filename}
                     className="w-full h-full object-cover"
                   />

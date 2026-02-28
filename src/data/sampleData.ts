@@ -762,49 +762,99 @@ export async function seedSampleData(): Promise<void> {
     }
   )
 
+  // Store all sample record IDs so clearSampleData can delete only these
+  const sampleIds = {
+    clients: clients.map(c => c.id),
+    bookings: bookings.map(b => b.id),
+    transactions: transactions.map(t => t.id),
+    safetyContacts: safetyContacts.map(s => s.id),
+    safetyChecks: safetyChecks.map(s => s.id),
+    incidents: incidents.map(i => i.id),
+    serviceRates: serviceRates.map(s => s.id),
+    availability: availability.map(a => a.id),
+    payments: payments.map(p => p.id),
+    incallVenues: venues.map(v => v.id),
+    journalEntries: journalEntries.map(j => j.id),
+  }
+  localStorage.setItem('companion_sample_ids', JSON.stringify(sampleIds))
+
+  // Store which profile keys were set by sample data so we only clear those
+  const sampleProfileKeys = [
+    'profileWorkingName', 'profileWorkEmail', 'profileWorkPhone', 'profileWebsite',
+    'profileTagline', 'profileSetupDone', 'defaultDepositType', 'defaultDepositPercentage',
+    'defaultDepositFlat', 'currency', 'introTemplate', 'directionsTemplate',
+  ]
+  localStorage.setItem('companion_sample_profile_keys', JSON.stringify(sampleProfileKeys))
+
   localStorage.setItem(SAMPLE_DATA_KEY, 'active')
   window.dispatchEvent(new Event(SAMPLE_DATA_EVENT))
 }
 
 /**
- * Remove all sample data from the database.
+ * Remove only sample data from the database, preserving user-added records.
  */
 export async function clearSampleData(): Promise<void> {
+  const raw = localStorage.getItem('companion_sample_ids')
+  const ids: Record<string, string[]> = raw ? JSON.parse(raw) : {}
+
   await db.transaction('rw',
     [db.clients, db.bookings, db.transactions, db.safetyContacts, db.safetyChecks,
      db.incidents, db.serviceRates, db.availability, db.payments, db.incallVenues, db.journalEntries],
     async () => {
-      await db.clients.clear()
-      await db.bookings.clear()
-      await db.transactions.clear()
-      await db.safetyContacts.clear()
-      await db.safetyChecks.clear()
-      await db.incidents.clear()
-      await db.serviceRates.clear()
-      await db.availability.clear()
-      await db.payments.clear()
-      await db.incallVenues.clear()
-      await db.journalEntries.clear()
+      if (ids.clients?.length) await db.clients.bulkDelete(ids.clients)
+      if (ids.bookings?.length) await db.bookings.bulkDelete(ids.bookings)
+      if (ids.transactions?.length) await db.transactions.bulkDelete(ids.transactions)
+      if (ids.safetyContacts?.length) await db.safetyContacts.bulkDelete(ids.safetyContacts)
+      if (ids.safetyChecks?.length) await db.safetyChecks.bulkDelete(ids.safetyChecks)
+      if (ids.incidents?.length) await db.incidents.bulkDelete(ids.incidents)
+      if (ids.serviceRates?.length) await db.serviceRates.bulkDelete(ids.serviceRates)
+      if (ids.availability?.length) await db.availability.bulkDelete(ids.availability)
+      if (ids.payments?.length) await db.payments.bulkDelete(ids.payments)
+      if (ids.incallVenues?.length) await db.incallVenues.bulkDelete(ids.incallVenues)
+      if (ids.journalEntries?.length) await db.journalEntries.bulkDelete(ids.journalEntries)
     }
   )
 
-  // Clear profile localStorage and notify mounted hooks
+  // Only clear profile keys that were set by sample data and still match defaults
+  const sampleDefaults: Record<string, unknown> = {
+    profileWorkingName: 'Valentina Rose',
+    profileWorkEmail: 'valentina@protonmail.com',
+    profileWorkPhone: '(555) 800-7777',
+    profileWebsite: 'https://valentinarose.com',
+    profileTagline: 'Refined companionship for discerning gentlemen',
+    profileSetupDone: true,
+  }
+
+  const profileKeysRaw = localStorage.getItem('companion_sample_profile_keys')
+  const profileKeys: string[] = profileKeysRaw ? JSON.parse(profileKeysRaw) : []
+
   function clearLS(key: string, defaultValue: unknown) {
     localStorage.removeItem(key)
     window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key, value: defaultValue } }))
   }
-  clearLS('profileWorkingName', '')
-  clearLS('profileWorkEmail', '')
-  clearLS('profileWorkPhone', '')
-  clearLS('profileWebsite', '')
-  clearLS('profileTagline', '')
-  clearLS('profileSetupDone', false)
-  clearLS('defaultDepositType', 'percent')
-  clearLS('defaultDepositPercentage', 25)
-  clearLS('defaultDepositFlat', 0)
-  clearLS('currency', 'USD')
-  clearLS('introTemplate', '')
-  clearLS('directionsTemplate', '')
+
+  for (const key of profileKeys) {
+    if (key in sampleDefaults) {
+      // Only clear if user hasn't customized it
+      const current = localStorage.getItem(key)
+      if (current !== null) {
+        try {
+          const parsed = JSON.parse(current)
+          if (parsed !== sampleDefaults[key]) continue // user changed it, keep it
+        } catch { /* not JSON, clear it */ }
+      }
+    }
+    const defaults: Record<string, unknown> = {
+      profileWorkingName: '', profileWorkEmail: '', profileWorkPhone: '',
+      profileWebsite: '', profileTagline: '', profileSetupDone: false,
+      defaultDepositType: 'percent', defaultDepositPercentage: 25,
+      defaultDepositFlat: 0, currency: 'USD', introTemplate: '', directionsTemplate: '',
+    }
+    clearLS(key, defaults[key] ?? '')
+  }
+
+  localStorage.removeItem('companion_sample_ids')
+  localStorage.removeItem('companion_sample_profile_keys')
 
   markSampleDataCleared()
   window.dispatchEvent(new Event(SAMPLE_DATA_EVENT))
