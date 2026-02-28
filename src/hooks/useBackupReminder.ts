@@ -54,7 +54,7 @@ export function useBackupReminder(): { shouldRemind: boolean; daysSince: number 
       if (clients > 0 || bookings > 0) {
         setShouldRemind(true)
       }
-    })
+    }).catch(() => {}) // DB not ready — silently skip reminder check
   }, [])
 
   return { shouldRemind, daysSince: days }

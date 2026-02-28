@@ -334,7 +334,7 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
   if (!venue) return null
 
   function copyText(text: string, field: string) {
-    navigator.clipboard.writeText(text)
+    navigator.clipboard.writeText(text).catch(() => {})
     setCopiedField(field)
     showToast('Copied to clipboard')
     setTimeout(() => setCopiedField(null), 2000)
@@ -673,7 +673,7 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
 
     if (!contactVal) {
       // Fallback: copy message
-      navigator.clipboard.writeText(message)
+      navigator.clipboard.writeText(message).catch(() => {})
       showToast('No contact info for this method — message copied to clipboard')
       setSent(true)
       return
@@ -834,7 +834,7 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
                 <div className="flex gap-3">
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(message)
+                      navigator.clipboard.writeText(message).catch(() => {})
                       showToast('Message copied')
                     }}
                     className="flex-1 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"

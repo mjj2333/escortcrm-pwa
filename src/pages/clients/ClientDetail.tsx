@@ -93,7 +93,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   }, 0)
 
   function copyToClipboard(text: string, field: string) {
-    navigator.clipboard.writeText(text)
+    navigator.clipboard.writeText(text).catch(() => {})
     setCopiedField(field)
     setTimeout(() => setCopiedField(null), 1500)
   }

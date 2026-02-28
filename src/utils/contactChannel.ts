@@ -50,7 +50,7 @@ export function openChannel(method: ContactMethod, contactValue: string, message
       return 'opened'
     }
     default: {
-      navigator.clipboard.writeText(message)
+      navigator.clipboard.writeText(message).catch(() => {})
       return 'copied'
     }
   }

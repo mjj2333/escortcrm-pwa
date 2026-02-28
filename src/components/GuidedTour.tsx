@@ -202,9 +202,11 @@ export function GuidedTour({ steps, onComplete, onTabChange }: GuidedTourProps) 
   }, [step.target])
 
   // ── Navigate to step ──
+  const navigateRef = useRef<(idx: number) => void>(() => {})
   const navigateToStep = useCallback((idx: number) => {
     const target = steps[idx]
     setTransitioning(true)
+    setVisible(false)
     setRect(null)
 
     // Switch tab if needed
@@ -233,13 +235,14 @@ export function GuidedTour({ steps, onComplete, onTabChange }: GuidedTourProps) 
         if (pollRef.current) clearInterval(pollRef.current)
         setTransitioning(false)
         if (idx < steps.length - 1) {
-          navigateToStep(idx + 1)
+          navigateRef.current(idx + 1)
         } else {
           onComplete()
         }
       }
     }, 100)
   }, [steps, onTabChange, onComplete])
+  navigateRef.current = navigateToStep
 
   // ── Measure on step change ──
   useEffect(() => {

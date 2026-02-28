@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Shield, Delete, Fingerprint } from 'lucide-react'
 import { isBiometricEnabled, assertBiometric } from '../hooks/useBiometric'
 
@@ -75,6 +75,8 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
   const [shake, setShake] = useState(false)
   const [biometricFailed, setBiometricFailed] = useState(false)
   const [biometricPending, setBiometricPending] = useState(false)
+  const onUnlockRef = useRef(onUnlock)
+  onUnlockRef.current = onUnlock
 
   // Rate limiting state
   const [lockedOut, setLockedOut] = useState(false)
@@ -92,10 +94,10 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
 
   async function attemptBiometric() {
     setBiometricPending(true)
-    const pin = await assertBiometric()
-    if (pin !== null) {
+    const recoveredPin = await assertBiometric()
+    if (recoveredPin !== null) {
       clearAttempts()
-      onUnlock(pin)
+      onUnlockRef.current(recoveredPin)
     } else {
       setBiometricFailed(true) // fall back to PIN UI
       setBiometricPending(false)

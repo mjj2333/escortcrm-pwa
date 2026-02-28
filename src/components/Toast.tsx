@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Check, AlertTriangle, Info, RotateCcw } from 'lucide-react'
 
 type ToastType = 'success' | 'error' | 'info' | 'undo'
@@ -33,14 +33,18 @@ const DURATION: Record<ToastType, number> = {
 
 export function ToastContainer() {
   const [toasts, setToasts] = useState<ToastData[]>([])
+  const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>())
 
   const dismiss = useCallback((id: number) => {
+    const timer = timers.current.get(id)
+    if (timer) { clearTimeout(timer); timers.current.delete(id) }
     setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
   const handleToast = useCallback((toast: ToastData) => {
     setToasts(prev => [...prev, toast])
-    setTimeout(() => dismiss(toast.id), DURATION[toast.type])
+    const timer = setTimeout(() => { timers.current.delete(toast.id); dismiss(toast.id) }, DURATION[toast.type])
+    timers.current.set(toast.id, timer)
   }, [dismiss])
 
   useEffect(() => {
