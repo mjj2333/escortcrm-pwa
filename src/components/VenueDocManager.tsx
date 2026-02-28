@@ -57,6 +57,10 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
     const files = e.target.files
     if (!files) return
     for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        showToast('Only images and PDFs are supported')
+        continue
+      }
       if (file.size > 10 * 1024 * 1024) {
         showToast(`${file.name} exceeds 10 MB limit`)
         continue

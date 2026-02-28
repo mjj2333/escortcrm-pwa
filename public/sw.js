@@ -1,4 +1,4 @@
-const CACHE_NAME = 'escortcrm-v14'
+const CACHE_NAME = 'companion-v15'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

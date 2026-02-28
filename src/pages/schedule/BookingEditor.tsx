@@ -134,7 +134,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const selectedClient = clients.find(c => c.id === clientId)
   const total = baseRate + extras + ((locationType === 'Outcall' || locationType === 'Travel') ? travelFee : 0)
   const clientIsScreened = selectedClient?.screeningStatus === 'Screened'
-  const isValid = clientId && baseRate > 0 && (isEditing || clientIsScreened)
+  const isValid = clientId && baseRate > 0 && duration > 0 && (isEditing || clientIsScreened)
 
   // Filter client list
   const filteredClients = clients.filter(c =>
@@ -610,7 +610,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                   const raw = e.target.value.replace(/[^0-9.]/g, '')
                   if (raw === '' || raw === '.') { setDuration(0); return }
                   const val = parseFloat(raw)
-                  if (!isNaN(val)) setDuration(Math.round(val * 60))
+                  if (!isNaN(val)) setDuration(Math.min(Math.round(val * 60), 1440))
                 }}
                 placeholder="0" className="flex-1 px-3 py-2.5 rounded-lg text-sm outline-none"
                 style={fieldInputStyle} />

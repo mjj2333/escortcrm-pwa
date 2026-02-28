@@ -25,12 +25,30 @@ import { initFieldEncryption } from './db/fieldCrypto'
 import { useServiceWorker } from './hooks/useServiceWorker'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { useHashNav, parseNavHash } from './hooks/useHashNav'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { AlertTriangle } from 'lucide-react'
 
 type Screen =
   | { type: 'tab' }
   | { type: 'clientDetail'; clientId: string }
   | { type: 'bookingDetail'; bookingId: string }
   | { type: 'analytics' }
+
+function RouteErrorFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center p-8 text-center" style={{ minHeight: '60vh' }}>
+      <AlertTriangle size={32} color="#ef4444" className="mb-3" />
+      <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Something went wrong</h2>
+      <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>This section hit an unexpected error.</p>
+      <button
+        onClick={() => history.back()}
+        className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97]"
+      >
+        Go back
+      </button>
+    </div>
+  )
+}
 
 export default function App() {
   // Initialize nav state directly from hash — avoids a post-mount setState
@@ -217,47 +235,55 @@ export default function App() {
   function renderContent() {
     if (screen.type === 'clientDetail') {
       return (
-        <ClientDetail
-          clientId={screen.clientId}
-          onBack={goBack}
-          onOpenBooking={openBooking}
-          onShowPaywall={() => setShowPaywall(true)}
-        />
+        <ErrorBoundary fallback={<RouteErrorFallback />}>
+          <ClientDetail
+            clientId={screen.clientId}
+            onBack={goBack}
+            onOpenBooking={openBooking}
+            onShowPaywall={() => setShowPaywall(true)}
+          />
+        </ErrorBoundary>
       )
     }
     if (screen.type === 'bookingDetail') {
       return (
-        <BookingDetail
-          bookingId={screen.bookingId}
-          onBack={goBack}
-          onOpenClient={openClient}
-          onShowPaywall={() => setShowPaywall(true)}
-        />
+        <ErrorBoundary fallback={<RouteErrorFallback />}>
+          <BookingDetail
+            bookingId={screen.bookingId}
+            onBack={goBack}
+            onOpenClient={openClient}
+            onShowPaywall={() => setShowPaywall(true)}
+          />
+        </ErrorBoundary>
       )
     }
 
     switch (activeTab) {
       case 0:
         return (
-          <HomePage
-            onNavigateTab={handleTabChange}
-            onOpenSettings={() => setShowSettings(true)}
-            onOpenBooking={openBooking}
-            onOpenClient={openClient}
-          />
+          <ErrorBoundary fallback={<RouteErrorFallback />}>
+            <HomePage
+              onNavigateTab={handleTabChange}
+              onOpenSettings={() => setShowSettings(true)}
+              onOpenBooking={openBooking}
+              onOpenClient={openClient}
+            />
+          </ErrorBoundary>
         )
       case 1:
-        return <SchedulePage onOpenBooking={openBooking} />
+        return <ErrorBoundary fallback={<RouteErrorFallback />}><SchedulePage onOpenBooking={openBooking} /></ErrorBoundary>
       case 2:
-        return <ClientsPage onOpenClient={openClient} />
+        return <ErrorBoundary fallback={<RouteErrorFallback />}><ClientsPage onOpenClient={openClient} /></ErrorBoundary>
       case 3:
         return (
-          <ProGate feature="Finances & Analytics" onUpgrade={() => setShowPaywall(true)} bypass={showSetup}>
-            <FinancesPage onOpenBooking={openBooking} />
-          </ProGate>
+          <ErrorBoundary fallback={<RouteErrorFallback />}>
+            <ProGate feature="Finances & Analytics" onUpgrade={() => setShowPaywall(true)} bypass={showSetup}>
+              <FinancesPage onOpenBooking={openBooking} />
+            </ProGate>
+          </ErrorBoundary>
         )
       case 4:
-        return <SafetyPage />
+        return <ErrorBoundary fallback={<RouteErrorFallback />}><SafetyPage /></ErrorBoundary>
       default:
         return null
     }
@@ -308,7 +334,9 @@ export default function App() {
       </Suspense>
       {showSettings && (
         <Suspense fallback={null}>
-          <SettingsPage onClose={() => setShowSettings(false)} onRestartTour={restartTour} onShowPaywall={() => setShowPaywall(true)} />
+          <ErrorBoundary fallback={<RouteErrorFallback />}>
+            <SettingsPage onClose={() => setShowSettings(false)} onRestartTour={restartTour} onShowPaywall={() => setShowPaywall(true)} />
+          </ErrorBoundary>
         </Suspense>
       )}
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />

@@ -210,7 +210,7 @@ export async function adjustAvailabilityForBooking(
     })
   } else {
     // No availability record — create Limited with this slot
-    await db.availability.add({
+    await db.availability.put({
       id: newId(),
       date: dayStart,
       status: 'Limited',

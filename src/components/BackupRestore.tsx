@@ -15,11 +15,11 @@ interface BackupRestoreProps {
 // CRYPTO HELPERS (AES-GCM via Web Crypto API)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+async function deriveKey(password: string, salt: Uint8Array, iterations = 200_000): Promise<CryptoKey> {
   const enc = new TextEncoder()
   const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey'])
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: salt.buffer as ArrayBuffer, iterations: 100_000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: salt.buffer as ArrayBuffer, iterations, hash: 'SHA-256' },
     baseKey,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -50,9 +50,16 @@ async function decryptData(encoded: string, password: string): Promise<string> {
   const salt = combined.slice(0, 16)
   const iv = combined.slice(16, 28)
   const ciphertext = combined.slice(28)
-  const key = await deriveKey(password, salt)
-  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext)
-  return new TextDecoder().decode(decrypted)
+  // Try current iteration count first (200k), fall back to legacy (100k)
+  try {
+    const key = await deriveKey(password, salt, 200_000)
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext)
+    return new TextDecoder().decode(decrypted)
+  } catch {
+    const key = await deriveKey(password, salt, 100_000)
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext)
+    return new TextDecoder().decode(decrypted)
+  }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -205,6 +212,10 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
           throw new Error(`Invalid record in "${tableName}": missing required field "${field}"`)
         }
       }
+      // id must be a string — numeric ids cause silent IndexedDB query mismatches
+      if (typeof rec.id !== 'string') {
+        rec.id = String(rec.id)
+      }
     }
   }
 
@@ -354,12 +365,12 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
         const encrypted = await encryptData(json, password.trim())
         const wrapper = JSON.stringify({ encrypted: true, data: encrypted })
         const date = new Date().toISOString().split('T')[0]
-        downloadFile(wrapper, `escortcrm-backup-${date}.enc.json`)
+        downloadFile(wrapper, `companion-backup-${date}.enc.json`)
         recordBackupTimestamp()
         setStatus({ type: 'success', msg: `Encrypted backup saved — ${totalRecords} records` })
       } else {
         const date = new Date().toISOString().split('T')[0]
-        downloadFile(json, `escortcrm-backup-${date}.json`)
+        downloadFile(json, `companion-backup-${date}.json`)
         recordBackupTimestamp()
         setStatus({ type: 'success', msg: `Backup saved — ${totalRecords} records` })
       }
@@ -571,6 +582,9 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
             </button>
             <p className="text-[10px] text-center mt-2 text-red-400">
               Warning: Restoring will replace ALL current data
+            </p>
+            <p className="text-[10px] text-center mt-1" style={{ color: 'var(--text-secondary)' }}>
+              If PIN lock is enabled, encrypted fields (contacts, notes) are only readable when restored on the same device. To transfer to a new device, disable PIN lock before backing up.
             </p>
           </div>
 

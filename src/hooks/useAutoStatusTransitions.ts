@@ -43,7 +43,9 @@ export function useAutoStatusTransitions() {
       running = true
       try {
         const now = Date.now()
-        const bookings = await db.bookings.toArray()
+        const bookings = await db.bookings.where('status').anyOf([
+          'To Be Confirmed', 'Pending Deposit', 'Confirmed', 'In Progress', 'Completed'
+        ]).toArray()
 
       for (const b of bookings) {
         const startTime = new Date(b.dateTime).getTime()
@@ -149,7 +151,7 @@ export function useAutoStatusTransitions() {
         if (now >= fiveBeforeDeadline && now < deadline && !overdueNotified.has(`remind-${check.id}`)) {
           overdueNotified.add(`remind-${check.id}`)
           if ('Notification' in window && Notification.permission === 'granted') {
-            const booking = bookings.find(b => b.id === check.bookingId)
+            const booking = await db.bookings.get(check.bookingId)
             const client = booking?.clientId ? await db.clients.get(booking.clientId) : undefined
             new Notification('⏰ Safety check-in due soon', {
               body: client?.alias
@@ -166,7 +168,7 @@ export function useAutoStatusTransitions() {
           // Fire an urgent notification — this is safety-critical
           if (!overdueNotified.has(check.id) && 'Notification' in window && Notification.permission === 'granted') {
             overdueNotified.add(check.id)
-            const booking = bookings.find(b => b.id === check.bookingId)
+            const booking = await db.bookings.get(check.bookingId)
             const client = booking?.clientId ? await db.clients.get(booking.clientId) : undefined
             new Notification('🚨 Safety check-in OVERDUE', {
               body: client?.alias

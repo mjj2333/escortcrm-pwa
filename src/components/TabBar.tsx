@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Home, Users, Calendar, DollarSign, Shield } from 'lucide-react'
 import { isPro } from './planLimits'
 
@@ -14,7 +15,7 @@ const tabs = [
   { icon: Shield, label: 'Safety' },
 ]
 
-export function TabBar({ activeTab, onTabChange }: TabBarProps) {
+export const TabBar = memo(function TabBar({ activeTab, onTabChange }: TabBarProps) {
   const pro = isPro()
 
   return (
@@ -57,4 +58,4 @@ export function TabBar({ activeTab, onTabChange }: TabBarProps) {
       </div>
     </nav>
   )
-}
+})

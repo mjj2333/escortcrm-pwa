@@ -28,27 +28,33 @@ function getLockoutMs(attempts: number): number {
   return 0
 }
 
-function getAttempts(): number {
-  return parseInt(localStorage.getItem(ATTEMPTS_KEY) ?? '0', 10) || 0
+async function getAttempts(): Promise<number> {
+  const { db } = await import('../db')
+  const record = await db.meta.get(ATTEMPTS_KEY)
+  return typeof record?.value === 'number' ? record.value : 0
 }
 
-function getLockoutUntil(): number {
-  return parseInt(localStorage.getItem(LOCKOUT_KEY) ?? '0', 10) || 0
+async function getLockoutUntil(): Promise<number> {
+  const { db } = await import('../db')
+  const record = await db.meta.get(LOCKOUT_KEY)
+  return typeof record?.value === 'number' ? record.value : 0
 }
 
-function recordFailedAttempt(): number {
-  const attempts = getAttempts() + 1
-  localStorage.setItem(ATTEMPTS_KEY, String(attempts))
+async function recordFailedAttempt(): Promise<number> {
+  const { db } = await import('../db')
+  const attempts = (await getAttempts()) + 1
+  await db.meta.put({ key: ATTEMPTS_KEY, value: attempts })
   const lockoutMs = getLockoutMs(attempts)
   if (lockoutMs > 0) {
-    localStorage.setItem(LOCKOUT_KEY, String(Date.now() + lockoutMs))
+    await db.meta.put({ key: LOCKOUT_KEY, value: Date.now() + lockoutMs })
   }
   return attempts
 }
 
-function clearAttempts() {
-  localStorage.removeItem(ATTEMPTS_KEY)
-  localStorage.removeItem(LOCKOUT_KEY)
+async function clearAttempts(): Promise<void> {
+  const { db } = await import('../db')
+  await db.meta.delete(ATTEMPTS_KEY)
+  await db.meta.delete(LOCKOUT_KEY)
 }
 
 function formatCountdown(ms: number): string {
@@ -77,6 +83,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
   const [biometricPending, setBiometricPending] = useState(false)
   const onUnlockRef = useRef(onUnlock)
   onUnlockRef.current = onUnlock
+  const verifyingRef = useRef(false)
 
   // Rate limiting state
   const [lockedOut, setLockedOut] = useState(false)
@@ -96,7 +103,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
     setBiometricPending(true)
     const recoveredPin = await assertBiometric()
     if (recoveredPin !== null) {
-      clearAttempts()
+      await clearAttempts()
       onUnlockRef.current(recoveredPin)
     } else {
       setBiometricFailed(true) // fall back to PIN UI
@@ -110,20 +117,24 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
   // Check lockout on mount + tick countdown every second
   useEffect(() => {
     if (isSetup) return // no lockout during PIN setup
+    let cancelled = false
 
-    function checkLockout() {
-      const until = getLockoutUntil()
+    async function checkLockout() {
+      const until = await getLockoutUntil()
       const remaining = until - Date.now()
+      if (cancelled) return
       if (remaining > 0) {
         setLockedOut(true)
         setCountdown(formatCountdown(remaining))
-        const attempts = getAttempts()
+        const attempts = await getAttempts()
+        if (cancelled) return
         setError(`Too many attempts (${attempts}). Try again in ${formatCountdown(remaining)}`)
       } else {
         setLockedOut(false)
         setCountdown('')
         // Keep the attempt-count error visible but clear the lockout text
-        const attempts = getAttempts()
+        const attempts = await getAttempts()
+        if (cancelled) return
         if (attempts >= 3) {
           setError(`${attempts} failed attempt${attempts !== 1 ? 's' : ''}`)
         }
@@ -132,7 +143,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
 
     checkLockout()
     const interval = setInterval(checkLockout, 1000)
-    return () => clearInterval(interval)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [isSetup])
 
   useEffect(() => {
@@ -143,21 +154,24 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
         setPin('')
         return
       }
-      hashPin(pin).then(hash => {
-        if (cancelled) return
+      // Prevent concurrent hash operations from racing
+      if (verifyingRef.current) return
+      verifyingRef.current = true
+      const pinSnapshot = pin
+      hashPin(pinSnapshot).then(async hash => {
+        if (cancelled) { verifyingRef.current = false; return }
         if (hash === correctPin) {
-          clearAttempts()
-          onUnlock(pin)
+          await clearAttempts()
+          onUnlock(pinSnapshot)
         } else {
-          const attempts = recordFailedAttempt()
+          const attempts = await recordFailedAttempt()
 
           // Wipe all data at 10 failed attempts
           if (attempts >= MAX_ATTEMPTS_BEFORE_WIPE) {
             setWiping(true)
             setError('Too many failed attempts — erasing all data for safety')
-            // Dynamic import to avoid circular dependency
             import('../db').then(({ db }) => {
-              db.delete().catch(() => {}).then(() => {
+              db.delete().catch(() => {}).finally(() => {
                 localStorage.clear()
                 window.location.reload()
               })
@@ -176,6 +190,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
           setShake(true)
           setTimeout(() => { if (!cancelled) { setShake(false); setPin('') } }, 600)
         }
+        verifyingRef.current = false
       })
     }
     if (isSetup && phase === 'enter' && pin.length === maxLength) {
@@ -184,9 +199,9 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
     if (isSetup && phase === 'confirm' && confirmPin.length === maxLength) {
       if (confirmPin === pin) {
         // Store the hash, never the plaintext
-        hashPin(pin).then(hash => {
+        hashPin(pin).then(async hash => {
           if (cancelled) return
-          clearAttempts() // reset any prior failed attempts
+          await clearAttempts() // reset any prior failed attempts
           onSetPin?.(hash, pin)
           onUnlock(pin)
         })

@@ -74,7 +74,7 @@ body {
    with font-size below 16px in iOS Safari, including in PWA standalone mode. */
 @supports (-webkit-touch-callout: none) {
   input, textarea, select {
-    font-size: 16px !important;
+    font-size: max(1em, 16px) !important;
   }
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Clock, MapPin,
@@ -71,7 +71,28 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const [payNotes, setPayNotes] = useState('')
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null)
 
-  if (!booking) return null
+  // Allow Dexie time to resolve before showing "not found"
+  const [settled, setSettled] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(true), 300)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (!booking) {
+    if (!settled) return null
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center" style={{ minHeight: '60vh' }}>
+        <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Booking not found</h2>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>This booking may have been deleted.</p>
+        <button
+          onClick={onBack}
+          className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97]"
+        >
+          Go back
+        </button>
+      </div>
+    )
+  }
 
   const total = bookingTotal(booking)
   const endTime = bookingEndTime(booking)

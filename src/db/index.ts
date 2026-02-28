@@ -516,8 +516,10 @@ export async function removeBookingPayment(paymentId: string): Promise<void> {
     await db.payments.delete(paymentId)
     // Find and remove the matching income transaction — prefer direct paymentId link, fall back to amount match for legacy data
     const txns = await db.transactions.where('bookingId').equals(payment.bookingId).toArray()
+    const paymentTime = new Date(payment.date).getTime()
     const matching = txns.find(t => t.paymentId === paymentId)
-      ?? txns.find(t => t.type === 'income' && Math.abs(t.amount - payment.amount) < 0.01)
+      ?? txns.find(t => t.type === 'income' && Math.abs(t.amount - payment.amount) < 0.01
+        && Math.abs(new Date(t.date).getTime() - paymentTime) < 60_000)
     if (matching) await db.transactions.delete(matching.id)
     // Sync convenience booleans
     if (payment.label === 'Deposit') {
