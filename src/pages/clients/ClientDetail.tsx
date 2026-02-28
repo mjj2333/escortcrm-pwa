@@ -14,7 +14,7 @@ import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { Card } from '../../components/Card'
 import { CollapsibleCard } from '../../components/CollapsibleCard'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { showUndoToast } from '../../components/Toast'
+import { showToast, showUndoToast } from '../../components/Toast'
 import { ClientEditor } from './ClientEditor'
 import { BookingEditor } from '../schedule/BookingEditor'
 import { ClientMergeModal } from './ClientMergeModal'
@@ -295,7 +295,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                     await db.clients.update(cid, { screeningStatus: newStatus })
                     await advanceBookingsOnScreen(cid, oldStatus, newStatus)
                     await downgradeBookingsOnUnscreen(cid, oldStatus, newStatus)
-                  })()
+                  })().catch(() => showToast('Failed to update screening status'))
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
                 style={{

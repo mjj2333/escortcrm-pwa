@@ -94,9 +94,10 @@ export function useAutoStatusTransitions() {
         if (b.status === 'Completed' && b.recurrence && b.recurrence !== 'none') {
           const existingChild = await db.bookings.filter(child => child.parentBookingId === b.id).first()
           if (!existingChild) {
-            // Only auto-create if client is still screened
+            // Only auto-create if client still exists and is screened
             const recurClient = b.clientId ? await db.clients.get(b.clientId) : null
-            if (recurClient && recurClient.screeningStatus !== 'Screened') continue
+            if (!recurClient) continue // client was deleted
+            if (recurClient.screeningStatus !== 'Screened') continue
 
             // Respect free plan booking limit
             if (!await canAddBooking()) continue

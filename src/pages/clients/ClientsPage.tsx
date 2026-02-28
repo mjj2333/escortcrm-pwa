@@ -36,14 +36,14 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   }, [])
 
   const togglePin = useCallback(async (clientId: string) => {
-    const client = clients?.find(c => c.id === clientId)
+    const client = await db.clients.get(clientId)
     if (!client) return
     const newPinned = !client.isPinned
     await db.clients.update(clientId, { isPinned: newPinned })
     if (navigator.vibrate) navigator.vibrate(30)
     setPinnedToast({ id: clientId, pinned: newPinned })
     setTimeout(() => setPinnedToast(null), 1500)
-  }, [clients])
+  }, [])
 
   if (clients === undefined) return <ClientsPageSkeleton />
 

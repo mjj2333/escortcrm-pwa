@@ -134,6 +134,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
   }, [isSetup])
 
   useEffect(() => {
+    let cancelled = false
     if (!isSetup && pin.length === maxLength) {
       // Block verification during lockout
       if (lockedOut) {
@@ -141,6 +142,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
         return
       }
       hashPin(pin).then(hash => {
+        if (cancelled) return
         if (hash === correctPin) {
           clearAttempts()
           onUnlock(pin)
@@ -153,7 +155,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
             setError('Too many failed attempts — erasing all data for safety')
             // Dynamic import to avoid circular dependency
             import('../db').then(({ db }) => {
-              db.delete().then(() => {
+              db.delete().catch(() => {}).then(() => {
                 localStorage.clear()
                 window.location.reload()
               })
@@ -170,7 +172,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
           }
 
           setShake(true)
-          setTimeout(() => { setShake(false); setPin('') }, 600)
+          setTimeout(() => { if (!cancelled) { setShake(false); setPin('') } }, 600)
         }
       })
     }
@@ -181,6 +183,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
       if (confirmPin === pin) {
         // Store the hash, never the plaintext
         hashPin(pin).then(hash => {
+          if (cancelled) return
           clearAttempts() // reset any prior failed attempts
           onSetPin?.(hash, pin)
           onUnlock(pin)
@@ -188,9 +191,10 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
       } else {
         setError('PINs don\'t match')
         setShake(true)
-        setTimeout(() => { setShake(false); setConfirmPin(''); setError(''); setPhase('enter'); setPin('') }, 600)
+        setTimeout(() => { if (!cancelled) { setShake(false); setConfirmPin(''); setError(''); setPhase('enter'); setPin('') } }, 600)
       }
     }
+    return () => { cancelled = true }
   }, [pin, confirmPin, phase, isSetup, correctPin, onUnlock, onSetPin, lockedOut])
 
   const isDisabled = lockedOut || wiping

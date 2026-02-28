@@ -119,11 +119,13 @@ export async function checkBookingConflict(
 
     case 'Limited': {
       // Check if booking falls within any open slot
+      // If booking crosses midnight (bEndMins > 1440), only check the same-day portion
+      const effectiveEndMins = Math.min(bEndMins, 1440)
       const openSlots = avail.openSlots ?? []
       const inOpenSlot = openSlots.some(slot => {
         const slotStart = timeToMinutes(slot.start)
         const slotEnd = timeToMinutes(slot.end)
-        return bStartMins >= slotStart && bEndMins <= slotEnd
+        return bStartMins >= slotStart && effectiveEndMins <= slotEnd
       })
       if (!inOpenSlot) {
         return {
@@ -138,10 +140,12 @@ export async function checkBookingConflict(
 
     case 'Available': {
       // Check if booking falls within working hours
+      // If booking crosses midnight (bEndMins > 1440), only check the same-day portion
       if (avail.startTime && avail.endTime) {
         const availStart = timeToMinutes(avail.startTime)
         const availEnd = timeToMinutes(avail.endTime)
-        if (bStartMins < availStart || bEndMins > availEnd) {
+        const effectiveEndMins = Math.min(bEndMins, 1440)
+        if (bStartMins < availStart || effectiveEndMins > availEnd) {
           return {
             hasConflict: true,
             reason: `This booking falls outside your available hours (${formatTime12(avail.startTime)} – ${formatTime12(avail.endTime)}).`,
@@ -174,11 +178,17 @@ export async function adjustAvailabilityForBooking(
 ): Promise<void> {
   const dayStart = startOfDay(bookingDateTime)
   const bookingStart = dateToTimeStr(bookingDateTime)
-  const bookingEnd = addMinutesToTime(bookingStart, durationMinutes)
+  const bookingStartMins = timeToMinutes(bookingStart)
+  const bookingEndMins = bookingStartMins + durationMinutes
+
+  // If booking crosses midnight, clamp the slot to end-of-day
+  const clampedEnd = bookingEndMins >= 1440
+    ? '23:59'
+    : addMinutesToTime(bookingStart, durationMinutes)
 
   // Snap to half-hour boundaries for cleanliness
   const slotStart = snapToHalfHour(bookingStart)
-  const slotEnd = snapToHalfHour(bookingEnd, true)
+  const slotEnd = bookingEndMins >= 1440 ? '23:59' : snapToHalfHour(clampedEnd, true)
 
   const newSlot: TimeSlot = {
     start: slotStart,

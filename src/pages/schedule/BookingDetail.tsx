@@ -91,17 +91,19 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   async function updateStatus(status: BookingStatus) {
     const updates: Partial<Booking> = { status }
     if (status === 'Confirmed') updates.confirmedAt = new Date()
+    if (status === 'Completed') updates.completedAt = new Date()
+    // Write status to DB first so subsequent queries see the latest state
+    await db.bookings.update(bookingId, updates)
     if (status === 'Completed') {
-      updates.completedAt = new Date()
-      // Record remaining payment via ledger
+      // Record remaining payment via ledger (after status is persisted)
+      const updatedBooking = await db.bookings.get(bookingId)
       const c = await db.clients.get(booking!.clientId ?? '')
-      await completeBookingPayment(booking!, c?.alias)
+      if (updatedBooking) await completeBookingPayment(updatedBooking, c?.alias)
       // Update client lastSeen
       if (booking!.clientId) {
         await db.clients.update(booking!.clientId, { lastSeen: new Date() })
       }
     }
-    await db.bookings.update(bookingId, updates)
     // Create safety check when manually advancing to In Progress
     if (status === 'In Progress' && booking!.requiresSafetyCheck) {
       const existing = await db.safetyChecks.where('bookingId').equals(bookingId).first()
