@@ -19,18 +19,17 @@ export function useServiceWorker() {
     || (navigator as any).standalone === true // iOS Safari
 
   useEffect(() => {
-    if (isStandalone) return
-
-    // User previously chose "Don't ask again"
-    const dismissed = localStorage.getItem(lsKey('installDismissed'))
-    if (dismissed === 'true') return
-
-    // Capture the beforeinstallprompt event for custom install button
+    // Capture the beforeinstallprompt event for custom install button (skip in standalone)
     function onBeforeInstall(e: Event) {
       e.preventDefault()
       setInstallPrompt(e as BeforeInstallPromptEvent)
     }
-    window.addEventListener('beforeinstallprompt', onBeforeInstall)
+    if (!isStandalone) {
+      const dismissed = localStorage.getItem(lsKey('installDismissed'))
+      if (dismissed !== 'true') {
+        window.addEventListener('beforeinstallprompt', onBeforeInstall)
+      }
+    }
 
     if (!('serviceWorker' in navigator)) return () => {
       window.removeEventListener('beforeinstallprompt', onBeforeInstall)

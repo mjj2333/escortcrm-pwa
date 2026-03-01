@@ -17,12 +17,26 @@ export function BookingChecklist({ bookingId }: BookingChecklistProps) {
   )
   const [defaultItems] = useLocalStorage<string[]>('defaultChecklistItems', DEFAULT_ITEMS)
   const [newText, setNewText] = useState('')
-  const populated = useRef(false)
+  // Track whether we've ever had items for this booking — prevents re-populating after user clears all
+  const hadItemsRef = useRef(false)
+  const populatedRef = useRef(false)
 
-  // Auto-populate on first render when no items exist
   useEffect(() => {
-    if (items && items.length === 0 && !populated.current) {
-      populated.current = true
+    // Reset tracking when bookingId changes (different accordion open)
+    hadItemsRef.current = false
+    populatedRef.current = false
+  }, [bookingId])
+
+  // Auto-populate on first render when no items exist and user hasn't intentionally cleared them
+  useEffect(() => {
+    if (!items) return
+    if (items.length > 0) {
+      hadItemsRef.current = true
+      return
+    }
+    // Only populate if we've never had items and haven't already populated
+    if (!hadItemsRef.current && !populatedRef.current) {
+      populatedRef.current = true
       const toAdd = defaultItems.length > 0 ? defaultItems : DEFAULT_ITEMS
       Promise.all(
         toAdd.map((text, i) =>

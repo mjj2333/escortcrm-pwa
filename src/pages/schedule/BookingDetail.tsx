@@ -898,6 +898,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               />
             </div>
 
+            {payAmount && parseFloat(payAmount) > 0 && balance > 0 && parseFloat(payAmount) > balance && (
+              <p className="text-xs text-center mb-2" style={{ color: '#f97316' }}>
+                This exceeds the remaining balance of {formatCurrency(balance)}
+              </p>
+            )}
             <button
               onClick={submitPayment}
               disabled={!payAmount || parseFloat(payAmount) <= 0}

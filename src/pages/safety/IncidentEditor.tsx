@@ -6,35 +6,37 @@ import { db, newId } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldSelect, FieldTextArea, FieldDate, fieldInputStyle } from '../../components/FormFields'
-import type { IncidentSeverity } from '../../types'
+import type { IncidentSeverity, IncidentLog } from '../../types'
 
 const severities: IncidentSeverity[] = ['low', 'medium', 'high', 'critical']
 
 interface IncidentEditorProps {
   isOpen: boolean
   onClose: () => void
+  incident?: IncidentLog
 }
 
-export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
+export function IncidentEditor({ isOpen, onClose, incident }: IncidentEditorProps) {
+  const isEditing = !!incident
   const clients = useLiveQuery(() => db.clients.orderBy('alias').toArray()) ?? []
-  const [clientId, setClientId] = useState('')
-  const [severity, setSeverity] = useState<IncidentSeverity>('medium')
-  const [description, setDescription] = useState('')
-  const [actionTaken, setActionTaken] = useState('')
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [clientId, setClientId] = useState(incident?.clientId ?? '')
+  const [severity, setSeverity] = useState<IncidentSeverity>(incident?.severity ?? 'medium')
+  const [description, setDescription] = useState(incident?.description ?? '')
+  const [actionTaken, setActionTaken] = useState(incident?.actionTaken ?? '')
+  const [date, setDate] = useState(incident ? format(new Date(incident.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'))
   const [saving, setSaving] = useState(false)
 
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      setClientId('')
-      setSeverity('medium')
-      setDescription('')
-      setActionTaken('')
-      setDate(format(new Date(), 'yyyy-MM-dd'))
+      setClientId(incident?.clientId ?? '')
+      setSeverity(incident?.severity ?? 'medium')
+      setDescription(incident?.description ?? '')
+      setActionTaken(incident?.actionTaken ?? '')
+      setDate(incident ? format(new Date(incident.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'))
       setSaving(false)
     }
-  }, [isOpen])
+  }, [isOpen, incident])
 
   const isValid = description.trim().length > 0
 
@@ -42,15 +44,26 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
     if (!isValid || saving) return
     setSaving(true)
     try {
-      await db.incidents.add({
-        id: newId(),
-        clientId: clientId || undefined,
-        date: new Date(date + 'T00:00:00'),
-        severity,
-        description: description.trim(),
-        actionTaken: actionTaken.trim(),
-      })
-      showToast('Incident logged')
+      if (isEditing && incident) {
+        await db.incidents.update(incident.id, {
+          clientId: clientId || undefined,
+          date: new Date(date + 'T00:00:00'),
+          severity,
+          description: description.trim(),
+          actionTaken: actionTaken.trim(),
+        })
+        showToast('Incident updated')
+      } else {
+        await db.incidents.add({
+          id: newId(),
+          clientId: clientId || undefined,
+          date: new Date(date + 'T00:00:00'),
+          severity,
+          description: description.trim(),
+          actionTaken: actionTaken.trim(),
+        })
+        showToast('Incident logged')
+      }
       onClose()
     } catch (err) {
       showToast(`Save failed: ${(err as Error).message}`)
@@ -62,7 +75,7 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Log Incident"
+      title={isEditing ? 'Edit Incident' : 'Log Incident'}
       actions={
         <button onClick={handleSave} disabled={!isValid || saving}
           className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}
@@ -98,7 +111,7 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
               isValid && !saving ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
-            {saving ? 'Saving…' : 'Log Incident'}
+            {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Log Incident'}
           </button>
         </div>
         <div className="h-8" />

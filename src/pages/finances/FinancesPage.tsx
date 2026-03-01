@@ -2,19 +2,21 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Plus, ArrowUpCircle, ArrowDownCircle, Trash2, Target,
   Percent, ChevronRight, AlertCircle, Search, X, Check, ArrowDownUp,
-  Settings2, CreditCard, MapPin, TrendingUp, TrendingDown
+  Settings2, CreditCard, MapPin, TrendingUp, TrendingDown, Edit2
 } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import {
   startOfMonth, startOfWeek, startOfYear, startOfQuarter,
   subMonths, getDay, getHours, eachMonthOfInterval,
-  differenceInDays, endOfMonth, endOfWeek, endOfQuarter, endOfYear
+  differenceInDays, endOfMonth, endOfWeek, endOfQuarter, endOfYear,
+  startOfDay, endOfDay, parseISO
 } from 'date-fns'
 import { fmtShortMonth, fmtShortDate, fmtMediumDate } from '../../utils/dateFormat'
 import { db, formatCurrency, bookingTotal, removeBookingPayment } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card } from '../../components/Card'
 import { Modal } from '../../components/Modal'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { SectionLabel, FieldHint, fieldInputStyle } from '../../components/FormFields'
 import { ImportExportModal } from '../../components/ImportExport'
 import { TransactionEditor } from './TransactionEditor'
@@ -23,9 +25,9 @@ import { bookingStatusColors } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { showToast, showUndoToast } from '../../components/Toast'
 import { FinancesPageSkeleton } from '../../components/Skeleton'
-import type { LocationType, PaymentMethod } from '../../types'
+import type { Transaction, LocationType, PaymentMethod } from '../../types'
 
-type TimePeriod = 'Week' | 'Month' | 'Quarter' | 'Year' | 'All'
+type TimePeriod = 'Week' | 'Month' | 'Quarter' | 'Year' | 'All' | 'Custom'
 
 // Card visibility — user can toggle which sections appear
 type CardKey =
@@ -87,13 +89,21 @@ const EXPENSE_COLORS = ['#ef4444', '#f97316', '#eab308', '#6366f1', '#ec4899', '
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const DISPLAY_HOURS = Array.from({ length: 16 }, (_, i) => i + 8) // 8am–11pm
 
-function periodStart(p: TimePeriod): Date {
+function periodStart(p: TimePeriod, customFrom?: string): Date {
   switch (p) {
     case 'Week': return startOfWeek(new Date(), { weekStartsOn: 1 })
     case 'Month': return startOfMonth(new Date())
     case 'Quarter': return startOfQuarter(new Date())
     case 'Year': return startOfYear(new Date())
+    case 'Custom': return customFrom ? startOfDay(parseISO(customFrom)) : new Date(2000, 0, 1)
     case 'All': return new Date(2000, 0, 1)
+  }
+}
+
+function periodEnd(p: TimePeriod, customTo?: string): Date {
+  switch (p) {
+    case 'Custom': return customTo ? endOfDay(parseISO(customTo)) : new Date()
+    default: return new Date()
   }
 }
 
@@ -103,7 +113,10 @@ function periodStart(p: TimePeriod): Date {
 
 export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: string) => void }) {
   const [period, setPeriod] = useState<TimePeriod>('Month')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
   const [showEditor, setShowEditor] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>(undefined)
   const [showGoalEditor, setShowGoalEditor] = useState(false)
   const [showTaxSettings, setShowTaxSettings] = useState(false)
   const [showAllTransactions, setShowAllTransactions] = useState(false)
@@ -121,19 +134,35 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   const allBookings = rawBookings ?? []
   const clients = rawClients ?? []
   const allPayments = rawPayments ?? []
-  // Settings
+  // Settings — stored in localStorage intentionally: these are user preferences
+  // (display settings), not user data, so they don't need to be in IndexedDB.
   const [taxRate] = useLocalStorage('taxRate', 25)
   const [setAsideRate] = useLocalStorage('setAsideRate', 30)
+  // Goal targets — stored in localStorage intentionally: these are user preferences
+  // for income targets per period, not transactional data.
   const [goalWeekly] = useLocalStorage('goalWeekly', 0)
   const [goalMonthly] = useLocalStorage('goalMonthly', 0)
   const [goalQuarterly] = useLocalStorage('goalQuarterly', 0)
   const [goalYearly] = useLocalStorage('goalYearly', 0)
 
   // Filtered by period
-  const startDate = periodStart(period)
+  const startDate = periodStart(period, customFrom)
+  const endDate = periodEnd(period, customTo)
   const filtered = useMemo(
-    () => allTransactions.filter(t => new Date(t.date) >= startDate),
-    [allTransactions, startDate.getTime()]
+    () => allTransactions.filter(t => {
+      const td = new Date(t.date)
+      return td >= startDate && (period !== 'Custom' || td <= endDate)
+    }),
+    [allTransactions, startDate.getTime(), endDate.getTime(), period]
+  )
+
+  // Bookings filtered by period (used by timing/heatmap/client analytics)
+  const filteredBookings = useMemo(
+    () => allBookings.filter(b => {
+      const bd = new Date(b.dateTime)
+      return bd >= startDate && (period !== 'Custom' || bd <= endDate)
+    }),
+    [allBookings, startDate.getTime(), endDate.getTime(), period]
   )
 
   // Stats
@@ -151,18 +180,21 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   const suggestedSetAside = totalIncome > 0 ? Math.round(totalIncome * setAsideRate / 100) : 0
 
   // Goal — tied to the active period tab
-  const goalTarget = period === 'Week' ? goalWeekly
-    : period === 'Month' ? goalMonthly
-    : period === 'Quarter' ? goalQuarterly
-    : period === 'Year' ? goalYearly : 0
-  const hasGoal = goalTarget > 0 && period !== 'All'
+  // On 'All' period, we show the monthly goal with a note about timeframe
+  const goalPeriodForDisplay = period === 'All' ? 'Month' : period === 'Custom' ? 'Month' : period
+  const goalTarget = goalPeriodForDisplay === 'Week' ? goalWeekly
+    : goalPeriodForDisplay === 'Month' ? goalMonthly
+    : goalPeriodForDisplay === 'Quarter' ? goalQuarterly
+    : goalPeriodForDisplay === 'Year' ? goalYearly : 0
+  const hasGoal = goalTarget > 0
   const goalIncome = totalIncome
   const goalProgress = goalTarget > 0 ? Math.min(1, goalIncome / goalTarget) : 0
   const goalRemaining = Math.max(0, goalTarget - goalIncome)
-  const goalEnd = period === 'Week' ? endOfWeek(new Date(), { weekStartsOn: 1 })
-    : period === 'Quarter' ? endOfQuarter(new Date())
-    : period === 'Year' ? endOfYear(new Date()) : endOfMonth(new Date())
+  const goalEnd = goalPeriodForDisplay === 'Week' ? endOfWeek(new Date(), { weekStartsOn: 1 })
+    : goalPeriodForDisplay === 'Quarter' ? endOfQuarter(new Date())
+    : goalPeriodForDisplay === 'Year' ? endOfYear(new Date()) : endOfMonth(new Date())
   const goalDaysLeft = Math.max(0, differenceInDays(goalEnd, new Date()))
+  const goalIsAllPeriod = period === 'All' || period === 'Custom'
 
   // Outstanding balances — use payment ledger for accurate amounts (only Pending Deposit+ stages)
   const bookingsWithBalance = allBookings
@@ -177,17 +209,23 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
     .sort((a, b) => b.owing - a.owing)
   const totalOutstanding = bookingsWithBalance.reduce((s, x) => s + x.owing, 0)
 
-  // Expense breakdown
+  // Expense breakdown — show all categories; group smallest into "Other" if more than 7
   const expenseBreakdown = useMemo(() => {
     const expenses = filtered.filter(t => t.type === 'expense')
     const total = expenses.reduce((s, t) => s + t.amount, 0)
     if (total === 0) return []
     const grouped: Record<string, number> = {}
     expenses.forEach(t => { grouped[t.category] = (grouped[t.category] ?? 0) + t.amount })
-    return Object.entries(grouped)
+    const sorted = Object.entries(grouped)
       .map(([cat, amt]) => ({ category: cat, amount: amt, pct: Math.round((amt / total) * 100) }))
       .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5)
+    if (sorted.length <= 7) return sorted
+    // Group the smallest categories (beyond the top 6) into "Other"
+    const top = sorted.slice(0, 6)
+    const rest = sorted.slice(6)
+    const otherAmount = rest.reduce((s, d) => s + d.amount, 0)
+    top.push({ category: 'other', amount: otherAmount, pct: Math.round((otherAmount / total) * 100) })
+    return top
   }, [filtered])
 
   // Revenue by booking type (Incall/Outcall/Travel/Virtual)
@@ -234,11 +272,11 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
       .sort((a, b) => b.amount - a.amount)
   }, [filtered])
 
-  // ── Analytics computations (all-time, not period-filtered) ──
+  // ── Analytics computations (filtered by selected period) ──
 
-  const completedBookings = useMemo(() => allBookings.filter(b => b.status === 'Completed'), [allBookings])
+  const completedBookings = useMemo(() => filteredBookings.filter(b => b.status === 'Completed'), [filteredBookings])
 
-  // Timing: heatmap + peak times
+  // Timing: heatmap + peak times (filtered by period)
   const heatmap = useMemo(() => {
     const data = Array.from({ length: 7 }, () => Array(24).fill(0))
     completedBookings.forEach(b => {
@@ -259,10 +297,10 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
     const data = Array(7).fill(0) as number[]
     completedBookings.forEach(b => {
       const day = getDay(new Date(b.dateTime))
-      data[day] += allTransactions.filter(t => t.bookingId === b.id && t.type === 'income').reduce((s, t) => s + t.amount, 0)
+      data[day] += filtered.filter(t => t.bookingId === b.id && t.type === 'income').reduce((s, t) => s + t.amount, 0)
     })
     return data
-  }, [completedBookings, allTransactions])
+  }, [completedBookings, filtered])
   const maxDayRev = Math.max(1, ...dayRevenue)
 
   // Trends: 12-month data
@@ -293,18 +331,18 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   const maxMonthlyIncome = Math.max(1, ...monthly.map(m => m.income))
   const maxMonthlyBookings = Math.max(1, ...monthly.map(m => m.bookings))
 
-  // Client analytics
+  // Client analytics (filtered by period)
   const clientStats = useMemo(() => {
     return clients.map(c => {
-      const cb = allBookings.filter(b => b.clientId === c.id)
+      const cb = filteredBookings.filter(b => b.clientId === c.id)
       const completed = cb.filter(b => b.status === 'Completed')
       const cancelled = cb.filter(b => b.status === 'Cancelled' || b.status === 'No Show')
       const revenue = completed.reduce((s, b) =>
-        s + allTransactions.filter(t => t.bookingId === b.id && t.type === 'income').reduce((ts, t) => ts + t.amount, 0), 0)
+        s + filtered.filter(t => t.bookingId === b.id && t.type === 'income').reduce((ts, t) => ts + t.amount, 0), 0)
       const cancelRate = cb.length > 0 ? Math.round((cancelled.length / cb.length) * 100) : 0
       return { client: c, bookingCount: completed.length, revenue, cancelRate, totalBookings: cb.length }
     }).filter(s => s.totalBookings > 0)
-  }, [clients, allBookings, allTransactions])
+  }, [clients, filteredBookings, filtered])
 
   const topClients = useMemo(() => [...clientStats].sort((a, b) => b.revenue - a.revenue).slice(0, 10), [clientStats])
   const unreliableClients = useMemo(() => clientStats.filter(s => s.cancelRate >= 30 && s.totalBookings >= 2).sort((a, b) => b.cancelRate - a.cancelRate), [clientStats])
@@ -328,13 +366,13 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
     })
     // Avg revenue comparison
     const revOf = (cs: typeof clients) => cs.length > 0 ? Math.round(cs.reduce((s, c) =>
-      s + allTransactions.filter(t => completedBookings.some(b => b.id === t.bookingId && b.clientId === c.id) && t.type === 'income').reduce((ts, t) => ts + t.amount, 0), 0
+      s + filtered.filter(t => completedBookings.some(b => b.id === t.bookingId && b.clientId === c.id) && t.type === 'income').reduce((ts, t) => ts + t.amount, 0), 0
     ) / cs.length) : 0
     return {
       repeatCount: repeatClients.length, oneTimeCount: oneTimeClients.length, repeatRate, avgBookingsPerRepeat,
       newThisMonth, returningThisMonth, avgRepeatRevenue: revOf(repeatClients), avgOneTimeRevenue: revOf(oneTimeClients),
     }
-  }, [clients, completedBookings, allTransactions])
+  }, [clients, completedBookings, filtered])
 
   const clientSourceCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -358,7 +396,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
       <div className="px-4 py-3 max-w-lg mx-auto space-y-4">
         {/* Period Selector */}
         <div className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-          {(['Week', 'Month', 'Quarter', 'Year', 'All'] as TimePeriod[]).map(p => (
+          {(['Week', 'Month', 'Quarter', 'Year', 'All', 'Custom'] as TimePeriod[]).map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
@@ -372,6 +410,42 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
             </button>
           ))}
         </div>
+
+        {/* Custom date range inputs */}
+        {period === 'Custom' && (
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>From</label>
+              <input
+                type="date"
+                value={customFrom}
+                onChange={e => { setCustomFrom(e.target.value); if (customTo && e.target.value > customTo) setCustomTo(e.target.value) }}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                style={fieldInputStyle}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>To</label>
+              <input
+                type="date"
+                value={customTo}
+                onChange={e => { setCustomTo(e.target.value); if (customFrom && e.target.value < customFrom) setCustomFrom(e.target.value) }}
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                style={fieldInputStyle}
+              />
+            </div>
+            {(customFrom || customTo) && (
+              <button
+                onClick={() => { setCustomFrom(''); setCustomTo('') }}
+                className="p-2 rounded-lg"
+                style={{ color: 'var(--text-secondary)' }}
+                aria-label="Clear date range"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Customization hint — shown once */}
         {!hintDismissed && (
@@ -392,11 +466,16 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
         )}
 
         {/* Goal Progress */}
-        {isCardVisible('goal') && period !== 'All' && (hasGoal ? (
+        {isCardVisible('goal') && (hasGoal ? (
           <Card onClick={() => setShowGoalEditor(true)}>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{period}ly Income Goal</p>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{goalPeriodForDisplay}ly Income Goal</p>
+                {goalIsAllPeriod && (
+                  <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                    Showing {goalPeriodForDisplay.toLowerCase()}ly goal for reference
+                  </p>
+                )}
               </div>
               {goalProgress >= 1 ? (
                 <span className="text-lg">✅</span>
@@ -443,7 +522,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-medium text-purple-500"
             style={{ backgroundColor: 'rgba(168,85,247,0.1)' }}
           >
-            <Target size={16} /> Set {period}ly Income Goal
+            <Target size={16} /> Set {goalPeriodForDisplay}ly Income Goal
           </button>
         ))}
 
@@ -478,11 +557,13 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
             <div className="flex-1">
               <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>Est. Tax Owed</p>
               <p className="text-lg font-bold text-orange-500">{formatCurrency(estimatedTax)}</p>
+              <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>(based on net income)</p>
             </div>
             <div className="w-px" style={{ backgroundColor: 'var(--border)' }} />
             <div className="flex-1">
               <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>Set Aside ({setAsideRate}%)</p>
               <p className="text-lg font-bold text-blue-500">{formatCurrency(suggestedSetAside)}</p>
+              <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>(based on gross income)</p>
             </div>
           </div>
         </Card>
@@ -644,7 +725,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
           </Card>
         )}
 
-        {/* Recent Transactions */}
+        {/* Recent Transactions (filtered by period) */}
         {isCardVisible('transactions') && (
         <Card>
           <div className="flex items-center justify-between mb-3">
@@ -656,13 +737,13 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
               See All
             </button>
           </div>
-          {allTransactions.length === 0 ? (
+          {filtered.length === 0 ? (
             <p className="text-sm text-center py-4" style={{ color: 'var(--text-secondary)' }}>
               No transactions yet
             </p>
           ) : (
             <div className="space-y-2">
-              {allTransactions.slice(0, 5).map(t => (
+              {filtered.slice(0, 5).map(t => (
                 <div key={t.id} className="flex items-center gap-3">
                   {t.type === 'income' ? (
                     <ArrowDownCircle size={18} className="text-green-500 shrink-0" />
@@ -696,10 +777,15 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
 
         {/* ── TRENDS ── */}
 
-        {/* Month over Month */}
+        {/* Month over Month — always shows month-level comparison, but labels context for shorter periods */}
         {isCardVisible('monthOverMonth') && (
           <Card>
-            <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Month over Month</p>
+            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Month over Month</p>
+            {(period === 'Week' || period === 'Custom') && (
+              <p className="text-[10px] mb-2" style={{ color: 'var(--text-secondary)' }}>
+                Comparing full calendar months (not limited to {period === 'Week' ? 'weekly' : 'custom'} period)
+              </p>
+            )}
             <div className="flex gap-4">
               <div className="flex-1">
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>This Month</p>
@@ -992,7 +1078,11 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
       </div>
 
       {/* Modals */}
-      <TransactionEditor isOpen={showEditor} onClose={() => setShowEditor(false)} />
+      <TransactionEditor
+        isOpen={showEditor}
+        onClose={() => { setShowEditor(false); setEditingTransaction(undefined) }}
+        transaction={editingTransaction}
+      />
       <GoalEditor isOpen={showGoalEditor} onClose={() => setShowGoalEditor(false)} />
       <TaxSettingsEditor isOpen={showTaxSettings} onClose={() => setShowTaxSettings(false)} />
       <AllTransactionsModal isOpen={showAllTransactions} onClose={() => setShowAllTransactions(false)} />
@@ -1199,6 +1289,8 @@ function CardSettingsModal({ isOpen, onClose, visible, onChange }: {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  // Goal targets — stored in localStorage intentionally: these are user
+  // preferences (income targets), not transactional data.
   const [storedWeekly, setStoredWeekly] = useLocalStorage('goalWeekly', 0)
   const [storedMonthly, setStoredMonthly] = useLocalStorage('goalMonthly', 0)
   const [storedQuarterly, setStoredQuarterly] = useLocalStorage('goalQuarterly', 0)
@@ -1294,6 +1386,8 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function TaxSettingsEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  // Tax/savings rates — stored in localStorage intentionally: these are user
+  // preferences (rate settings), not transactional data.
   const [storedTaxRate, setStoredTaxRate] = useLocalStorage('taxRate', 25)
   const [storedSetAside, setStoredSetAside] = useLocalStorage('setAsideRate', 30)
   const [taxRate, setTaxRate] = useState(storedTaxRate)
@@ -1325,26 +1419,56 @@ function TaxSettingsEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         <div className="mb-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Estimated Tax Rate</span>
-            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{taxRate}%</span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={taxRate}
+                onChange={e => {
+                  const v = parseInt(e.target.value) || 0
+                  setTaxRate(Math.max(0, Math.min(100, v)))
+                }}
+                className="w-14 text-right text-sm font-medium px-1.5 py-0.5 rounded outline-none"
+                style={{ ...fieldInputStyle, color: 'var(--text-primary)' }}
+                aria-label="Tax rate percentage"
+              />
+              <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>%</span>
+            </div>
           </div>
-          <input type="range" min={0} max={50} step={1} value={taxRate}
+          <input type="range" min={0} max={60} step={1} value={Math.min(60, taxRate)}
             onChange={e => setTaxRate(parseInt(e.target.value))}
-            aria-label="Estimated tax rate"
+            aria-label="Estimated tax rate slider"
             className="w-full accent-purple-500" />
-          <FieldHint text="Your estimated tax bracket. Used to calculate how much tax you might owe." />
+          <FieldHint text="Your estimated tax bracket. Used to calculate how much tax you might owe. Use the text input for values above 60%." />
         </div>
 
         <SectionLabel label="Savings" />
         <div className="mb-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Set Aside Percentage</span>
-            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{setAsideRate}%</span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={setAsideRate}
+                onChange={e => {
+                  const v = parseInt(e.target.value) || 0
+                  setSetAsideRate(Math.max(0, Math.min(100, v)))
+                }}
+                className="w-14 text-right text-sm font-medium px-1.5 py-0.5 rounded outline-none"
+                style={{ ...fieldInputStyle, color: 'var(--text-primary)' }}
+                aria-label="Set aside percentage"
+              />
+              <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>%</span>
+            </div>
           </div>
-          <input type="range" min={0} max={50} step={1} value={setAsideRate}
+          <input type="range" min={0} max={60} step={1} value={Math.min(60, setAsideRate)}
             onChange={e => setSetAsideRate(parseInt(e.target.value))}
-            aria-label="Set aside percentage"
+            aria-label="Set aside percentage slider"
             className="w-full accent-purple-500" />
-          <FieldHint text="Set aside slightly more than your tax rate to cover self-employment tax." />
+          <FieldHint text="Set aside slightly more than your tax rate to cover self-employment tax. Use the text input for values above 60%." />
         </div>
 
         <div className="py-4">
@@ -1368,13 +1492,76 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
   const [search, setSearch] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteTxn, setConfirmDeleteTxn] = useState<Transaction | null>(null)
+  const [editingTxn, setEditingTxn] = useState<Transaction | undefined>(undefined)
+  const [showEditModal, setShowEditModal] = useState(false)
+  // Windowed rendering: render in batches with "Show more" (Item 48)
+  const [renderLimit, setRenderLimit] = useState(30)
 
+  // Reset render limit when filters change
+  const searchKey = `${filterType}:${search}`
+  const [prevSearchKey, setPrevSearchKey] = useState(searchKey)
+  if (searchKey !== prevSearchKey) { setRenderLimit(30); setPrevSearchKey(searchKey) }
+
+  // Extended search: match category, notes, amount (formatted), date, payment method (Item 49)
   const filtered = allTransactions
     .filter(t => filterType === 'all' || t.type === filterType)
-    .filter(t => !search ||
-      t.category.toLowerCase().includes(search.toLowerCase()) ||
-      (t.notes ?? '').toLowerCase().includes(search.toLowerCase())
-    )
+    .filter(t => {
+      if (!search) return true
+      const s = search.toLowerCase()
+      return (
+        t.category.toLowerCase().includes(s) ||
+        (t.notes ?? '').toLowerCase().includes(s) ||
+        formatCurrency(t.amount).toLowerCase().includes(s) ||
+        t.amount.toString().includes(s) ||
+        fmtMediumDate(new Date(t.date)).toLowerCase().includes(s) ||
+        (t.paymentMethod ?? '').toLowerCase().includes(s)
+      )
+    })
+
+  const visibleItems = filtered.slice(0, renderLimit)
+  const hasMore = filtered.length > renderLimit
+
+  async function handleDelete(t: Transaction) {
+    if (deletingId) return
+    setDeletingId(t.id)
+    try {
+      // Snapshot for undo
+      const txnSnap = await db.transactions.get(t.id)
+      const paySnap = txnSnap?.paymentId ? await db.payments.get(txnSnap.paymentId) : undefined
+
+      if (txnSnap?.paymentId) {
+        await removeBookingPayment(txnSnap.paymentId)
+        const stillExists = await db.transactions.get(t.id)
+        if (stillExists) await db.transactions.delete(t.id)
+      } else {
+        await db.transactions.delete(t.id)
+      }
+
+      showUndoToast('Transaction deleted', async () => {
+        if (txnSnap) await db.transactions.put(txnSnap)
+        if (paySnap) {
+          await db.payments.put(paySnap)
+          // Re-sync booking payment booleans
+          const booking = await db.bookings.get(paySnap.bookingId)
+          if (booking) {
+            const allPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).toArray())
+              .reduce((s, p) => s + p.amount, 0)
+            const depositPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).filter(p => p.label === 'Deposit').toArray())
+              .reduce((s, p) => s + p.amount, 0)
+            await db.bookings.update(paySnap.bookingId, {
+              paymentReceived: allPaid >= bookingTotal(booking),
+              depositReceived: depositPaid >= booking.depositAmount,
+            })
+          }
+        }
+      })
+    } catch (err) {
+      showToast(`Delete failed: ${(err as Error).message}`)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <>
@@ -1418,14 +1605,15 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
           </div>
         </div>
 
-        {/* Transaction list */}
+        {/* Transaction list (windowed — renders in batches) */}
         <div className="px-4 py-2 space-y-1">
           {filtered.length === 0 ? (
             <p className="text-sm text-center py-8" style={{ color: 'var(--text-secondary)' }}>
               No transactions found
             </p>
           ) : (
-            filtered.map(t => (
+            <>
+            {visibleItems.map(t => (
               <div
                 key={t.id}
                 className="flex items-center gap-3 p-2.5 rounded-lg"
@@ -1436,7 +1624,10 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 ) : (
                   <ArrowUpCircle size={18} className="text-red-500 shrink-0" />
                 )}
-                <div className="flex-1 min-w-0">
+                <button
+                  className="flex-1 min-w-0 text-left"
+                  onClick={() => { setEditingTxn(t); setShowEditModal(true) }}
+                >
                   <p className="text-sm font-medium capitalize truncate" style={{ color: 'var(--text-primary)' }}>
                     {t.category}
                   </p>
@@ -1445,52 +1636,21 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                     {t.paymentMethod ? ` · ${t.paymentMethod}` : ''}
                     {t.notes ? ` · ${t.notes.slice(0, 30)}` : ''}
                   </p>
-                </div>
+                </button>
                 <p className={`text-sm font-semibold ${t.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
                   {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                 </p>
                 <button
+                  onClick={() => { setEditingTxn(t); setShowEditModal(true) }}
+                  className="p-1 opacity-40 active:opacity-100"
+                  style={{ color: 'var(--text-secondary)' }}
+                  aria-label={`Edit ${t.category} transaction`}
+                >
+                  <Edit2 size={14} />
+                </button>
+                <button
                   disabled={deletingId === t.id}
-                  onClick={async () => {
-                    if (deletingId) return
-                    setDeletingId(t.id)
-                    try {
-                      // Snapshot for undo
-                      const txnSnap = await db.transactions.get(t.id)
-                      const paySnap = txnSnap?.paymentId ? await db.payments.get(txnSnap.paymentId) : undefined
-
-                      if (txnSnap?.paymentId) {
-                        await removeBookingPayment(txnSnap.paymentId)
-                        const stillExists = await db.transactions.get(t.id)
-                        if (stillExists) await db.transactions.delete(t.id)
-                      } else {
-                        await db.transactions.delete(t.id)
-                      }
-
-                      showUndoToast('Transaction deleted', async () => {
-                        if (txnSnap) await db.transactions.put(txnSnap)
-                        if (paySnap) {
-                          await db.payments.put(paySnap)
-                          // Re-sync booking payment booleans
-                          const booking = await db.bookings.get(paySnap.bookingId)
-                          if (booking) {
-                            const allPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).toArray())
-                              .reduce((s, p) => s + p.amount, 0)
-                            const depositPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).filter(p => p.label === 'Deposit').toArray())
-                              .reduce((s, p) => s + p.amount, 0)
-                            await db.bookings.update(paySnap.bookingId, {
-                              paymentReceived: allPaid >= bookingTotal(booking),
-                              depositReceived: depositPaid >= booking.depositAmount,
-                            })
-                          }
-                        }
-                      })
-                    } catch (err) {
-                      showToast(`Delete failed: ${(err as Error).message}`)
-                    } finally {
-                      setDeletingId(null)
-                    }
-                  }}
+                  onClick={() => setConfirmDeleteTxn(t)}
                   className="p-1 opacity-40 active:opacity-100"
                   style={{ color: 'var(--text-secondary)' }}
                   aria-label={`Delete ${t.category} transaction`}
@@ -1498,7 +1658,16 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   <Trash2 size={14} />
                 </button>
               </div>
-            ))
+            ))}
+            {hasMore && (
+              <button
+                onClick={() => setRenderLimit(prev => prev + 30)}
+                className="w-full py-3 text-center text-sm font-medium text-purple-500 active:opacity-70"
+              >
+                Show more ({filtered.length - renderLimit} remaining)
+              </button>
+            )}
+            </>
           )}
         </div>
 
@@ -1518,6 +1687,21 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
         <div className="h-8" />
       </div>
     </Modal>
+    {/* Confirm dialog for transaction deletion (Item 37) */}
+    <ConfirmDialog
+      isOpen={!!confirmDeleteTxn}
+      title="Delete Transaction"
+      message={confirmDeleteTxn ? `Delete this ${confirmDeleteTxn.type} of ${formatCurrency(confirmDeleteTxn.amount)}?` : ''}
+      confirmLabel="Delete"
+      onConfirm={() => { if (confirmDeleteTxn) handleDelete(confirmDeleteTxn); setConfirmDeleteTxn(null) }}
+      onCancel={() => setConfirmDeleteTxn(null)}
+    />
+    {/* Edit transaction modal */}
+    <TransactionEditor
+      isOpen={showEditModal}
+      onClose={() => { setShowEditModal(false); setEditingTxn(undefined) }}
+      transaction={editingTxn}
+    />
     </>
   )
 }

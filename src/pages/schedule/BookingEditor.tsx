@@ -31,10 +31,11 @@ interface BookingEditorProps {
   onClose: () => void
   booking?: Booking
   preselectedClientId?: string
+  preselectedDate?: Date
   rebookFrom?: Booking
 }
 
-export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, rebookFrom }: BookingEditorProps) {
+export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, preselectedDate, rebookFrom }: BookingEditorProps) {
   const isEditing = !!booking
   const clients = useLiveQuery(() => db.clients.filter(c => !c.isBlocked).sortBy('alias')) ?? []
   const serviceRates = useLiveQuery(() => db.serviceRates.filter(r => r.isActive).sortBy('sortOrder')) ?? []
@@ -104,7 +105,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   useEffect(() => {
     if (isOpen) {
       setClientId(booking?.clientId ?? preselectedClientId ?? rebookFrom?.clientId ?? '')
-      setDateTime(booking?.dateTime ? format(new Date(booking.dateTime), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"))
+      const defaultDate = preselectedDate ?? new Date()
+      setDateTime(booking?.dateTime ? format(new Date(booking.dateTime), "yyyy-MM-dd'T'HH:mm") : format(defaultDate, "yyyy-MM-dd'T'HH:mm"))
       setDuration(booking?.duration ?? rebookFrom?.duration ?? 60)
       setCustomDuration(false)
       setLocationType(booking?.locationType ?? rebookFrom?.locationType ?? 'Incall')
@@ -372,6 +374,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       actions={
         <button onClick={handleSave} disabled={!isValid || saving}
           aria-label="Save booking"
+          title={!isValid && !isEditing ? (!clientId ? 'Select a client' : baseRate <= 0 ? 'Set a rate' : !clientIsScreened ? 'Client must be screened' : '') : undefined}
           className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}>
           <Check size={20} />
         </button>

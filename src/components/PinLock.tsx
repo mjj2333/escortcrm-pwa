@@ -314,7 +314,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
         </div>
 
         {/* PIN Dots */}
-        <div className={`flex gap-4 ${shake ? 'animate-shake' : ''}`}>
+        <div className={`flex gap-4 ${shake ? 'animate-shake' : ''}`} aria-hidden="true">
           {Array.from({ length: maxLength }).map((_, i) => (
             <div
               key={i}
@@ -326,6 +326,9 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
               }}
             />
           ))}
+        </div>
+        <div className="sr-only" aria-live="polite">
+          {currentPin.length > 0 ? `${currentPin.length} of ${maxLength} digits entered` : 'No digits entered'}
         </div>
 
         {/* Error */}

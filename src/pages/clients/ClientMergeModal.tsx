@@ -203,7 +203,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
         requiresSafetyCheck: freshSource.requiresSafetyCheck || freshTarget.requiresSafetyCheck,
       }
 
-      await db.transaction('rw', [db.clients, db.bookings, db.incidents, db.journalEntries, db.screeningDocs], async () => {
+      await db.transaction('rw', [db.clients, db.bookings, db.incidents, db.journalEntries, db.screeningDocs, db.payments, db.safetyChecks, db.bookingChecklist], async () => {
         // 2. Re-point bookings from source → target
         const sourceBookings = await db.bookings.where('clientId').equals(sourceClient.id).toArray()
         for (const b of sourceBookings) {

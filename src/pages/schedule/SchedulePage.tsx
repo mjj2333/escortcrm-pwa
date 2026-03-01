@@ -59,6 +59,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const [viewMode, setViewMode]         = useState<'calendar' | 'list'>('calendar')
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [showEditor, setShowEditor]     = useState(false)
+  const [editorPreDate, setEditorPreDate] = useState<Date | undefined>()
   const [showAvailPicker, setShowAvailPicker] = useState(false)
 
   // Day detail modal
@@ -140,9 +141,13 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
     })
   }, [bookings, clients, activeStatuses, searchQuery, currentMonth])
 
-  const monthRevenue = monthBookings
-    .filter(b => b.status === 'Completed')
-    .reduce((sum, b) => sum + bookingTotal(b), 0)
+  const allPayments = useLiveQuery(() => db.payments.toArray()) ?? []
+  const monthRevenue = useMemo(() => {
+    const completedIds = new Set(monthBookings.filter(b => b.status === 'Completed').map(b => b.id))
+    return allPayments
+      .filter(p => completedIds.has(p.bookingId))
+      .reduce((sum, p) => sum + p.amount, 0)
+  }, [monthBookings, allPayments])
 
   const monthStatusCounts = useMemo(() => {
     const counts: Partial<Record<BookingStatus, number>> = {}
@@ -159,7 +164,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
 
   // List view
   const now    = new Date()
-  const past30 = subDays(now, 30)
+  const [listDaysBack, setListDaysBack] = useState(30)
+  const pastCutoff = subDays(now, listDaysBack)
 
   const listBookings = useMemo(() => {
     return bookings
@@ -173,10 +179,22 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           if (dateTo   && dt > endOfDay(parseISO(dateTo)))     return false
           return true
         }
-        return dt >= past30
+        return dt >= pastCutoff
       })
       .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
-  }, [bookings, clients, activeStatuses, searchQuery, dateFrom, dateTo])
+  }, [bookings, clients, activeStatuses, searchQuery, dateFrom, dateTo, listDaysBack])
+
+  // Count of older bookings hidden by the cutoff
+  const olderHiddenCount = useMemo(() => {
+    if (isDateRangeActive) return 0
+    return bookings.filter(b => {
+      const dt = new Date(b.dateTime)
+      if (dt >= pastCutoff) return false
+      const hiddenByDefault = b.status === 'Cancelled' || b.status === 'No Show'
+      if (hiddenByDefault && activeStatuses.size === 0) return false
+      return matchesFilters(b)
+    }).length
+  }, [bookings, clients, activeStatuses, searchQuery, listDaysBack])
 
   const pastBookings   = listBookings.filter(b => new Date(b.dateTime) < now)
   const futureBookings = listBookings.filter(b => new Date(b.dateTime) >= now)
@@ -201,7 +219,15 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
     setDateTo('')
   }
 
-  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+  const dayLabels = [
+    { short: 'S', full: 'Sunday' },
+    { short: 'M', full: 'Monday' },
+    { short: 'T', full: 'Tuesday' },
+    { short: 'W', full: 'Wednesday' },
+    { short: 'T', full: 'Thursday' },
+    { short: 'F', full: 'Friday' },
+    { short: 'S', full: 'Saturday' },
+  ]
 
   const availColor = (day: Date) => {
     const a = availForDay(day)
@@ -311,11 +337,11 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           <div className="flex gap-2 items-end">
             <div className="flex-1">
               <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>From</label>
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={baseInputStyle} />
+              <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); if (dateTo && e.target.value > dateTo) setDateTo(e.target.value) }} style={baseInputStyle} />
             </div>
             <div className="flex-1">
               <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>To</label>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={baseInputStyle} />
+              <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); if (dateFrom && e.target.value < dateFrom) setDateFrom(e.target.value) }} style={baseInputStyle} />
             </div>
           </div>
           {filtersActive && (
@@ -364,8 +390,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
             {/* Day labels */}
             <div className="grid grid-cols-7 gap-1 mb-1">
               {dayLabels.map((label, i) => (
-                <div key={`${label}-${i}`} className="text-center text-xs font-medium py-1" style={{ color: 'var(--text-secondary)' }}>
-                  {label}
+                <div key={i} className="text-center text-xs font-medium py-1" style={{ color: 'var(--text-secondary)' }} aria-label={label.full}>
+                  {label.short}
                 </div>
               ))}
             </div>
@@ -451,6 +477,16 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                   </button>
                 )
               })}
+            </div>
+
+            {/* Availability dot legend */}
+            <div className="flex items-center justify-center gap-3 mt-2">
+              {([['Available', '#22c55e'], ['Limited', '#f97316'], ['Busy', '#ef4444'], ['Off', '#6b7280']] as const).map(([label, color]) => (
+                <div key={label} className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="text-[9px]" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                </div>
+              ))}
             </div>
 
             {/* ── Monthly Summary ───────────────────────────────────────── */}
@@ -583,7 +619,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                 {pastBookings.length > 0 && (
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--text-secondary)' }}>
-                      {isDateRangeActive ? `Past (${pastBookings.length})` : 'Recent (last 30 days)'}
+                      {isDateRangeActive ? `Past (${pastBookings.length})` : `Recent (last ${listDaysBack} days)`}
                     </p>
                     <div className="space-y-2">
                       {[...pastBookings].reverse().map(b => (
@@ -600,6 +636,15 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                       ))}
                     </div>
                   </div>
+                )}
+                {olderHiddenCount > 0 && (
+                  <button
+                    onClick={() => setListDaysBack(d => d + 60)}
+                    className="w-full py-3 text-sm font-medium rounded-xl active:scale-[0.98] mt-3"
+                    style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)' }}
+                  >
+                    Load older ({olderHiddenCount} more)
+                  </button>
                 )}
               </div>
             )}
@@ -619,13 +664,14 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           onClose={() => setDayDetailDate(null)}
           onOpenBooking={(id) => { setDayDetailDate(null); onOpenBooking(id) }}
           onSetAvailability={() => setShowAvailPicker(true)}
+          onAddBooking={() => { setEditorPreDate(dayDetailDate ?? undefined); setShowEditor(true) }}
           onBookingCompleted={handleBookingCompleted}
           onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
           onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
         />
       )}
 
-      <BookingEditor isOpen={showEditor} onClose={() => setShowEditor(false)} />
+      <BookingEditor isOpen={showEditor} onClose={() => { setShowEditor(false); setEditorPreDate(undefined) }} preselectedDate={editorPreDate} />
       {showAvailPicker && dayDetailDate && (
         <AvailabilityPicker
           date={dayDetailDate}
@@ -669,6 +715,7 @@ interface DayDetailModalProps {
   onClose: () => void
   onOpenBooking: (id: string) => void
   onSetAvailability: () => void
+  onAddBooking: () => void
   onBookingCompleted?: (booking: import('../../types').Booking) => void
   onCancel?: (booking: import('../../types').Booking) => void
   onNoShow?: (booking: import('../../types').Booking) => void
@@ -676,7 +723,7 @@ interface DayDetailModalProps {
 
 function DayDetailModal({
   date, bookings, clientFor, availForDay, availColor, filtersActive,
-  onClose, onOpenBooking, onSetAvailability, onBookingCompleted, onCancel, onNoShow,
+  onClose, onOpenBooking, onSetAvailability, onAddBooking, onBookingCompleted, onCancel, onNoShow,
 }: DayDetailModalProps) {
   const backdropRef = useRef<HTMLDivElement>(null)
   const avail = availForDay(date)
@@ -705,7 +752,7 @@ function DayDetailModal({
     <div
       ref={backdropRef}
       className="fixed inset-0 z-50 flex items-end justify-center"
-      role="dialog" aria-modal="true"
+      role="dialog" aria-modal="true" aria-label={`Bookings for ${selectedDate ? fmtMediumDate(selectedDate) : 'selected day'}`}
       style={{
         backgroundColor: visible ? 'rgba(0,0,0,0.5)' : 'transparent',
         transition: 'background-color 0.2s',
@@ -738,14 +785,23 @@ function DayDetailModal({
               </span>
             )}
           </div>
-          <button
-            onClick={handleClose}
-            aria-label="Close"
-            className="p-2 rounded-lg"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onAddBooking}
+              aria-label="Add booking"
+              className="p-2 rounded-lg text-purple-500"
+            >
+              <Plus size={20} />
+            </button>
+            <button
+              onClick={handleClose}
+              aria-label="Close"
+              className="p-2 rounded-lg"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Availability button */}

@@ -9,6 +9,8 @@
   "background_color": "#000000",
   "theme_color": "#a855f7",
   "orientation": "portrait",
+  "lang": "en",
+  "categories": ["business", "productivity"],
   "screenshots": [
     {
       "src": "/icon-512.png",

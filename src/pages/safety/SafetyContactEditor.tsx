@@ -17,6 +17,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
   const isEditing = !!contact
   const [name, setName] = useState(contact?.name ?? '')
   const [phone, setPhone] = useState(contact?.phone ?? '')
+  const [relationship, setRelationship] = useState(contact?.relationship ?? '')
   const [isPrimary, setIsPrimary] = useState(contact?.isPrimary ?? false)
   const [saving, setSaving] = useState(false)
 
@@ -25,6 +26,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
     if (isOpen) {
       setName(contact?.name ?? '')
       setPhone(contact?.phone ?? '')
+      setRelationship(contact?.relationship ?? '')
       setIsPrimary(contact?.isPrimary ?? false)
       setSaving(false)
     }
@@ -49,6 +51,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
         await db.safetyContacts.update(contact.id, {
           name: name.trim(),
           phone: phone.trim(),
+          relationship: relationship.trim(),
           isPrimary,
         })
         showToast('Contact updated')
@@ -63,7 +66,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
           id: newId(),
           name: name.trim(),
           phone: phone.trim(),
-          relationship: '',
+          relationship: relationship.trim(),
           isPrimary,
           isActive: true,
         })
@@ -95,6 +98,8 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
           hint="Your safety contact's name." />
         <FieldTextInput label="Phone" value={phone} onChange={v => setPhone(formatPhone(v))} placeholder="Phone number" type="tel" required
           hint={phone.trim() && !phoneValid ? 'Enter a valid phone number (at least 7 digits).' : 'The number that will be contacted for safety check-ins.'} />
+        <FieldTextInput label="Relationship" value={relationship} onChange={setRelationship} placeholder="e.g. Friend, Partner, Family"
+          hint="Your relationship to this contact." />
 
         <SectionLabel label="Settings" />
         <FieldToggle label="Primary Contact" value={isPrimary} onChange={setIsPrimary}

@@ -4,7 +4,7 @@ import {
   ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X, CircleUser, Building2
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
-import { useState, useRef, useEffect, lazy, Suspense } from 'react'
+import { useState, useRef, useEffect, lazy, Suspense, useReducer } from 'react'
 import { db, formatCurrency, isUpcoming, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card, CardHeader } from '../../components/Card'
@@ -19,6 +19,8 @@ import type { Booking } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { useBackupReminder } from '../../hooks/useBackupReminder'
 import { HomePageSkeleton } from '../../components/Skeleton'
+import { AvailabilityPicker } from '../schedule/AvailabilityPicker'
+import { BookingEditor } from '../schedule/BookingEditor'
 
 // Lazy-load heavy modals — only fetched when opened by user tap
 const ProfilePage = lazy(() => import('./ProfilePage').then(m => ({ default: m.ProfilePage })))
@@ -35,6 +37,14 @@ interface HomePageProps {
 }
 
 export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenClient }: HomePageProps) {
+  // Force re-render at midnight so date-dependent data stays fresh
+  const [, forceRefresh] = useReducer(x => x + 1, 0)
+  useEffect(() => {
+    const msUntilMidnight = endOfDay(new Date()).getTime() - Date.now() + 1000
+    const timer = setTimeout(forceRefresh, msUntilMidnight)
+    return () => clearTimeout(timer)
+  })
+
   const now = new Date()
   const todayStart = startOfDay(now)
   const todayEnd = endOfDay(now)
@@ -42,12 +52,16 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const monthStart = startOfMonth(now)
 
   const [showAllActive, setShowAllActive] = useState(false)
+  const [showAllBalances, setShowAllBalances] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [showIncallBook, setShowIncallBook] = useState(false)
+  const [showAvailPicker, setShowAvailPicker] = useState(false)
   const [remindersEnabled] = useLocalStorage('remindersEnabled', false)
   const [showBackup, setShowBackup] = useState(false)
-  const [reminderDismissed, setReminderDismissed] = useState(false)
+  const [reminderDismissed, setReminderDismissed] = useState(() => sessionStorage.getItem('backupReminderDismissed') === '1')
+  const dismissReminder = () => { sessionStorage.setItem('backupReminderDismissed', '1'); setReminderDismissed(true) }
   const [cancelTarget, setCancelTarget] = useState<{ booking: Booking; mode: 'cancel' | 'noshow' } | null>(null)
+  const [bookClientId, setBookClientId] = useState<string | null>(null)
   const [profileSetupDone] = useLocalStorage('profileSetupDone', false)
   const gettingStartedDone = useGettingStartedDone()
   const { shouldRemind, daysSince } = useBackupReminder()
@@ -191,7 +205,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
             </button>
           </div>
           <button
-            onClick={() => setReminderDismissed(true)}
+            onClick={dismissReminder}
             className="p-1 opacity-50 active:opacity-100 shrink-0"
             style={{ color: '#a855f7' }}
             aria-label="Dismiss reminder"
@@ -221,7 +235,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
         )}
 
         {/* Availability Status */}
-        <Card onClick={() => onNavigateTab(1)}>
+        <Card onClick={() => setShowAvailPicker(true)}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div
@@ -360,7 +374,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
               action={<span className="text-sm font-bold text-orange-500">{formatCurrency(totalOutstanding)}</span>}
             />
             <div className="space-y-2 mt-2">
-              {bookingsWithBalance.slice(0, 4).map(({ booking, owing, client: c }) => (
+              {(showAllBalances ? bookingsWithBalance : bookingsWithBalance.slice(0, 4)).map(({ booking, owing, client: c }) => (
                 <button
                   key={booking.id}
                   onClick={() => onOpenBooking(booking.id)}
@@ -385,10 +399,14 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                   <span className="text-xs font-semibold text-orange-500">{formatCurrency(owing)}</span>
                 </button>
               ))}
-              {bookingsWithBalance.length > 4 && (
-                <p className="text-[10px] text-center" style={{ color: 'var(--text-secondary)' }}>
+              {bookingsWithBalance.length > 4 && !showAllBalances && (
+                <button
+                  onClick={() => setShowAllBalances(true)}
+                  className="text-[10px] text-center w-full py-1 font-medium"
+                  style={{ color: '#a855f7' }}
+                >
                   +{bookingsWithBalance.length - 4} more
-                </p>
+                </button>
               )}
             </div>
           </Card>
@@ -449,11 +467,23 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                       {c.alias}
                     </p>
                   </div>
-                  <span className="text-xs font-semibold shrink-0" style={{
-                    color: daysUntil === 0 ? '#ec4899' : 'var(--text-secondary)'
-                  }}>
-                    {daysUntil === 0 ? '🎂 Today!' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil} days`}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-semibold" style={{
+                      color: daysUntil === 0 ? '#ec4899' : 'var(--text-secondary)'
+                    }}>
+                      {daysUntil === 0 ? '🎂 Today!' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil} days`}
+                    </span>
+                    {c.screeningStatus === 'Screened' && (
+                      <span
+                        role="button"
+                        onClick={(e) => { e.stopPropagation(); setBookClientId(c.id) }}
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
+                      >
+                        Book
+                      </span>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
@@ -463,10 +493,24 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
       </div>
 
       <Suspense fallback={null}>
-        {showBackup && <BackupRestoreModal isOpen={showBackup} onClose={() => { setShowBackup(false); setReminderDismissed(true) }} />}
+        {showBackup && <BackupRestoreModal isOpen={showBackup} onClose={() => { setShowBackup(false); dismissReminder() }} />}
         {showProfile && <ProfilePage isOpen={showProfile} onClose={() => setShowProfile(false)} />}
         {showIncallBook && <IncallBookPage isOpen={showIncallBook} onClose={() => setShowIncallBook(false)} />}
       </Suspense>
+
+      {/* Availability picker from Home tab */}
+      {showAvailPicker && (
+        <AvailabilityPicker
+          date={todayStart}
+          current={todayAvailability ?? undefined}
+          onClose={() => setShowAvailPicker(false)}
+        />
+      )}
+
+      {/* Quick-book from birthday card */}
+      {bookClientId && (
+        <BookingEditor isOpen={!!bookClientId} onClose={() => setBookClientId(null)} preselectedClientId={bookClientId} />
+      )}
 
       {/* All Active Bookings Modal */}
       {showAllActive && (
@@ -531,6 +575,7 @@ function AllActiveBookingsModal({
       className="fixed inset-0 z-50 flex items-end justify-center"
       role="dialog"
       aria-modal="true"
+      aria-label="All active bookings"
       style={{
         backgroundColor: visible ? 'rgba(0,0,0,0.5)' : 'transparent',
         transition: 'background-color 0.2s',

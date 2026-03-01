@@ -9,6 +9,7 @@ import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { EmptyState } from '../../components/EmptyState'
 import { ClientEditor } from './ClientEditor'
 import { showToast } from '../../components/Toast'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { screeningStatusColors, riskLevelColors } from '../../types'
 import { ClientsPageSkeleton } from '../../components/Skeleton'
 import { usePlanLimits, isPro } from '../../components/planLimits'
@@ -28,19 +29,23 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   const [showImportExport, setShowImportExport] = useState(false)
   const [showBlocked, setShowBlocked] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('az')
+  const [filterScreening, setFilterScreening] = useState<string>('')
+  const [filterRisk, setFilterRisk] = useState<string>('')
   const [pinnedToast, setPinnedToast] = useState<{ id: string; pinned: boolean } | null>(null)
   const [renderLimit, setRenderLimit] = useState(50)
   const limits = usePlanLimits()
   const clients = useLiveQuery(() => db.clients.orderBy('alias').toArray())
 
-  const fireClient = useCallback(async (clientId: string) => {
+  const [fireConfirmId, setFireConfirmId] = useState<string | null>(null)
+  const confirmFireClient = useCallback(async () => {
+    if (!fireConfirmId) return
     try {
-      await db.clients.update(clientId, { isBlocked: true })
+      await db.clients.update(fireConfirmId, { isBlocked: true })
     } catch {
-      // Animation already played — at least make sure the UI reflects failure
       showToast('Failed to blacklist client', 'error')
     }
-  }, [])
+    setFireConfirmId(null)
+  }, [fireConfirmId])
 
   const togglePin = useCallback(async (clientId: string) => {
     const client = await db.clients.get(clientId)
@@ -63,9 +68,17 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
       const q = search.toLowerCase()
       if (c.alias.toLowerCase().includes(q)) return true
       if (c.nickname?.toLowerCase().includes(q)) return true
+      if (c.email?.toLowerCase().includes(q)) return true
+      if (c.referenceSource?.toLowerCase().includes(q)) return true
+      if (c.tags.some(t => t.name.toLowerCase().includes(q))) return true
       const digits = search.replace(/\D/g, '')
       if (digits && c.phone?.replace(/\D/g, '').includes(digits)) return true
       return false
+    })
+    .filter(c => {
+      if (filterScreening && c.screeningStatus !== filterScreening) return false
+      if (filterRisk && c.riskLevel !== filterRisk) return false
+      return true
     })
     .sort((a, b) => {
       if (!showBlocked && a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1
@@ -167,6 +180,33 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
             </button>
           ))}
         </div>
+
+        {/* Screening & Risk filters */}
+        <div className="flex gap-2 mt-2 flex-wrap">
+          <select
+            value={filterScreening}
+            onChange={e => { setFilterScreening(e.target.value); setRenderLimit(50) }}
+            className="text-[10px] font-semibold px-2 py-1.5 rounded-full outline-none"
+            style={{ backgroundColor: filterScreening ? 'rgba(168,85,247,0.15)' : 'var(--bg-secondary)', color: filterScreening ? '#a855f7' : 'var(--text-secondary)', border: 'none' }}
+          >
+            <option value="">All Screening</option>
+            <option value="Unscreened">Unscreened</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Screened">Screened</option>
+          </select>
+          <select
+            value={filterRisk}
+            onChange={e => { setFilterRisk(e.target.value); setRenderLimit(50) }}
+            className="text-[10px] font-semibold px-2 py-1.5 rounded-full outline-none"
+            style={{ backgroundColor: filterRisk ? 'rgba(168,85,247,0.15)' : 'var(--bg-secondary)', color: filterRisk ? '#a855f7' : 'var(--text-secondary)', border: 'none' }}
+          >
+            <option value="">All Risk</option>
+            <option value="Low Risk">Low Risk</option>
+            <option value="Medium Risk">Medium Risk</option>
+            <option value="High Risk">High Risk</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+        </div>
       </div>
 
       <div className="px-4 py-3 max-w-lg mx-auto">
@@ -184,7 +224,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
                 client={client}
                 onOpen={() => onOpenClient(client.id)}
                 onTogglePin={() => togglePin(client.id)}
-                onFire={() => fireClient(client.id)}
+                onFire={() => setFireConfirmId(client.id)}
                 showPinToast={pinnedToast?.id === client.id}
                 pinToastValue={pinnedToast?.pinned ?? false}
               />
@@ -204,6 +244,14 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
 
       <ClientEditor isOpen={showEditor} onClose={() => setShowEditor(false)} />
       <ImportExportModal isOpen={showImportExport} onClose={() => setShowImportExport(false)} initialTab="clients" />
+      <ConfirmDialog
+        isOpen={fireConfirmId !== null}
+        title="Blacklist Client"
+        message="Add this client to your blacklist? They will be hidden from your client list."
+        confirmLabel="Blacklist"
+        onConfirm={confirmFireClient}
+        onCancel={() => setFireConfirmId(null)}
+      />
     </div>
   )
 }

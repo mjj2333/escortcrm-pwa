@@ -1,12 +1,15 @@
 const CACHE_NAME = 'companion-__BUILD_ID__'
+const PRECACHE_ASSETS = '__PRECACHE_ASSETS__'
 
 self.addEventListener('install', (event) => {
+  const urls = ['/', '/index.html']
+  // PRECACHE_ASSETS is replaced at build time with an array of JS/CSS paths
+  if (Array.isArray(PRECACHE_ASSETS)) {
+    urls.push(...PRECACHE_ASSETS)
+  }
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
-        '/',
-        '/index.html',
-      ])
+      return cache.addAll(urls)
     })
   )
   // Do NOT call self.skipWaiting() — wait for the user to accept the update

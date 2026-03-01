@@ -125,13 +125,20 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     await db.clients.update(clientId, { isPinned: !client.isPinned })
   }
 
+  const [showUnblockConfirm, setShowUnblockConfirm] = useState(false)
+
   async function toggleBlock() {
     if (!client) return
     if (!client.isBlocked) {
       setShowBlockConfirm(true)
       return
     }
+    setShowUnblockConfirm(true)
+  }
+
+  async function confirmUnblock() {
     await db.clients.update(clientId, { isBlocked: false })
+    setShowUnblockConfirm(false)
   }
 
   async function confirmBlock() {
@@ -652,6 +659,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         onCancel={() => setShowBlockConfirm(false)}
       />
       <ConfirmDialog
+        isOpen={showUnblockConfirm}
+        title="Remove from Blacklist"
+        message="Remove this client from your blacklist? They will appear in your main client list again."
+        confirmLabel="Remove"
+        onConfirm={confirmUnblock}
+        onCancel={() => setShowUnblockConfirm(false)}
+      />
+      <ConfirmDialog
         isOpen={showDeleteConfirm}
         title="Delete Client"
         message={`Delete ${client.alias} and all ${bookings.length} associated booking${bookings.length !== 1 ? 's' : ''}? You can undo this briefly after.`}
@@ -760,8 +775,8 @@ function ContactActionBar({ client }: { client: Client }) {
     })
   }
 
-  // Telegram — use dedicated field, fall back to phone
-  const tgHandle = client.telegram || (phone ? phone : null)
+  // Telegram — use dedicated field, fall back to phone (with + prefix for valid deep link)
+  const tgHandle = client.telegram || (phone ? (phone.startsWith('+') ? phone : `+${phone}`) : null)
   const tgFallback = !client.telegram && !!phone
   if (tgHandle) {
     actions.push({

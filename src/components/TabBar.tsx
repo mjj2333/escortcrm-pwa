@@ -42,13 +42,15 @@ export const TabBar = memo(function TabBar({ activeTab, onTabChange, onStealthTr
         borderColor: 'var(--border)',
       }}
     >
-      <div className="flex items-center justify-around max-w-lg mx-auto">
+      <div className="flex items-center justify-around max-w-lg mx-auto" role="tablist">
         {tabs.map((tab, index) => {
           const Icon = tab.icon
           const isActive = activeTab === index
           return (
             <button
               key={tab.label}
+              role="tab"
+              aria-selected={isActive}
               onClick={index === 0 ? handleHomeTap : () => onTabChange(index)}
               className="flex flex-col items-center gap-0.5 py-2 px-3 min-w-[64px] transition-colors relative"
             >

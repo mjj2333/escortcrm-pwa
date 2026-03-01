@@ -277,20 +277,23 @@ async function migrateAllToEncrypted(): Promise<void> {
       const table = (db as any)[tableName]
       if (!table) continue
       const fields = SENSITIVE_FIELDS[tableName]
-      const records: any[] = await table.toArray()
 
-      for (const record of records) {
-        const updates: Record<string, string> = {}
-        let changed = false
-        for (const f of fields) {
-          const v = record[f]
-          if (typeof v === 'string' && v !== '' && !v.startsWith(ENC_PREFIX)) {
-            updates[f] = encryptFieldSync(v) as string
-            changed = true
+      // Wrap each table's migration in a transaction for atomicity
+      await db.transaction('rw', table, async () => {
+        const records: any[] = await table.toArray()
+        for (const record of records) {
+          const updates: Record<string, string> = {}
+          let changed = false
+          for (const f of fields) {
+            const v = record[f]
+            if (typeof v === 'string' && v !== '' && !v.startsWith(ENC_PREFIX)) {
+              updates[f] = encryptFieldSync(v) as string
+              changed = true
+            }
           }
+          if (changed) await table.update(record.id, updates)
         }
-        if (changed) await table.update(record.id, updates)
-      }
+      })
     }
   } finally {
     _bypassHooks = false
@@ -307,20 +310,23 @@ async function migrateAllToPlaintext(): Promise<void> {
       const table = (db as any)[tableName]
       if (!table) continue
       const fields = SENSITIVE_FIELDS[tableName]
-      const records: any[] = await table.toArray()
 
-      for (const record of records) {
-        const updates: Record<string, string> = {}
-        let changed = false
-        for (const f of fields) {
-          const v = record[f]
-          if (typeof v === 'string' && v.startsWith(ENC_PREFIX)) {
-            updates[f] = decryptFieldSync(v) as string
-            changed = true
+      // Wrap each table's migration in a transaction for atomicity
+      await db.transaction('rw', table, async () => {
+        const records: any[] = await table.toArray()
+        for (const record of records) {
+          const updates: Record<string, string> = {}
+          let changed = false
+          for (const f of fields) {
+            const v = record[f]
+            if (typeof v === 'string' && v.startsWith(ENC_PREFIX)) {
+              updates[f] = decryptFieldSync(v) as string
+              changed = true
+            }
           }
+          if (changed) await table.update(record.id, updates)
         }
-        if (changed) await table.update(record.id, updates)
-      }
+      })
     }
   } finally {
     _bypassHooks = false

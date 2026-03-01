@@ -474,8 +474,8 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
 
         {/* Swipe hint edge indicator */}
         {offset === 0 && (
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-l-full opacity-20"
-            style={{ backgroundColor: '#a855f7' }} />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-10 rounded-l-full"
+            style={{ backgroundColor: '#a855f7', opacity: 0.35 }} />
         )}
       </div>
     </div>

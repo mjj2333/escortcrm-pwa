@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Database, MessageSquare, Users, Plus, X } from 'lucide-react'
 import { db } from '../../db'
 import { seedSampleData } from '../../data/sampleData'
@@ -38,6 +38,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
   const planLimits = usePlanLimits()
   const [darkMode, setDarkMode] = useLocalStorage('darkMode', true)
   const [oledBlack, setOledBlack] = useLocalStorage('oledBlack', true)
+  const [themeMode, setThemeMode] = useLocalStorage<'light' | 'dark' | 'system'>('themeMode', 'dark')
   const [pinEnabled, setPinEnabled] = useLocalStorage('pinEnabled', false)
   const [, setPinCode] = useLocalStorage('pinCode', '')
   const [remindersEnabled, setRemindersEnabled] = useLocalStorage('remindersEnabled', false)
@@ -46,6 +47,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
 
   // PIN setup
   const [showPinSetup, setShowPinSetup] = useState(false)
+  const [pinChangePhase, setPinChangePhase] = useState<'verify' | 'setup'>('setup')
   const [showBackup, setShowBackup] = useState(false)
   const [biometricOn, setBiometricOn] = useState(() => isBiometricEnabled())
   const biometricAvailable = useBiometricAvailable()
@@ -60,18 +62,43 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
   const [duressPin, setDuressPin] = useLocalStorage('duressPin', '')
   const [showDuressSetup, setShowDuressSetup] = useState(false)
   const [showDuressRemove, setShowDuressRemove] = useState(false)
+  const [disablingPin, setDisablingPin] = useState(false)
   const [stealthEnabled, setStealthEnabled] = useLocalStorage('stealthEnabled', false)
 
-  function handleDarkModeChange(value: boolean) {
-    setDarkMode(value)
-    document.documentElement.classList.toggle('dark', value)
-    // If turning dark off, also remove OLED
-    if (!value) {
+  /** Apply the resolved dark/light state to the DOM */
+  function applyDarkState(isDark: boolean) {
+    document.documentElement.classList.toggle('dark', isDark)
+    if (!isDark) {
       document.documentElement.classList.remove('oled-black')
     } else if (oledBlack) {
       document.documentElement.classList.add('oled-black')
     }
   }
+
+  function handleThemeModeChange(mode: 'light' | 'dark' | 'system') {
+    setThemeMode(mode)
+    if (mode === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      setDarkMode(prefersDark)
+      applyDarkState(prefersDark)
+    } else {
+      const isDark = mode === 'dark'
+      setDarkMode(isDark)
+      applyDarkState(isDark)
+    }
+  }
+
+  // Listen for system theme changes when in "system" mode
+  useEffect(() => {
+    if (themeMode !== 'system') return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    function onChange(e: MediaQueryListEvent) {
+      setDarkMode(e.matches)
+      applyDarkState(e.matches)
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [themeMode, oledBlack]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleOledBlackChange(value: boolean) {
     setOledBlack(value)
@@ -80,9 +107,11 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
 
   async function handlePinToggle(value: boolean) {
     if (value) {
+      setPinChangePhase('setup')
       setShowPinSetup(true)
     } else {
       try {
+        setDisablingPin(true)
         // Decrypt all data before disabling PIN — only clear state on success
         await disableFieldEncryption()
         clearBiometric()
@@ -91,6 +120,8 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
         setPinCode('')
       } catch (err) {
         showToast('Failed to disable encryption — PIN kept enabled', 'error')
+      } finally {
+        setDisablingPin(false)
       }
     }
   }
@@ -168,7 +199,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
       // Prepare localStorage changes before touching the DB so we can reload immediately
       const preserveKeys = [
         '_cstate_v2', '_cstate_rv', lsKey(LAST_BACKUP_KEY), lsKey(BACKUP_REMINDER_INTERVAL_KEY),
-        lsKey('darkMode'), lsKey('oledBlack'), lsKey('currency'), lsKey('installDismissed'),
+        lsKey('darkMode'), lsKey('oledBlack'), lsKey('themeMode'), lsKey('currency'), lsKey('installDismissed'),
       ]
       const saved = preserveKeys.map(k => [k, localStorage.getItem(k)] as const)
       // Close DB gracefully first — prevents useLiveQuery errors from racing the reload
@@ -206,9 +237,16 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
           {/* Security */}
           <SectionLabel label="Security" />
           <FieldToggle label="PIN Lock" value={pinEnabled} onChange={handlePinToggle}
-            hint={pinEnabled ? 'PIN required each time you open the app.' : 'Protect the app with a 4-digit PIN.'} />
+            hint={pinEnabled ? 'PIN required each time you open the app.' : 'Protect the app with a 4-digit PIN.'}
+            disabled={disablingPin} />
+          {disablingPin && (
+            <div className="flex items-center gap-2 mb-3 py-2 px-3 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
+              <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Decrypting data...</span>
+            </div>
+          )}
           {pinEnabled && (
-            <button type="button" onClick={() => setShowPinSetup(true)}
+            <button type="button" onClick={() => { setPinChangePhase('verify'); setShowPinSetup(true) }}
               className="text-sm text-purple-500 font-medium mb-3 active:opacity-70">
               Change PIN
             </button>
@@ -270,13 +308,40 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
               label="Stealth Mode"
               value={stealthEnabled}
               onChange={setStealthEnabled}
-              hint="Triple-tap Home to disguise as a calculator. Enter your PIN + = to return."
+              hint="Triple-tap the Home tab to disguise as a calculator. Enter your PIN + = to return."
             />
           )}
 
           {/* Appearance */}
           <SectionLabel label="Appearance" />
-          <FieldToggle label="Dark Mode" value={darkMode} onChange={handleDarkModeChange} />
+          <div className="mb-3">
+            <label className="text-xs font-semibold block mb-1.5" style={{ color: 'var(--text-primary)' }}>
+              Theme
+            </label>
+            <div className="flex gap-2">
+              {(['light', 'dark', 'system'] as const).map(mode => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => handleThemeModeChange(mode)}
+                  aria-pressed={themeMode === mode}
+                  className="flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                  style={{
+                    backgroundColor: themeMode === mode ? '#a855f7' : 'var(--bg-primary)',
+                    color: themeMode === mode ? '#fff' : 'var(--text-secondary)',
+                    border: `1px solid ${themeMode === mode ? '#a855f7' : 'var(--border)'}`,
+                  }}
+                >
+                  {mode === 'light' ? 'Light' : mode === 'dark' ? 'Dark' : 'System'}
+                </button>
+              ))}
+            </div>
+            {themeMode === 'system' && (
+              <p className="text-[11px] mt-1 px-1" style={{ color: 'var(--text-secondary)' }}>
+                Follows your device's appearance setting.
+              </p>
+            )}
+          </div>
           {darkMode && (
             <FieldToggle label="True Black (OLED)" value={oledBlack} onChange={handleOledBlackChange} />
           )}
@@ -495,7 +560,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
                 className="text-sm select-none"
                 style={{ color: 'var(--text-secondary)', WebkitUserSelect: 'none' }}
               >
-                1.0.0
+                {import.meta.env.VITE_APP_VERSION || '1.0.0'}
               </button>
             </div>
           </div>
@@ -513,8 +578,16 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
         </div>
       </Modal>
 
-      {/* PIN Setup Overlay */}
-      {showPinSetup && (
+      {/* PIN Setup Overlay — verify current PIN first when changing */}
+      {showPinSetup && pinChangePhase === 'verify' && (
+        <PinLock
+          correctPin={localStorage.getItem(lsKey('pinCode'))?.replace(/^"|"$/g, '') || ''}
+          isSetup={false}
+          onCancel={() => setShowPinSetup(false)}
+          onUnlock={() => setPinChangePhase('setup')}
+        />
+      )}
+      {showPinSetup && pinChangePhase === 'setup' && (
         <PinLock
           correctPin=""
           isSetup
@@ -565,9 +638,12 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
         message={(() => {
           const raw = localStorage.getItem(lsKey('profileWorkEmail'))
           const email = raw ? raw.replace(/^"|"$/g, '') : ''
+          const subscriptionWarning = isActivated() && getActivation().plan !== 'lifetime'
+            ? '\n\nNote: Your subscription will continue billing. Cancel it separately in your payment provider before resetting.'
+            : ''
           return email
-            ? `A full backup will be created and sent to ${email} before wiping. This cannot be undone.`
-            : 'A backup file will be downloaded before wiping. Set an email in Profile to have it emailed automatically. This cannot be undone.'
+            ? `A full backup will be created and sent to ${email} before wiping. This cannot be undone.${subscriptionWarning}`
+            : `A backup file will be downloaded before wiping. Set an email in Profile to have it emailed automatically. This cannot be undone.${subscriptionWarning}`
         })()}
         confirmLabel="Backup & Erase"
         onConfirm={resetAllData}

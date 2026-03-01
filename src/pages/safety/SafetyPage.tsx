@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Plus, ShieldCheck, ShieldAlert, UserPlus, AlertTriangle,
-  Phone, CheckCircle, XCircle, Clock, Siren, Edit2, Ban, Download
+  Phone, CheckCircle, XCircle, Clock, Siren, Edit2, Ban, Download, Search
 } from 'lucide-react'
 import { useState } from 'react'
 import { fmtDateAndTime, fmtMediumDate } from '../../utils/dateFormat'
@@ -15,7 +15,7 @@ import { SafetyCheckEditor } from './SafetyCheckEditor'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { showToast, showUndoToast } from '../../components/Toast'
 import { SafetyPageSkeleton } from '../../components/Skeleton'
-import type { SafetyCheckStatus, SafetyCheck } from '../../types'
+import type { SafetyCheckStatus, SafetyCheck, SafetyContact, IncidentLog, IncidentSeverity } from '../../types'
 
 const statusLabel: Record<SafetyCheckStatus, string> = {
   'pending': 'Pending',
@@ -41,10 +41,18 @@ const statusColor: Record<SafetyCheckStatus, string> = {
 export function SafetyPage() {
   const [tab, setTab] = useState<'checkins' | 'contacts' | 'incidents' | 'blacklist'>('checkins')
   const [showContactEditor, setShowContactEditor] = useState(false)
+  const [editingContact, setEditingContact] = useState<SafetyContact | undefined>(undefined)
   const [showIncidentEditor, setShowIncidentEditor] = useState(false)
+  const [editingIncident, setEditingIncident] = useState<IncidentLog | undefined>(undefined)
   const [editingCheck, setEditingCheck] = useState<SafetyCheck | null>(null)
   const [blacklistConfirm, setBlacklistConfirm] = useState<{ clientId: string; alias: string } | null>(null)
-  
+  const [deleteContactConfirm, setDeleteContactConfirm] = useState<{ id: string; name: string } | null>(null)
+  const [alertConfirm, setAlertConfirm] = useState<string | null>(null)
+  const [alertAllConfirm, setAlertAllConfirm] = useState(false)
+  const [checkinsLimit, setCheckinsLimit] = useState(30)
+  const [incidentSearch, setIncidentSearch] = useState('')
+  const [incidentSeverityFilter, setIncidentSeverityFilter] = useState<IncidentSeverity | 'all'>('all')
+
 
   const safetyChecks = useLiveQuery(() => db.safetyChecks.orderBy('scheduledTime').reverse().toArray())
   const bookings = useLiveQuery(() => db.bookings.toArray()) ?? []
@@ -97,11 +105,9 @@ export function SafetyPage() {
     return parts.join('\n')
   }
 
-  async function sendAlert(checkId: string) {
+  function openAlertSms(checkId: string) {
     const check = safetyChecks!.find(c => c.id === checkId)
     if (!check) return
-
-    await db.safetyChecks.update(checkId, { status: 'alert' as SafetyCheckStatus })
 
     // Use the contact assigned to this specific check, fall back to primary
     const alertContact = contactFor(check.safetyContactId) ?? primaryContact
@@ -111,17 +117,22 @@ export function SafetyPage() {
       const a = document.createElement('a')
       a.href = smsHref(alertContact.phone, body)
       a.click()
-      showToast(`SMS opened — tap Send to alert ${alertContact.name}`, 'error')
+      showToast(`SMS opened — confirm it was sent`, 'error')
     } else {
-      showToast('Alert status set — add a safety contact to enable SMS', 'error')
+      showToast('Add a safety contact to enable SMS alerts', 'error')
+      return
     }
+    // Show confirmation to mark as alert
+    setAlertConfirm(checkId)
   }
 
-  async function sendAlertAll() {
-    for (const c of overdueChecks) {
-      await db.safetyChecks.update(c.id, { status: 'alert' as SafetyCheckStatus })
-    }
+  async function confirmAlert(checkId: string) {
+    await db.safetyChecks.update(checkId, { status: 'alert' as SafetyCheckStatus })
+    showToast('Alert status confirmed')
+    setAlertConfirm(null)
+  }
 
+  function openAlertAllSms() {
     // Deduplicate contacts across overdue checks — notify each unique contact once
     const contactsToNotify = new Map<string, { phone: string; name: string; checks: typeof overdueChecks }>()
     for (const check of overdueChecks) {
@@ -134,7 +145,7 @@ export function SafetyPage() {
     }
 
     if (contactsToNotify.size === 0) {
-      showToast('Alert status set — add a safety contact to enable SMS', 'error')
+      showToast('Add a safety contact to enable SMS alerts', 'error')
       return
     }
 
@@ -153,7 +164,16 @@ export function SafetyPage() {
     })
 
     const names = [...contactsToNotify.values()].map(c => c.name).join(', ')
-    showToast(`SMS opened — tap Send to alert ${names}`, 'error')
+    showToast(`SMS opened for ${names} — confirm it was sent`, 'error')
+    setAlertAllConfirm(true)
+  }
+
+  async function confirmAlertAll() {
+    for (const c of overdueChecks) {
+      await db.safetyChecks.update(c.id, { status: 'alert' as SafetyCheckStatus })
+    }
+    showToast(`${overdueChecks.length} alert${overdueChecks.length > 1 ? 's' : ''} confirmed`)
+    setAlertAllConfirm(false)
   }
 
   const tabs = [
@@ -193,12 +213,12 @@ export function SafetyPage() {
       <div>
       <PageHeader title="Safety">
         {tab === 'contacts' && (
-          <button onClick={() => setShowContactEditor(true)} className="p-2 rounded-lg text-purple-500" aria-label="Add safety contact">
+          <button onClick={() => { setEditingContact(undefined); setShowContactEditor(true) }} className="p-2 rounded-lg text-purple-500" aria-label="Add safety contact">
             <Plus size={20} />
           </button>
         )}
         {tab === 'incidents' && (
-          <button onClick={() => setShowIncidentEditor(true)} className="p-2 rounded-lg text-purple-500" aria-label="Log incident">
+          <button onClick={() => { setEditingIncident(undefined); setShowIncidentEditor(true) }} className="p-2 rounded-lg text-purple-500" aria-label="Log incident">
             <Plus size={20} />
           </button>
         )}
@@ -228,7 +248,7 @@ export function SafetyPage() {
                 <CheckCircle size={16} /> I'm OK
               </button>
               <button
-                onClick={sendAlertAll}
+                onClick={openAlertAllSms}
                 className="flex-1 py-2 px-3 rounded-lg bg-red-600 text-white font-semibold text-sm flex items-center justify-center gap-2"
               >
                 <XCircle size={16} /> Not OK
@@ -248,12 +268,13 @@ export function SafetyPage() {
         )}
 
         {/* Tab Selector */}
-        <div className="flex gap-1 mx-4 mt-3 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="flex gap-1 mx-4 mt-3 p-1 rounded-lg" role="tablist" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           {tabs.map(t => (
             <button
               key={t.id}
+              role="tab"
               onClick={() => setTab(t.id)}
-              aria-pressed={tab === t.id}
+              aria-selected={tab === t.id}
               className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors ${
                 tab === t.id ? 'bg-purple-600 text-white' : ''
               }`}
@@ -274,7 +295,7 @@ export function SafetyPage() {
               />
             ) : (
               <div className="space-y-2">
-                {safetyChecks.slice(0, 30).map(check => {
+                {safetyChecks.slice(0, checkinsLimit).map(check => {
                   const booking = bookingFor(check.bookingId)
                   const client = booking?.clientId ? clientFor(booking.clientId) : undefined
                   const contact = contactFor(check.safetyContactId)
@@ -337,7 +358,7 @@ export function SafetyPage() {
                                 <CheckCircle size={12} /> I'm Safe
                               </button>
                               <button
-                                onClick={() => sendAlert(check.id)}
+                                onClick={() => openAlertSms(check.id)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white"
                               >
                                 <Siren size={12} /> Send Alert
@@ -358,6 +379,15 @@ export function SafetyPage() {
                     </Card>
                   )
                 })}
+                {safetyChecks.length > checkinsLimit && (
+                  <button
+                    onClick={() => setCheckinsLimit(prev => prev + 30)}
+                    className="w-full py-2.5 rounded-xl text-sm font-medium"
+                    style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)' }}
+                  >
+                    Show more ({safetyChecks.length - checkinsLimit} remaining)
+                  </button>
+                )}
               </div>
             )
           )}
@@ -396,19 +426,26 @@ export function SafetyPage() {
                         <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                           {contact.phone}
                         </p>
+                        {contact.relationship && (
+                          <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                            {contact.relationship}
+                          </p>
+                        )}
                       </div>
                     <div className="flex items-center gap-2">
                       <a href={`tel:${contact.phone}`} aria-label={`Call ${contact.name}`}>
                         <Phone size={18} className="text-green-500" />
                       </a>
                       <button
-                        onClick={async () => {
-                          const snap = await db.safetyContacts.get(contact.id)
-                          await db.safetyContacts.delete(contact.id)
-                          showUndoToast(`Removed ${contact.name}`, async () => {
-                            if (snap) await db.safetyContacts.put(snap)
-                          })
-                        }}
+                        onClick={() => { setEditingContact(contact); setShowContactEditor(true) }}
+                        className="p-1"
+                        style={{ color: 'var(--text-secondary)' }}
+                        aria-label={`Edit ${contact.name}`}
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteContactConfirm({ id: contact.id, name: contact.name })}
                         className="p-1"
                         style={{ color: 'var(--text-secondary)' }}
                         aria-label={`Remove ${contact.name}`}
@@ -432,7 +469,47 @@ export function SafetyPage() {
               />
             ) : (
               <div className="space-y-2">
-                {incidents.map(incident => {
+                {/* Search and filter */}
+                <div className="flex gap-2 mb-2">
+                  <div className="flex-1 relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
+                    <input
+                      type="text"
+                      value={incidentSearch}
+                      onChange={e => setIncidentSearch(e.target.value)}
+                      placeholder="Search incidents..."
+                      className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none"
+                      style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                    />
+                  </div>
+                  <select
+                    value={incidentSeverityFilter}
+                    onChange={e => setIncidentSeverityFilter(e.target.value as IncidentSeverity | 'all')}
+                    className="px-3 py-2 rounded-lg text-sm outline-none"
+                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                  >
+                    <option value="all">All</option>
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                {incidents
+                  .filter(i => {
+                    if (incidentSeverityFilter !== 'all' && i.severity !== incidentSeverityFilter) return false
+                    if (incidentSearch.trim()) {
+                      const q = incidentSearch.toLowerCase()
+                      const client = i.clientId ? clientFor(i.clientId) : undefined
+                      return (
+                        i.description.toLowerCase().includes(q) ||
+                        (i.actionTaken?.toLowerCase().includes(q)) ||
+                        (client?.alias.toLowerCase().includes(q))
+                      )
+                    }
+                    return true
+                  })
+                  .map(incident => {
                   const linkedClient = incident.clientId ? clientFor(incident.clientId) : undefined
                   const isBlacklisted = linkedClient?.isBlocked
                   return (
@@ -449,6 +526,14 @@ export function SafetyPage() {
                           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                             {fmtMediumDate(new Date(incident.date))}
                           </span>
+                          <button
+                            onClick={() => { setEditingIncident(incident); setShowIncidentEditor(true) }}
+                            className="p-1"
+                            style={{ color: 'var(--text-secondary)' }}
+                            aria-label="Edit incident"
+                          >
+                            <Edit2 size={13} />
+                          </button>
                           <button
                             onClick={async () => {
                               const snap = await db.incidents.get(incident.id)
@@ -544,6 +629,11 @@ export function SafetyPage() {
                               {client.riskLevel}
                             </span>
                           </div>
+                          {client.notes && (
+                            <p className="text-[11px] mt-1 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                              {client.notes}
+                            </p>
+                          )}
                         </div>
                         <button
                           onClick={async () => {
@@ -568,8 +658,8 @@ export function SafetyPage() {
         </div>
       </div>
 
-      <SafetyContactEditor isOpen={showContactEditor} onClose={() => setShowContactEditor(false)} />
-      <IncidentEditor isOpen={showIncidentEditor} onClose={() => setShowIncidentEditor(false)} />
+      <SafetyContactEditor isOpen={showContactEditor} onClose={() => { setShowContactEditor(false); setEditingContact(undefined) }} contact={editingContact} />
+      <IncidentEditor isOpen={showIncidentEditor} onClose={() => { setShowIncidentEditor(false); setEditingIncident(undefined) }} incident={editingIncident} />
       {editingCheck && (
         <SafetyCheckEditor
           isOpen={!!editingCheck}
@@ -590,6 +680,44 @@ export function SafetyPage() {
           setBlacklistConfirm(null)
         }}
         onCancel={() => setBlacklistConfirm(null)}
+      />
+      {/* Item 60: Confirm dialog before deleting safety contacts */}
+      <ConfirmDialog
+        isOpen={!!deleteContactConfirm}
+        title="Remove Contact"
+        message={`Remove ${deleteContactConfirm?.name ?? 'this contact'} from your safety contacts?`}
+        confirmLabel="Remove"
+        onConfirm={async () => {
+          if (deleteContactConfirm) {
+            const snap = await db.safetyContacts.get(deleteContactConfirm.id)
+            await db.safetyContacts.delete(deleteContactConfirm.id)
+            showUndoToast(`Removed ${deleteContactConfirm.name}`, async () => {
+              if (snap) await db.safetyContacts.put(snap)
+            })
+          }
+          setDeleteContactConfirm(null)
+        }}
+        onCancel={() => setDeleteContactConfirm(null)}
+      />
+      {/* Item 52/59: Confirm alert was sent for individual check */}
+      <ConfirmDialog
+        isOpen={!!alertConfirm}
+        title="Confirm Alert Sent"
+        message="Did you send the SMS alert? This will mark the check-in as 'Alert Sent'."
+        confirmLabel="Yes, Sent"
+        confirmColor="#ef4444"
+        onConfirm={() => { if (alertConfirm) confirmAlert(alertConfirm) }}
+        onCancel={() => setAlertConfirm(null)}
+      />
+      {/* Item 59: Confirm alert was sent for all overdue checks */}
+      <ConfirmDialog
+        isOpen={alertAllConfirm}
+        title="Confirm Alerts Sent"
+        message={`Did you send the SMS alert${overdueChecks.length > 1 ? 's' : ''}? This will mark ${overdueChecks.length} check-in${overdueChecks.length > 1 ? 's' : ''} as 'Alert Sent'.`}
+        confirmLabel="Yes, Sent"
+        confirmColor="#ef4444"
+        onConfirm={confirmAlertAll}
+        onCancel={() => setAlertAllConfirm(false)}
       />
     </div>
   )

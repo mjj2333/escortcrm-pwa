@@ -24,7 +24,7 @@ function contactFieldConfig(method: ContactMethod): { field: 'phone' | 'email' |
     case 'Telegram': return { field: 'telegram', placeholder: '@username or phone', type: 'text' }
     case 'Signal': return { field: 'signal', placeholder: 'Signal number', type: 'tel' }
     case 'WhatsApp': return { field: 'whatsapp', placeholder: 'WhatsApp number', type: 'tel' }
-    case 'Other': return { field: null, placeholder: '', type: 'text' }
+    case 'Other': return { field: 'phone', placeholder: 'Contact info', type: 'text' }
   }
 }
 

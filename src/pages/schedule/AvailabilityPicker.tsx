@@ -23,6 +23,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
   const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus | null>(current?.status ?? null)
   const [startTime, setStartTime] = useState(current?.startTime ?? '10:00')
   const [endTime, setEndTime] = useState(current?.endTime ?? '22:00')
+  const [notes, setNotes] = useState(current?.notes ?? '')
   const [saving, setSaving] = useState(false)
 
   // Escape key to close
@@ -57,6 +58,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
           startTime: undefined,
           endTime: undefined,
           openSlots: undefined,
+          notes: notes.trim() || undefined,
         }
 
         if (existing) {
@@ -87,6 +89,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
 
       const record: Partial<DayAvailability> = {
         status: selectedStatus,
+        notes: notes.trim() || undefined,
       }
 
       if (selectedStatus === 'Available') {
@@ -273,6 +276,25 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
               <p className="text-[10px] mt-2" style={{ color: 'var(--text-secondary)' }}>
                 Auto-created from confirmed bookings
               </p>
+            </div>
+          )}
+
+          {/* Notes */}
+          {selectedStatus && (
+            <div className="mb-4">
+              <input
+                type="text"
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Notes (optional)"
+                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border)',
+                  fontSize: '16px',
+                }}
+              />
             </div>
           )}
 

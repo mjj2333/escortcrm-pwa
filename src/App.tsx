@@ -31,6 +31,25 @@ import { useHashNav, parseNavHash } from './hooks/useHashNav'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AlertTriangle } from 'lucide-react'
 
+// Apply theme synchronously at module load to prevent FOUC (flash of unstyled content)
+;(() => {
+  const dm = localStorage.getItem(lsKey('darkMode'))
+  const oled = localStorage.getItem(lsKey('oledBlack'))
+  const themeMode = localStorage.getItem(lsKey('themeMode'))
+  let isDark: boolean
+  if (themeMode) {
+    const mode = JSON.parse(themeMode)
+    isDark = mode === 'system'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : mode === 'dark'
+  } else {
+    isDark = dm === null ? true : JSON.parse(dm)
+  }
+  const isOled = oled === null ? true : JSON.parse(oled)
+  document.documentElement.classList.toggle('dark', isDark)
+  document.documentElement.classList.toggle('oled-black', isDark && isOled)
+})()
+
 type Screen =
   | { type: 'tab' }
   | { type: 'clientDetail'; clientId: string }
@@ -130,27 +149,26 @@ export default function App() {
   const [remindersEnabled] = useLocalStorage('remindersEnabled', false)
   useBookingReminders(remindersEnabled)
 
-  useEffect(() => {
-    // Apply dark mode + OLED setting from localStorage
-    const dm = localStorage.getItem(lsKey('darkMode'))
-    const oled = localStorage.getItem(lsKey('oledBlack'))
-    const isDark = dm === null ? true : JSON.parse(dm)
-    const isOled = oled === null ? true : JSON.parse(oled)
-    document.documentElement.classList.toggle('dark', isDark)
-    document.documentElement.classList.toggle('oled-black', isDark && isOled)
-  }, [])
+  // Theme is applied synchronously at module level (above) to prevent FOUC
 
   // Skip PIN if not enabled
   useEffect(() => {
     if (!pinEnabled) setIsLocked(false)
   }, [pinEnabled])
 
-  // Re-lock when app is backgrounded (tab hidden / screen off)
+  // Re-lock when app is backgrounded (tab hidden / screen off) with grace period
+  const LOCK_GRACE_PERIOD_MS = 30_000 // 30 seconds
+  const hiddenAtRef = useRef<number>(0)
   useEffect(() => {
     if (!pinEnabled) return
     function onVisibilityChange() {
       if (document.visibilityState === 'hidden') {
-        setIsLocked(true)
+        hiddenAtRef.current = Date.now()
+      } else if (document.visibilityState === 'visible') {
+        const elapsed = Date.now() - hiddenAtRef.current
+        if (hiddenAtRef.current > 0 && elapsed >= LOCK_GRACE_PERIOD_MS) {
+          setIsLocked(true)
+        }
       }
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
@@ -315,7 +333,7 @@ export default function App() {
           }}
         >
           <span style={{ fontSize: '14px' }}>⚡</span>
-          You're offline — payment verification and gift codes unavailable
+          You're offline — some features require a connection
         </div>
       )}
       <FreeBanner onUpgrade={() => setShowPaywall(true)} />
@@ -332,7 +350,7 @@ export default function App() {
       )}
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} onStealthTrigger={stealthEnabled && pinEnabled ? () => setIsStealthMode(true) : undefined} />
       {canInstall && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ pointerEvents: 'none' }}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-labelledby="install-prompt-title" style={{ pointerEvents: 'none' }}>
           <div className="absolute inset-0 bg-black/40" style={{ pointerEvents: 'auto' }} onClick={() => dismissInstall(installNeverAsk)} />
           <div
             className="relative w-full max-w-md rounded-t-2xl p-5 pb-8 animate-slide-up"
@@ -342,7 +360,7 @@ export default function App() {
               <div className="w-14 h-14 rounded-2xl bg-purple-600 flex items-center justify-center text-2xl shadow-lg">
                 <img src="/icon-192.png" alt="" className="w-10 h-10 rounded-lg" />
               </div>
-              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Install Companion</h2>
+              <h2 id="install-prompt-title" className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Install Companion</h2>
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 Add to your home screen for quick access, offline support, and the full app experience.
               </p>

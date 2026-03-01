@@ -12,6 +12,30 @@
     <link rel="icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <title>Companion</title>
+    <script>
+      // Apply theme before first paint to prevent FOUC
+      (function(){
+        try {
+          var p = 'c_';
+          var dm = localStorage.getItem(p+'darkMode');
+          var oled = localStorage.getItem(p+'oledBlack');
+          var tm = localStorage.getItem(p+'themeMode');
+          var isDark;
+          if (tm) {
+            var mode = JSON.parse(tm);
+            isDark = mode === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+              : mode === 'dark';
+          } else {
+            isDark = dm === null ? true : JSON.parse(dm);
+          }
+          var isOled = oled === null ? true : JSON.parse(oled);
+          var cl = document.documentElement.classList;
+          if (isDark) cl.add('dark'); else cl.remove('dark');
+          if (isDark && isOled) cl.add('oled-black'); else cl.remove('oled-black');
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

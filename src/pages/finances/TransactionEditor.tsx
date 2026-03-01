@@ -5,7 +5,7 @@ import { db, createTransaction } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldCurrency, FieldSelect, FieldDate, FieldTextArea } from '../../components/FormFields'
-import type { TransactionType, TransactionCategory, PaymentMethod } from '../../types'
+import type { Transaction, TransactionType, TransactionCategory, PaymentMethod } from '../../types'
 
 const categories: TransactionCategory[] = ['booking', 'tip', 'gift', 'refund', 'supplies', 'travel', 'advertising', 'clothing', 'health', 'rent', 'phone', 'other']
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
@@ -15,9 +15,12 @@ interface TransactionEditorProps {
   isOpen: boolean
   onClose: () => void
   initialType?: TransactionType
+  /** When provided, the form pre-fills for editing instead of creating */
+  transaction?: Transaction
 }
 
-export function TransactionEditor({ isOpen, onClose, initialType }: TransactionEditorProps) {
+export function TransactionEditor({ isOpen, onClose, initialType, transaction }: TransactionEditorProps) {
+  const isEditing = !!transaction
   const [type, setType] = useState<TransactionType>(initialType ?? 'income')
   const [amount, setAmount] = useState(0)
   const [category, setCategory] = useState<TransactionCategory>('booking')
@@ -26,18 +29,27 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // Reset form when modal opens
+  // Reset form when modal opens — pre-fill if editing
   useEffect(() => {
     if (isOpen) {
-      setType(initialType ?? 'income')
-      setAmount(0)
-      setCategory(initialType === 'expense' ? 'supplies' : 'booking')
-      setPaymentMethod('Cash')
-      setDate(format(new Date(), 'yyyy-MM-dd'))
-      setNotes('')
+      if (transaction) {
+        setType(transaction.type)
+        setAmount(transaction.amount)
+        setCategory(transaction.category)
+        setPaymentMethod(transaction.paymentMethod ?? 'Cash')
+        setDate(format(new Date(transaction.date), 'yyyy-MM-dd'))
+        setNotes(transaction.notes ?? '')
+      } else {
+        setType(initialType ?? 'income')
+        setAmount(0)
+        setCategory(initialType === 'expense' ? 'supplies' : 'booking')
+        setPaymentMethod('Cash')
+        setDate(format(new Date(), 'yyyy-MM-dd'))
+        setNotes('')
+      }
       setSaving(false)
     }
-  }, [isOpen, initialType])
+  }, [isOpen, initialType, transaction])
 
   const isValid = amount > 0
 
@@ -45,13 +57,22 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
     if (!isValid || saving) return
     setSaving(true)
     try {
-      const txn = createTransaction({
-        amount, type, category, paymentMethod,
-        date: new Date(date + 'T00:00:00'),
-        notes: notes.trim(),
-      })
-      await db.transactions.add(txn)
-      showToast(type === 'expense' ? 'Expense recorded' : 'Income recorded')
+      if (isEditing && transaction) {
+        await db.transactions.update(transaction.id, {
+          amount, type, category, paymentMethod,
+          date: new Date(date + 'T00:00:00'),
+          notes: notes.trim(),
+        })
+        showToast('Transaction updated')
+      } else {
+        const txn = createTransaction({
+          amount, type, category, paymentMethod,
+          date: new Date(date + 'T00:00:00'),
+          notes: notes.trim(),
+        })
+        await db.transactions.add(txn)
+        showToast(type === 'expense' ? 'Expense recorded' : 'Income recorded')
+      }
       onClose()
     } catch (err) {
       showToast(`Save failed: ${(err as Error).message}`)
@@ -63,7 +84,7 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="New Transaction"
+      title={isEditing ? 'Edit Transaction' : 'New Transaction'}
       actions={
         <button onClick={handleSave} disabled={!isValid || saving}
           className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}
@@ -103,7 +124,7 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
               isValid && !saving ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
-            {saving ? 'Saving…' : `Add ${type === 'income' ? 'Income' : 'Expense'}`}
+            {saving ? 'Saving…' : isEditing ? 'Save Changes' : `Add ${type === 'income' ? 'Income' : 'Expense'}`}
           </button>
         </div>
         <div className="h-8" />

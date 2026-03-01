@@ -570,7 +570,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label="Import & Export">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div
         className="relative w-full max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden"
