@@ -160,7 +160,10 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
 
       // 5. Wipe everything
       await db.delete()
-      const preserveKeys = ['_cstate_v2', '_cstate_rv', LAST_BACKUP_KEY, BACKUP_REMINDER_INTERVAL_KEY]
+      const preserveKeys = [
+        '_cstate_v2', '_cstate_rv', LAST_BACKUP_KEY, BACKUP_REMINDER_INTERVAL_KEY,
+        'darkMode', 'oledBlack', 'currency', 'pwaInstallDismissed',
+      ]
       const saved = preserveKeys.map(k => [k, localStorage.getItem(k)] as const)
       localStorage.clear()
       for (const [k, v] of saved) {

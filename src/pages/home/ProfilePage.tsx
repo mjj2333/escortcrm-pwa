@@ -64,7 +64,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
   const [depositFlat, setDepositFlat] = useLocalStorage('defaultDepositFlat', 0)
 
   async function addRate() {
-    if (!newRateName.trim() || newRateAmount <= 0) return
+    if (!newRateName.trim() || newRateAmount <= 0 || newRateDuration <= 0) return
     const durationInMinutes = Math.round(newRateDuration * 60)
     await db.serviceRates.add({
       id: newId(),
@@ -178,8 +178,8 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowAddRate(false)}
                   className="flex-1 py-2 rounded-lg text-sm" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
-                <button type="button" onClick={addRate} disabled={!newRateName.trim() || newRateAmount <= 0}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold text-white ${newRateName.trim() && newRateAmount > 0 ? 'bg-purple-600 active:bg-purple-700' : 'opacity-40 bg-purple-600'}`}>Add Rate</button>
+                <button type="button" onClick={addRate} disabled={!newRateName.trim() || newRateAmount <= 0 || newRateDuration <= 0}
+                  className={`flex-1 py-2 rounded-lg text-sm font-bold text-white ${newRateName.trim() && newRateAmount > 0 && newRateDuration > 0 ? 'bg-purple-600 active:bg-purple-700' : 'opacity-40 bg-purple-600'}`}>Add Rate</button>
               </div>
             </div>
           ) : (

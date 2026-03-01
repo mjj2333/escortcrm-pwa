@@ -13,9 +13,11 @@ export function Modal({ isOpen, onClose, title, children, actions }: ModalProps)
   const dialogRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     if (isOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement | null
       document.body.style.overflow = 'hidden'
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') onCloseRef.current()
@@ -35,11 +37,15 @@ export function Modal({ isOpen, onClose, title, children, actions }: ModalProps)
         }
       }
       document.addEventListener('keydown', handleKeyDown)
-      // Focus the dialog on open
-      dialogRef.current?.focus()
+      // Focus the first interactive element (close button) on open
+      const firstFocusable = dialogRef.current?.querySelector<HTMLElement>('button, input, select, textarea')
+      if (firstFocusable) firstFocusable.focus()
+      else dialogRef.current?.focus()
       return () => {
         document.body.style.overflow = ''
         document.removeEventListener('keydown', handleKeyDown)
+        // Restore focus to the element that opened the modal
+        previousFocusRef.current?.focus()
       }
     } else {
       document.body.style.overflow = ''

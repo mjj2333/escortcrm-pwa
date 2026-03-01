@@ -104,6 +104,17 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
           date: new Date(),
           notes: `Deposit returned — ${client?.alias ?? 'client'}`,
         })
+      } else if (depOut === 'credit' && totalDeposits > 0) {
+        // Record the credit so it's visible in financial reporting
+        await db.transactions.add({
+          id: newId(),
+          bookingId: booking.id,
+          amount: totalDeposits,
+          type: 'expense',
+          category: 'refund',
+          date: new Date(),
+          notes: `Deposit credited to future booking — ${client?.alias ?? 'client'}`,
+        })
       }
     })
 

@@ -247,8 +247,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         // Set timestamps when status changes
         ...(status === 'Confirmed' && booking.status !== 'Confirmed' && !booking.confirmedAt ? { confirmedAt: new Date() } : {}),
         ...(status === 'Completed' && booking.status !== 'Completed' ? { completedAt: new Date() } : {}),
-        ...(status === 'Cancelled' && booking.status !== 'Cancelled' ? { cancelledAt: new Date() } : {}),
-        ...(status === 'No Show' && booking.status !== 'No Show' ? { cancelledAt: new Date() } : {}),
+        ...(status === 'Cancelled' && booking.status !== 'Cancelled' ? { cancelledAt: new Date(), cancelledBy: 'provider' as const } : {}),
+        ...(status === 'No Show' && booking.status !== 'No Show' ? { cancelledAt: new Date(), cancelledBy: 'client' as const } : {}),
       })
 
       // Side effects when status changes via editor
