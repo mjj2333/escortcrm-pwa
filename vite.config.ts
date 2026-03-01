@@ -25,4 +25,7 @@ export default defineConfig({
     tailwindcss(),
     swBuildStamp(),
   ],
+  build: {
+    sourcemap: true,
+  },
 })
