@@ -11,12 +11,14 @@ interface ModalProps {
 
 export function Modal({ isOpen, onClose, title, children, actions }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') onClose()
+        if (e.key === 'Escape') onCloseRef.current()
         // Focus trap: cycle through focusable elements
         if (e.key === 'Tab' && dialogRef.current) {
           const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
@@ -43,7 +45,7 @@ export function Modal({ isOpen, onClose, title, children, actions }: ModalProps)
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   if (!isOpen) return null
 
