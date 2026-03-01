@@ -27,6 +27,27 @@ function contactFieldConfig(method: ContactMethod): { field: 'phone' | 'email' |
   }
 }
 
+function ContactInput({ method, fieldMap }: {
+  method: ContactMethod
+  fieldMap: Record<string, { value: string; set: (v: string) => void }>
+}) {
+  const config = contactFieldConfig(method)
+  if (!config.field) return null
+  const f = fieldMap[config.field]
+  return (
+    <div className="mb-2">
+      <input
+        type={config.type}
+        value={f.value}
+        onChange={e => f.set(e.target.value)}
+        placeholder={config.placeholder}
+        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+        style={{ ...fieldInputStyle, fontSize: '16px' }}
+      />
+    </div>
+  )
+}
+
 function toLocalDateStr(d: Date): string {
   const yyyy = d.getFullYear()
   const mm = String(d.getMonth() + 1).padStart(2, '0')
@@ -158,24 +179,6 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
     }
   }
 
-  function ContactInput({ method }: { method: ContactMethod }) {
-    const config = contactFieldConfig(method)
-    if (!config.field) return null
-    const f = fieldMap[config.field]
-    return (
-      <div className="mb-2">
-        <input
-          type={config.type}
-          value={f.value}
-          onChange={e => f.set(e.target.value)}
-          placeholder={config.placeholder}
-          className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-          style={{ ...fieldInputStyle, fontSize: '16px' }}
-        />
-      </div>
-    )
-  }
-
   const primaryField = contactFieldConfig(primaryContact).field
   const secondaryField = secondaryContact ? contactFieldConfig(secondaryContact as ContactMethod).field : null
 
@@ -243,7 +246,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
             {contactMethods.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
-        <ContactInput method={primaryContact} />
+        <ContactInput method={primaryContact} fieldMap={fieldMap} />
 
         <div className="mb-1 mt-3">
           <label className="text-[11px] font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>
@@ -258,7 +261,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
             {secondaryOptions.map(m => <option key={m} value={m}>{m || '— None —'}</option>)}
           </select>
         </div>
-        {secondaryContact && <ContactInput method={secondaryContact as ContactMethod} />}
+        {secondaryContact && <ContactInput method={secondaryContact as ContactMethod} fieldMap={fieldMap} />}
           </div>
         </CollapsibleCard>
 
