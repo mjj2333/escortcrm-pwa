@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { TabBar } from './components/TabBar'
 import { PinLock, hashPin } from './components/PinLock'
-import { WelcomeSplash } from './components/WelcomeSplash'
-import { GuidedTour, TOUR_STEPS } from './components/GuidedTour'
 import { HomePage } from './pages/home/HomePage'
 import { ClientsPage } from './pages/clients/ClientsPage'
 import { SchedulePage } from './pages/schedule/SchedulePage'
@@ -128,11 +126,6 @@ export default function App() {
   const [remindersEnabled] = useLocalStorage('remindersEnabled', false)
   useBookingReminders(remindersEnabled)
 
-  // Onboarding
-  const [hasSeenTour, setHasSeenTour] = useLocalStorage('hasCompletedAppTour', false)
-  const [showSplash, setShowSplash] = useState(false)
-  const [showSetup, setShowSetup] = useState(false)
-
   useEffect(() => {
     // Apply dark mode + OLED setting from localStorage
     const dm = localStorage.getItem('darkMode')
@@ -141,11 +134,7 @@ export default function App() {
     const isOled = oled === null ? true : JSON.parse(oled)
     document.documentElement.classList.toggle('dark', isDark)
     document.documentElement.classList.toggle('oled-black', isDark && isOled)
-    // Show splash on first launch (after unlock)
-    if (!hasSeenTour && (!pinEnabled || !isLocked)) {
-      setTimeout(() => setShowSplash(true), 500)
-    }
-  }, [isLocked])
+  }, [])
 
   // Skip PIN if not enabled
   useEffect(() => {
@@ -179,37 +168,6 @@ export default function App() {
     } else {
       replaceNav(activeTab, { type: 'tab' })
     }
-  }
-
-  function finishOnboarding(dontShowAgain = true) {
-    setShowSplash(false)
-    setShowSetup(false)
-    if (dontShowAgain) setHasSeenTour(true)
-  }
-
-  function startSetupGuide(dontShowAgain = true) {
-    setShowSplash(false)
-    setShowSetup(true)
-    if (dontShowAgain) setHasSeenTour(true)
-  }
-
-  function finishTour() {
-    setShowSetup(false)
-    setHasSeenTour(true)
-    // Return to Home tab
-    replaceNav(0, { type: 'tab' })
-  }
-
-  /** Tab change for guided tour — updates tab without polluting history */
-  function tourTabChange(tab: number) {
-    setActiveTab(tab)
-    setScreen({ type: 'tab' })
-  }
-
-  function restartTour() {
-    setShowSettings(false)
-    replaceNav(0, { type: 'tab' })
-    setTimeout(() => setShowSetup(true), 300)
   }
 
   // PIN Lock Screen
@@ -292,7 +250,7 @@ export default function App() {
       case 3:
         return (
           <ErrorBoundary fallback={<RouteErrorFallback />}>
-            <ProGate feature="Finances & Analytics" onUpgrade={() => setShowPaywall(true)} bypass={showSetup}>
+            <ProGate feature="Finances & Analytics" onUpgrade={() => setShowPaywall(true)}>
               <FinancesPage onOpenBooking={openBooking} />
             </ProGate>
           </ErrorBoundary>
@@ -350,13 +308,11 @@ export default function App() {
       {showSettings && (
         <Suspense fallback={null}>
           <ErrorBoundary fallback={<RouteErrorFallback />}>
-            <SettingsPage onClose={() => setShowSettings(false)} onRestartTour={restartTour} onShowPaywall={() => setShowPaywall(true)} />
+            <SettingsPage onClose={() => setShowSettings(false)} onShowPaywall={() => setShowPaywall(true)} />
           </ErrorBoundary>
         </Suspense>
       )}
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} onStealthTrigger={stealthEnabled && pinEnabled ? () => setIsStealthMode(true) : undefined} />
-      {showSplash && <WelcomeSplash onComplete={finishOnboarding} onStartSetup={startSetupGuide} />}
-      {showSetup && <GuidedTour steps={TOUR_STEPS} onComplete={finishTour} onTabChange={tourTabChange} />}
       {canInstall && (
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ pointerEvents: 'none' }}>
           <div className="absolute inset-0 bg-black/40" style={{ pointerEvents: 'auto' }} onClick={() => dismissInstall(installNeverAsk)} />

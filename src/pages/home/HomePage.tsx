@@ -22,6 +22,8 @@ import { BackupRestoreModal } from '../../components/BackupRestore'
 import { HomePageSkeleton } from '../../components/Skeleton'
 import { ProfilePage } from './ProfilePage'
 import { IncallBookPage } from './IncallBookPage'
+import { GettingStarted, useGettingStartedDone } from '../../components/GettingStarted'
+import { DidYouKnowTip } from '../../components/DidYouKnowTip'
 
 interface HomePageProps {
   onNavigateTab: (tab: number) => void
@@ -45,6 +47,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const [reminderDismissed, setReminderDismissed] = useState(false)
   const [cancelTarget, setCancelTarget] = useState<{ booking: Booking; mode: 'cancel' | 'noshow' } | null>(null)
   const [profileSetupDone] = useLocalStorage('profileSetupDone', false)
+  const gettingStartedDone = useGettingStartedDone()
   const { shouldRemind, daysSince } = useBackupReminder()
 
   const allBookings = useLiveQuery(() => db.bookings.toArray())
@@ -125,7 +128,6 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
     <div className="pb-20">
       <PageHeader title="Home">
         <button
-          data-tour="tour-incallbook-btn"
           onClick={() => setShowIncallBook(true)}
           className="p-2 rounded-lg active:bg-white/10 transition-colors"
           style={{ color: 'var(--text-secondary)' }}
@@ -133,7 +135,6 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           <Building2 size={20} />
         </button>
         <button
-          data-tour="tour-profile-btn"
           onClick={() => setShowProfile(true)}
           className="p-2 rounded-lg active:bg-white/10 transition-colors relative"
           style={{ color: 'var(--text-secondary)' }}
@@ -144,7 +145,6 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           )}
         </button>
         <button
-          data-tour="tour-settings-btn"
           onClick={onOpenSettings}
           className="p-2 rounded-lg active:bg-white/10 transition-colors"
           style={{ color: 'var(--text-secondary)' }}
@@ -155,22 +155,15 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 
       <SampleDataBanner />
 
-      {/* New user profile setup tip */}
-      {!profileSetupDone && (
-        <button
-          onClick={() => setShowProfile(true)}
-          className="mx-4 mt-3 rounded-xl p-3 flex items-center gap-3 w-[calc(100%-2rem)] text-left active:opacity-70"
-          style={{ backgroundColor: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}
-        >
-          <CircleUser size={20} className="text-purple-500 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-purple-500">Set up your profile</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-              Add your working name, rates, and deposit settings to get started.
-            </p>
-          </div>
-          <ChevronRight size={16} className="text-purple-500 shrink-0" />
-        </button>
+      {/* Getting Started checklist / Did You Know tips */}
+      {!gettingStartedDone ? (
+        <GettingStarted
+          onOpenProfile={() => setShowProfile(true)}
+          onOpenSettings={onOpenSettings}
+          onNavigateTab={onNavigateTab}
+        />
+      ) : (
+        <DidYouKnowTip />
       )}
 
       {/* Backup reminder banner */}

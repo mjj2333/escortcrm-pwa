@@ -86,7 +86,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
             <ArrowDownUp size={18} />
           </button>
         )}
-        <button data-tour="tour-clients-add" onClick={() => setShowEditor(true)}
+        <button onClick={() => setShowEditor(true)}
           className={`p-2 rounded-lg ${limits.canAddClient ? 'text-purple-500' : ''}`}
           style={!limits.canAddClient ? { color: 'var(--text-secondary)', opacity: 0.5 } : {}}>
           <Plus size={20} />
@@ -139,7 +139,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
         )}
 
         {/* Sort options */}
-        <div data-tour="tour-clients-sort" className="flex gap-2 mt-2">
+        <div className="flex gap-2 mt-2">
           {([['az', 'A–Z'], ['recent', 'Last Seen'], ['newest', 'Newest']] as [SortMode, string][]).map(([mode, label]) => (
             <button
               key={mode}
@@ -157,7 +157,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
         </div>
       </div>
 
-      <div data-tour="tour-clients-content" className="px-4 py-3 max-w-lg mx-auto">
+      <div className="px-4 py-3 max-w-lg mx-auto">
         {filtered.length === 0 ? (
           <EmptyState
             icon={<UserX size={40} />}

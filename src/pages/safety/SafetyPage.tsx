@@ -190,7 +190,7 @@ export function SafetyPage() {
 
   return (
     <div className="pb-20">
-      <div data-tour="tour-safety-header">
+      <div>
       <PageHeader title="Safety">
         {tab === 'contacts' && (
           <button onClick={() => setShowContactEditor(true)} className="p-2 rounded-lg text-purple-500">
@@ -248,7 +248,7 @@ export function SafetyPage() {
         )}
 
         {/* Tab Selector */}
-        <div data-tour="tour-safety-tabs" className="flex gap-1 mx-4 mt-3 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="flex gap-1 mx-4 mt-3 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           {tabs.map(t => (
             <button
               key={t.id}

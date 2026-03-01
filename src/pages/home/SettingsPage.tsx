@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RotateCcw, Database, MessageSquare, Users, Plus, X } from 'lucide-react'
+import { Database, MessageSquare, Users, Plus, X } from 'lucide-react'
 import { db } from '../../db'
 import { seedSampleData, clearSampleData } from '../../data/sampleData'
 import { Modal } from '../../components/Modal'
@@ -30,11 +30,10 @@ import {
 
 interface SettingsPageProps {
   onClose: () => void
-  onRestartTour: () => void
   onShowPaywall: () => void
 }
 
-export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: SettingsPageProps) {
+export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
   const planLimits = usePlanLimits()
   const [darkMode, setDarkMode] = useLocalStorage('darkMode', true)
   const [oledBlack, setOledBlack] = useLocalStorage('oledBlack', true)
@@ -384,14 +383,6 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
               <Plus size={16} className="text-purple-500" />
             </button>
           </div>
-
-          {/* Help */}
-          <SectionLabel label="Help" />
-          <button type="button" onClick={onRestartTour}
-            className="flex items-center gap-3 w-full py-2.5 mb-3 active:opacity-70">
-            <RotateCcw size={16} className="text-purple-500" />
-            <span className="text-sm font-medium text-purple-500">Restart Welcome & Setup Guide</span>
-          </button>
 
           {/* Subscription */}
           <SectionLabel label="Subscription" />

@@ -245,7 +245,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
         </button>
 
         {/* View toggle */}
-        <div data-tour="tour-schedule-view" className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           <button
             onClick={() => setViewMode('calendar')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium ${viewMode === 'calendar' ? 'bg-purple-600 text-white' : ''}`}
@@ -262,7 +262,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           </button>
         </div>
 
-        <button data-tour="tour-schedule-add" onClick={() => setShowEditor(true)}
+        <button onClick={() => setShowEditor(true)}
           className={`p-2 rounded-lg ${limits.canAddBooking ? 'text-purple-500' : ''}`}
           style={!limits.canAddBooking ? { color: 'var(--text-secondary)', opacity: 0.5 } : {}}>
           <Plus size={20} />
@@ -323,7 +323,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
         </div>
       )}
 
-      <div data-tour="tour-schedule-content" className="max-w-lg mx-auto">
+      <div className="max-w-lg mx-auto">
         {viewMode === 'calendar' ? (
           <div className="px-4 py-3">
             {/* Month navigation */}
