@@ -845,7 +845,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <input
                 type="text"
                 inputMode="decimal"
-                value={payAmount ? Number(payAmount).toLocaleString() : ''}
+                value={payAmount}
                 onChange={e => {
                   const raw = e.target.value.replace(/[^0-9.]/g, '')
                   setPayAmount(raw)

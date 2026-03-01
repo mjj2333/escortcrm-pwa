@@ -169,7 +169,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
                 <div className="flex-1">
                   <label className="text-[10px] uppercase" style={{ color: 'var(--text-secondary)' }}>Rate ($)</label>
                   <input type="text" inputMode="decimal" placeholder="0"
-                    value={newRateAmount > 0 ? newRateAmount.toLocaleString() : ''}
+                    value={newRateAmount > 0 ? String(newRateAmount) : ''}
                     onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '') { setNewRateAmount(0); return }; const v = parseFloat(raw); if (!isNaN(v)) setNewRateAmount(v) }}
                     className="w-full text-sm bg-transparent outline-none py-1 mt-3.5"
                     style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }} />
@@ -234,7 +234,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               <div className="flex items-center gap-2">
                 <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>$</span>
                 <input type="text" inputMode="decimal"
-                  value={depositFlat > 0 ? depositFlat.toLocaleString() : ''}
+                  value={depositFlat > 0 ? String(depositFlat) : ''}
                   onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '' || raw === '.') { setDepositFlat(0); return }; const val = parseFloat(raw); if (!isNaN(val)) setDepositFlat(val) }}
                   placeholder="0" className="w-28 px-3 py-2.5 rounded-lg text-sm outline-none"
                   style={fieldInputStyle} />

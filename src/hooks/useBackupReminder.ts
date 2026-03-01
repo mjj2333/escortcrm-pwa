@@ -2,18 +2,18 @@ import { useState, useEffect } from 'react'
 import { db } from '../db'
 import { lsKey } from './useSettings'
 
-export const LAST_BACKUP_KEY = lsKey('lastBackupAt')
-export const BACKUP_REMINDER_INTERVAL_KEY = lsKey('backupReminderIntervalDays')
+export const LAST_BACKUP_KEY = 'lastBackupAt'
+export const BACKUP_REMINDER_INTERVAL_KEY = 'backupReminderIntervalDays'
 export const DEFAULT_REMINDER_INTERVAL = 14 // days
 
 /** Records the current timestamp as the last successful backup time. */
 export function recordBackupTimestamp() {
-  localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString())
+  localStorage.setItem(lsKey(LAST_BACKUP_KEY), new Date().toISOString())
 }
 
 /** Returns the number of days since the last backup, or null if never backed up. */
 export function daysSinceBackup(): number | null {
-  const raw = localStorage.getItem(LAST_BACKUP_KEY)
+  const raw = localStorage.getItem(lsKey(LAST_BACKUP_KEY))
   if (!raw) return null
   const last = new Date(raw)
   if (isNaN(last.getTime())) return null
@@ -22,7 +22,7 @@ export function daysSinceBackup(): number | null {
 
 /** Returns the configured reminder interval in days, or 0 if reminders are off. */
 export function getBackupReminderInterval(): number {
-  const raw = localStorage.getItem(BACKUP_REMINDER_INTERVAL_KEY)
+  const raw = localStorage.getItem(lsKey(BACKUP_REMINDER_INTERVAL_KEY))
   if (!raw) return DEFAULT_REMINDER_INTERVAL
   const n = parseInt(raw, 10)
   return isNaN(n) ? DEFAULT_REMINDER_INTERVAL : n

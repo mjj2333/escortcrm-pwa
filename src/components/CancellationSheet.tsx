@@ -240,7 +240,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
                 <input
                   type="text"
                   inputMode="decimal"
-                  value={feeAmount ? Number(feeAmount).toLocaleString() : ''}
+                  value={feeAmount}
                   onChange={e => setFeeAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                   placeholder="0"
                   className="flex-1 bg-transparent text-sm font-bold outline-none"
