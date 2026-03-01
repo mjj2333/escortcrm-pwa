@@ -22,6 +22,7 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
   const [description, setDescription] = useState('')
   const [actionTaken, setActionTaken] = useState('')
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [saving, setSaving] = useState(false)
 
   // Reset form when modal opens
   useEffect(() => {
@@ -31,13 +32,15 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
       setDescription('')
       setActionTaken('')
       setDate(format(new Date(), 'yyyy-MM-dd'))
+      setSaving(false)
     }
   }, [isOpen])
 
   const isValid = description.trim().length > 0
 
   async function handleSave() {
-    if (!isValid) return
+    if (!isValid || saving) return
+    setSaving(true)
     try {
       await db.incidents.add({
         id: newId(),
@@ -51,6 +54,7 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
       onClose()
     } catch (err) {
       showToast(`Save failed: ${(err as Error).message}`)
+      setSaving(false)
     }
   }
 
@@ -60,8 +64,9 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
       onClose={onClose}
       title="Log Incident"
       actions={
-        <button onClick={handleSave} disabled={!isValid}
-          className={`p-2 ${isValid ? 'text-purple-500' : 'opacity-30'}`}>
+        <button onClick={handleSave} disabled={!isValid || saving}
+          className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}
+          aria-label="Save incident">
           <Check size={20} />
         </button>
       }
@@ -89,11 +94,11 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
           placeholder="Steps taken, boundaries enforced..." />
 
         <div className="py-4">
-          <button type="submit" disabled={!isValid}
+          <button type="submit" disabled={!isValid || saving}
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
-              isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
+              isValid && !saving ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
-            Log Incident
+            {saving ? 'Saving…' : 'Log Incident'}
           </button>
         </div>
         <div className="h-8" />

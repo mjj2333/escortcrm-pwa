@@ -184,7 +184,7 @@ export function SafetyPage() {
     a.href = url
     a.download = `blacklist-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
     showToast(`Exported ${rows.length} blacklisted client${rows.length !== 1 ? 's' : ''}`)
   }
 
@@ -193,17 +193,17 @@ export function SafetyPage() {
       <div>
       <PageHeader title="Safety">
         {tab === 'contacts' && (
-          <button onClick={() => setShowContactEditor(true)} className="p-2 rounded-lg text-purple-500">
+          <button onClick={() => setShowContactEditor(true)} className="p-2 rounded-lg text-purple-500" aria-label="Add safety contact">
             <Plus size={20} />
           </button>
         )}
         {tab === 'incidents' && (
-          <button onClick={() => setShowIncidentEditor(true)} className="p-2 rounded-lg text-purple-500">
+          <button onClick={() => setShowIncidentEditor(true)} className="p-2 rounded-lg text-purple-500" aria-label="Log incident">
             <Plus size={20} />
           </button>
         )}
         {tab === 'blacklist' && blacklistedClients.length > 0 && (
-          <button onClick={exportBlacklist} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
+          <button onClick={exportBlacklist} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }} aria-label="Export blacklist">
             <Download size={18} />
           </button>
         )}
@@ -253,6 +253,7 @@ export function SafetyPage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
+              aria-pressed={tab === t.id}
               className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors ${
                 tab === t.id ? 'bg-purple-600 text-white' : ''
               }`}
@@ -397,7 +398,7 @@ export function SafetyPage() {
                         </p>
                       </div>
                     <div className="flex items-center gap-2">
-                      <a href={`tel:${contact.phone}`}>
+                      <a href={`tel:${contact.phone}`} aria-label={`Call ${contact.name}`}>
                         <Phone size={18} className="text-green-500" />
                       </a>
                       <button
@@ -410,6 +411,7 @@ export function SafetyPage() {
                         }}
                         className="p-1"
                         style={{ color: 'var(--text-secondary)' }}
+                        aria-label={`Remove ${contact.name}`}
                       >
                         <XCircle size={16} />
                       </button>
@@ -457,6 +459,7 @@ export function SafetyPage() {
                             }}
                             className="p-1"
                             style={{ color: 'var(--text-secondary)' }}
+                            aria-label="Delete incident"
                           >
                             <XCircle size={14} />
                           </button>

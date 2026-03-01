@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { format } from 'date-fns'
 import { db } from '../../db'
 import { Modal } from '../../components/Modal'
+import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldHint, fieldInputStyle } from '../../components/FormFields'
 import type { SafetyCheck } from '../../types'
 
@@ -40,12 +41,16 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
 
   async function handleSave() {
     if (!isValid) return
-    await db.safetyChecks.update(check.id, {
-      scheduledTime: new Date(scheduledTime),
-      bufferMinutes,
-      safetyContactId: safetyContactId || undefined,
-    })
-    onClose()
+    try {
+      await db.safetyChecks.update(check.id, {
+        scheduledTime: new Date(scheduledTime),
+        bufferMinutes,
+        safetyContactId: safetyContactId || undefined,
+      })
+      onClose()
+    } catch (err) {
+      showToast(`Save failed: ${(err as Error).message}`)
+    }
   }
 
   return (
@@ -58,6 +63,7 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
           onClick={handleSave}
           disabled={!isValid}
           className={`p-2 ${isValid ? 'text-purple-500' : 'opacity-30'}`}
+          aria-label="Save safety check"
         >
           <Check size={20} />
         </button>
@@ -91,6 +97,7 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
                 key={mins}
                 type="button"
                 onClick={() => setBufferMinutes(mins)}
+                aria-pressed={bufferMinutes === mins}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
                 style={{
                   backgroundColor: bufferMinutes === mins ? '#a855f7' : 'var(--bg-primary)',

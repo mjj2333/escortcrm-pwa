@@ -17,6 +17,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
   const [name, setName] = useState(contact?.name ?? '')
   const [phone, setPhone] = useState(contact?.phone ?? '')
   const [isPrimary, setIsPrimary] = useState(contact?.isPrimary ?? false)
+  const [saving, setSaving] = useState(false)
 
   // Reset form when modal opens
   useEffect(() => {
@@ -24,6 +25,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
       setName(contact?.name ?? '')
       setPhone(contact?.phone ?? '')
       setIsPrimary(contact?.isPrimary ?? false)
+      setSaving(false)
     }
   }, [isOpen, contact])
 
@@ -32,7 +34,8 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
   const isValid = name.trim().length > 0 && phone.trim().length > 0 && phoneValid
 
   async function handleSave() {
-    if (!isValid) return
+    if (!isValid || saving) return
+    setSaving(true)
 
     try {
       if (isEditing && contact) {
@@ -68,6 +71,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
       onClose()
     } catch (err) {
       showToast(`Save failed: ${(err as Error).message}`)
+      setSaving(false)
     }
   }
 
@@ -77,8 +81,9 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
       onClose={onClose}
       title={isEditing ? 'Edit Contact' : 'New Safety Contact'}
       actions={
-        <button onClick={handleSave} disabled={!isValid}
-          className={`p-2 ${isValid ? 'text-purple-500' : 'opacity-30'}`}>
+        <button onClick={handleSave} disabled={!isValid || saving}
+          className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}
+          aria-label="Save contact">
           <Check size={20} />
         </button>
       }
@@ -95,11 +100,11 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
           hint="Primary contact receives all safety check-in alerts." />
 
         <div className="py-4">
-          <button type="submit" disabled={!isValid}
+          <button type="submit" disabled={!isValid || saving}
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
-              isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
+              isValid && !saving ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
-            {isEditing ? 'Save Changes' : 'Add Contact'}
+            {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Contact'}
           </button>
         </div>
         <div className="h-8" />
