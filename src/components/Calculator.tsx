@@ -261,7 +261,7 @@ export default function Calculator({ onExit, pinHash }: CalculatorProps) {
           <button onClick={() => inputDigit('1')} style={btnStyle.number}>1</button>
           <button onClick={() => inputDigit('2')} style={btnStyle.number}>2</button>
           <button onClick={() => inputDigit('3')} style={btnStyle.number}>3</button>
-          <button onClick={() => performOperation('+')} style={activeOp('+')}>&plus;</button>
+          <button onClick={() => performOperation('+')} style={activeOp('+')}>+</button>
         </div>
         {/* Row 5 */}
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
