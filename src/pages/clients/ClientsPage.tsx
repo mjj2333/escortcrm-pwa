@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Search, UserX, Pin, ArrowDownUp } from 'lucide-react'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { db } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -118,7 +118,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
           <Search size={16} style={{ color: 'var(--text-secondary)' }} />
           <input
             type="text" placeholder="Search clients..." value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => { setSearch(e.target.value); setRenderLimit(50) }}
             className="flex-1 bg-transparent text-sm outline-none"
             style={{ color: 'var(--text-primary)', fontSize: '16px' }}
           />
@@ -128,7 +128,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
         {blockedCount > 0 && (
           <div className="flex gap-2 mt-2">
             <button
-              onClick={() => setShowBlocked(false)}
+              onClick={() => { setShowBlocked(false); setRenderLimit(50) }}
               className="text-xs font-semibold px-3 py-1.5 rounded-full"
               style={{
                 backgroundColor: !showBlocked ? '#a855f7' : 'var(--bg-secondary)',
@@ -138,7 +138,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
               Active ({clients.filter(c => !c.isBlocked).length})
             </button>
             <button
-              onClick={() => setShowBlocked(true)}
+              onClick={() => { setShowBlocked(true); setRenderLimit(50) }}
               className="text-xs font-semibold px-3 py-1.5 rounded-full"
               style={{
                 backgroundColor: showBlocked ? '#ef4444' : 'var(--bg-secondary)',
@@ -219,8 +219,16 @@ function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToast
   // 🔥 Easter egg: 6 rapid taps on avatar
   const tapCount = useRef(0)
   const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fireTimers = useRef<ReturnType<typeof setTimeout>[]>([])
   const [isBurning, setIsBurning] = useState(false)
   const [burnPhase, setBurnPhase] = useState(0) // 0=idle, 1=flames, 2=text, 3=collapse
+
+  // Clean up fire animation timers on unmount
+  useEffect(() => {
+    return () => {
+      fireTimers.current.forEach(clearTimeout)
+    }
+  }, [])
 
   function handleAvatarTap(e: React.PointerEvent) {
     e.stopPropagation()
@@ -240,11 +248,11 @@ function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToast
   function triggerFire() {
     setIsBurning(true)
     setBurnPhase(1)
-    setTimeout(() => setBurnPhase(2), 1800)
-    setTimeout(() => setBurnPhase(3), 4500)
-    setTimeout(() => {
-      onFire()
-    }, 6000)
+    fireTimers.current = [
+      setTimeout(() => setBurnPhase(2), 1800),
+      setTimeout(() => setBurnPhase(3), 4500),
+      setTimeout(() => onFire(), 6000),
+    ]
   }
 
   function handlePointerDown(e: React.PointerEvent) {

@@ -121,11 +121,13 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   }
 
   async function togglePin() {
-    await db.clients.update(clientId, { isPinned: !client!.isPinned })
+    if (!client) return
+    await db.clients.update(clientId, { isPinned: !client.isPinned })
   }
 
   async function toggleBlock() {
-    if (!client!.isBlocked) {
+    if (!client) return
+    if (!client.isBlocked) {
       setShowBlockConfirm(true)
       return
     }
@@ -368,6 +370,9 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-500 font-medium">Required</span>
                   )}
                   <button
+                    role="switch"
+                    aria-checked={client.requiresSafetyCheck || forcedOn}
+                    aria-label="Safety check-in"
                     onClick={() => {
                       if (forcedOn) return
                       db.clients.update(client.id, { requiresSafetyCheck: !client.requiresSafetyCheck })
@@ -699,6 +704,7 @@ function CopyRow({ icon, text, field, copiedField, onCopy }: {
       <span style={{ color: 'var(--text-secondary)' }}>{icon}</span>
       <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{text}</span>
       <button onClick={() => onCopy(text, field)} className="p-1.5 rounded-lg"
+        aria-label={`Copy ${field}`}
         style={{ color: copiedField === field ? '#22c55e' : 'var(--text-secondary)' }}>
         {copiedField === field ? <Check size={14} /> : <Copy size={14} />}
       </button>

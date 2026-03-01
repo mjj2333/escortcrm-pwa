@@ -145,53 +145,62 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
     setStep('review')
   }
 
-  function resolveField<K extends keyof Client>(key: K): Client[K] {
-    if (!targetClient) return sourceClient[key]
-    const pick = choices[key] ?? 'target'
-    return pick === 'source' ? sourceClient[key] : targetClient[key]
-  }
-
   async function executeMerge() {
     if (!targetClient) return
     setWorking(true)
 
     try {
+      // Re-read both clients fresh from DB to avoid stale prop data
+      const freshSource = await db.clients.get(sourceClient.id)
+      const freshTarget = await db.clients.get(targetClient.id)
+      if (!freshSource || !freshTarget) {
+        showToast('One of the clients no longer exists', 'error')
+        setWorking(false)
+        return
+      }
+
+      // resolveField uses choices to pick between source/target for each field
+      function resolveFresh<K extends keyof Client>(key: K): Client[K] {
+        const pick = choices[key] ?? 'target'
+        return pick === 'source' ? freshSource![key] : freshTarget![key]
+      }
+
       // 1. Build merged client record (keep target.id)
       const merged: Partial<Client> = {
-        alias:             resolveField('alias'),
-        nickname:          resolveField('nickname'),
-        phone:             resolveField('phone'),
-        email:             resolveField('email'),
-        telegram:          resolveField('telegram'),
-        signal:            resolveField('signal'),
-        whatsapp:          resolveField('whatsapp'),
-        preferredContact:  resolveField('preferredContact'),
-        secondaryContact:  resolveField('secondaryContact'),
-        screeningStatus:   resolveField('screeningStatus'),
-        riskLevel:         resolveField('riskLevel'),
-        isBlocked:         sourceClient.isBlocked || targetClient.isBlocked, // either blocked → blocked
-        notes:             resolveField('notes'),
-        preferences:       resolveField('preferences'),
-        boundaries:        resolveField('boundaries'),
-        referenceSource:   resolveField('referenceSource'),
-        verificationNotes: resolveField('verificationNotes'),
-        address:           resolveField('address'),
-        screeningMethod:   resolveField('screeningMethod'),
-        birthday:          resolveField('birthday'),
-        clientSince:       resolveField('clientSince'),
+        alias:             resolveFresh('alias'),
+        nickname:          resolveFresh('nickname'),
+        phone:             resolveFresh('phone'),
+        email:             resolveFresh('email'),
+        telegram:          resolveFresh('telegram'),
+        signal:            resolveFresh('signal'),
+        whatsapp:          resolveFresh('whatsapp'),
+        preferredContact:  resolveFresh('preferredContact'),
+        secondaryContact:  resolveFresh('secondaryContact'),
+        screeningStatus:   resolveFresh('screeningStatus'),
+        riskLevel:         resolveFresh('riskLevel'),
+        isBlocked:         freshSource.isBlocked || freshTarget.isBlocked, // either blocked → blocked
+        notes:             resolveFresh('notes'),
+        preferences:       resolveFresh('preferences'),
+        boundaries:        resolveFresh('boundaries'),
+        referenceSource:   resolveFresh('referenceSource'),
+        verificationNotes: resolveFresh('verificationNotes'),
+        address:           resolveFresh('address'),
+        screeningMethod:   resolveFresh('screeningMethod'),
+        birthday:          resolveFresh('birthday'),
+        clientSince:       resolveFresh('clientSince'),
         // Always use earliest dateAdded
-        dateAdded: sourceClient.dateAdded && targetClient.dateAdded
-          ? new Date(Math.min(new Date(sourceClient.dateAdded).getTime(), new Date(targetClient.dateAdded).getTime()))
-          : targetClient.dateAdded ?? sourceClient.dateAdded,
+        dateAdded: freshSource.dateAdded && freshTarget.dateAdded
+          ? new Date(Math.min(new Date(freshSource.dateAdded).getTime(), new Date(freshTarget.dateAdded).getTime()))
+          : freshTarget.dateAdded ?? freshSource.dateAdded,
         // Always use most recent lastSeen
-        lastSeen: sourceClient.lastSeen && targetClient.lastSeen
-          ? new Date(Math.max(new Date(sourceClient.lastSeen).getTime(), new Date(targetClient.lastSeen).getTime()))
-          : sourceClient.lastSeen ?? targetClient.lastSeen,
+        lastSeen: freshSource.lastSeen && freshTarget.lastSeen
+          ? new Date(Math.max(new Date(freshSource.lastSeen).getTime(), new Date(freshTarget.lastSeen).getTime()))
+          : freshSource.lastSeen ?? freshTarget.lastSeen,
         // Tags: merge both
-        tags: dedupeTags(targetClient.tags, sourceClient.tags),
+        tags: dedupeTags(freshTarget.tags, freshSource.tags),
         // Prefer pinned or safety check if either has it
-        isPinned: sourceClient.isPinned || targetClient.isPinned,
-        requiresSafetyCheck: sourceClient.requiresSafetyCheck || targetClient.requiresSafetyCheck,
+        isPinned: freshSource.isPinned || freshTarget.isPinned,
+        requiresSafetyCheck: freshSource.requiresSafetyCheck || freshTarget.requiresSafetyCheck,
       }
 
       await db.transaction('rw', [db.clients, db.bookings, db.incidents, db.journalEntries, db.screeningDocs], async () => {

@@ -111,15 +111,17 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
     if (next) setPreviewDoc(next)
   }
 
-  // Escape key to close preview
+  // Keyboard navigation for preview (Escape to close, arrows to navigate)
   useEffect(() => {
     if (!previewDoc) return
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') setPreviewDoc(null)
+      else if (e.key === 'ArrowLeft') navigatePreview(-1)
+      else if (e.key === 'ArrowRight') navigatePreview(1)
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [previewDoc])
+  }, [previewDoc, docs])
 
   const isImage = (doc: ScreeningDoc) => doc.mimeType.startsWith('image/')
 
@@ -178,6 +180,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
               {editable && (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDelete(doc) }}
+                  aria-label={`Delete ${doc.filename}`}
                   className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center bg-red-500 text-white shadow-md active:opacity-70"
                 >
                   <X size={10} />
@@ -208,10 +211,11 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
 
       {/* Full-screen preview overlay */}
       {previewDoc && previewUrl && (
-        <div className="fixed inset-0 z-[200] flex flex-col" style={{ backgroundColor: 'rgba(0,0,0,0.95)' }}>
+        <div className="fixed inset-0 z-[200] flex flex-col" role="dialog" aria-modal="true" aria-label="Document preview"
+          style={{ backgroundColor: 'rgba(0,0,0,0.95)' }}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 safe-top">
-            <button onClick={() => setPreviewDoc(null)} className="text-white/80 active:text-white">
+            <button onClick={() => setPreviewDoc(null)} className="text-white/80 active:text-white" aria-label="Close preview">
               <X size={24} />
             </button>
             <div className="text-center">
@@ -223,6 +227,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
             {editable ? (
               <button
                 onClick={() => handleDelete(previewDoc)}
+                aria-label="Delete document"
                 className="text-red-400 active:text-red-300"
               >
                 <Trash2 size={20} />
@@ -240,6 +245,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
                 {docs.findIndex(d => d.id === previewDoc.id) > 0 && (
                   <button
                     onClick={() => navigatePreview(-1)}
+                    aria-label="Previous document"
                     className="absolute left-2 z-10 w-10 h-10 rounded-full flex items-center justify-center active:opacity-70"
                     style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
                   >
@@ -249,6 +255,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
                 {docs.findIndex(d => d.id === previewDoc.id) < docs.length - 1 && (
                   <button
                     onClick={() => navigatePreview(1)}
+                    aria-label="Next document"
                     className="absolute right-2 z-10 w-10 h-10 rounded-full flex items-center justify-center active:opacity-70"
                     style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
                   >

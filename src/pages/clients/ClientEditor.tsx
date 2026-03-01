@@ -49,9 +49,12 @@ function ContactInput({ method, fieldMap }: {
 }
 
 function toLocalDateStr(d: Date): string {
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
+  // If the date is at exact midnight UTC (typical of stored date-only values),
+  // use UTC accessors to avoid timezone shift (e.g., UTC midnight → previous day in US)
+  const isUtcMidnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0
+  const yyyy = isUtcMidnight ? d.getUTCFullYear() : d.getFullYear()
+  const mm = String((isUtcMidnight ? d.getUTCMonth() : d.getMonth()) + 1).padStart(2, '0')
+  const dd = String(isUtcMidnight ? d.getUTCDate() : d.getDate()).padStart(2, '0')
   return `${yyyy}-${mm}-${dd}`
 }
 
