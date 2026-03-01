@@ -878,7 +878,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                 value={payMethod}
                 onChange={e => setPayMethod(e.target.value as PaymentMethod | '')}
                 className="w-full py-2 px-3 rounded-lg border-0 outline-none text-sm"
-                style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}
+                style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '16px' }}
               >
                 <option value="">Not specified</option>
                 {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
@@ -894,7 +894,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                 onChange={e => setPayNotes(e.target.value)}
                 placeholder="e.g. sent via e-Transfer"
                 className="w-full py-2 px-3 rounded-lg border-0 outline-none text-sm"
-                style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}
+                style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '16px' }}
               />
             </div>
 

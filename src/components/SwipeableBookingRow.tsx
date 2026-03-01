@@ -242,7 +242,8 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
       if (navigator.vibrate) navigator.vibrate(newStatus === 'Cancelled' ? [20, 50, 20] : 20)
       closePanel()
       if (newStatus === 'Completed' && onCompleted) {
-        setTimeout(() => onCompleted(booking), 300)
+        const freshForCallback = await db.bookings.get(booking.id)
+        setTimeout(() => onCompleted(freshForCallback ?? booking), 300)
       }
     } catch {
       showToast('Failed to update booking status', 'error')

@@ -220,6 +220,7 @@ function mergeSlots(slots: TimeSlot[]): TimeSlot[] {
   if (slots.length <= 1) return slots
 
   const sorted = [...slots].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start))
+    .map(s => ({ ...s }))
   const merged: TimeSlot[] = [sorted[0]]
 
   for (let i = 1; i < sorted.length; i++) {
