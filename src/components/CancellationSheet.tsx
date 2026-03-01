@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, formatCurrency, recordBookingPayment, newId } from '../db'
 import { showToast } from './Toast'
@@ -40,6 +40,17 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
       setFeeMethod('')
     }
   }, [booking?.id, mode])
+
+  // Escape key to close
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose()
+  }, [onClose])
+  useEffect(() => {
+    if (booking) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [booking, handleEscape])
 
   if (!booking) return null
 
@@ -131,7 +142,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div
         className="relative w-full max-w-lg rounded-t-2xl p-5 safe-bottom"

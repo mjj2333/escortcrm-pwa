@@ -44,7 +44,7 @@ export function useAutoStatusTransitions() {
       try {
         const now = Date.now()
         const bookings = await db.bookings.where('status').anyOf([
-          'To Be Confirmed', 'Pending Deposit', 'Confirmed', 'In Progress', 'Completed'
+          'Pending Deposit', 'Confirmed', 'In Progress', 'Completed'
         ]).toArray()
 
       for (const b of bookings) {

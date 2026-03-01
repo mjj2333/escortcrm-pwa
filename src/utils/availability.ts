@@ -39,7 +39,7 @@ function addMinutesToTime(time: string, minutes: number): string {
 /** Snap a time string down to the nearest half hour */
 function snapToHalfHour(time: string, roundUp = false): string {
   const mins = timeToMinutes(time)
-  const snapped = roundUp ? Math.ceil(mins / 30) * 30 : Math.floor(mins / 30) * 30
+  const snapped = Math.min(roundUp ? Math.ceil(mins / 30) * 30 : Math.floor(mins / 30) * 30, 1439)
   const h = Math.floor(snapped / 60) % 24
   const m = snapped % 60
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`

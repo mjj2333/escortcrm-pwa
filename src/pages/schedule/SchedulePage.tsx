@@ -684,6 +684,15 @@ function DayDetailModal({
     requestAnimationFrame(() => setVisible(true))
   }, [])
 
+  // Escape key to close
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') handleClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   function handleClose() {
     setVisible(false)
     setTimeout(onClose, 200)
@@ -693,6 +702,7 @@ function DayDetailModal({
     <div
       ref={backdropRef}
       className="fixed inset-0 z-50 flex items-end justify-center"
+      role="dialog" aria-modal="true"
       style={{
         backgroundColor: visible ? 'rgba(0,0,0,0.5)' : 'transparent',
         transition: 'background-color 0.2s',

@@ -244,8 +244,17 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
     setSent(true)
   }
 
+  // Escape key to close
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div
         className="relative w-full max-w-lg rounded-t-2xl safe-bottom flex flex-col"

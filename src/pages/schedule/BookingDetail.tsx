@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Clock, MapPin, Send,
@@ -61,6 +61,17 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const [showJournal, setShowJournal] = useState(false)
   const [showMessageSheet, setShowMessageSheet] = useState(false)
   const { expanded, toggle } = useAccordion(['details', 'pricing'])
+
+  // Escape key to close payment modal
+  const handlePaymentEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') setShowPaymentForm(false)
+  }, [])
+  useEffect(() => {
+    if (showPaymentForm) {
+      document.addEventListener('keydown', handlePaymentEscape)
+      return () => document.removeEventListener('keydown', handlePaymentEscape)
+    }
+  }, [showPaymentForm, handlePaymentEscape])
 
   // Journal entry for this booking
   const journalEntry = useLiveQuery(
@@ -811,7 +822,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
 
       {/* Record Payment Modal */}
       {showPaymentForm && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowPaymentForm(false)} />
           <div
             className="relative w-full max-w-lg rounded-t-2xl p-5 space-y-4 safe-bottom"

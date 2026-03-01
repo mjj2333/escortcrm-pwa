@@ -51,13 +51,18 @@ export function useBookingReminders(enabled: boolean) {
 
       try {
       const now = Date.now()
-      const bookings = await db.bookings.toArray()
-      const clients = await db.clients.toArray()
+      const bookings = await db.bookings.where('status').anyOf(
+        ['To Be Confirmed', 'Pending Deposit', 'Confirmed', 'In Progress']
+      ).toArray()
+
+      // Only load clients referenced by upcoming bookings
+      const clientIds = [...new Set(bookings.map(b => b.clientId).filter((id): id is string => !!id))]
+      const clients = clientIds.length > 0
+        ? await db.clients.where('id').anyOf(clientIds).toArray()
+        : []
       const clientMap = Object.fromEntries(clients.map(c => [c.id, c]))
 
       for (const b of bookings) {
-        if (b.status === 'Cancelled' || b.status === 'Completed' || b.status === 'No Show') continue
-
         const start = new Date(b.dateTime).getTime()
         const msBefore = start - now
 
@@ -68,7 +73,7 @@ export function useBookingReminders(enabled: boolean) {
         const key8h = `${b.id}-8h-directions`
         if (
           b.locationType === 'Incall' && b.venueId &&
-          msBefore > 0 && msBefore <= 8 * 60 * 60_000 && msBefore > (8 * 60 - 1.5) * 60_000 &&
+          msBefore > 0 && msBefore <= 8 * 60 * 60_000 &&
           !notifiedRef.current.has(key8h)
         ) {
           addNotified(key8h)
@@ -81,10 +86,9 @@ export function useBookingReminders(enabled: boolean) {
           })
         }
 
-        // 1 hour reminder (fire within a 90-second window around 60 min before to survive
-        // browser timer jitter — tabs in the background may defer setInterval by 30s+)
+        // 1 hour reminder — fires once when booking is within 60 min
         const key1h = `${b.id}-1h`
-        if (msBefore > 0 && msBefore <= 60 * 60_000 && msBefore > 58.5 * 60_000 && !notifiedRef.current.has(key1h)) {
+        if (msBefore > 0 && msBefore <= 60 * 60_000 && !notifiedRef.current.has(key1h)) {
           addNotified(key1h)
           new Notification('Booking in 1 hour', {
             body: `${name} — ${bookingDurationFormatted(b.duration)} ${b.locationType}`,
@@ -93,9 +97,9 @@ export function useBookingReminders(enabled: boolean) {
           })
         }
 
-        // 15 minute reminder (fire within a 90-second window around 15 min before)
+        // 15 minute reminder — fires once when booking is within 15 min
         const key15 = `${b.id}-15m`
-        if (msBefore > 0 && msBefore <= 15 * 60_000 && msBefore > 13.5 * 60_000 && !notifiedRef.current.has(key15)) {
+        if (msBefore > 0 && msBefore <= 15 * 60_000 && !notifiedRef.current.has(key15)) {
           addNotified(key15)
           new Notification('Booking in 15 minutes', {
             body: `${name} — ${bookingDurationFormatted(b.duration)} ${b.locationType}`,

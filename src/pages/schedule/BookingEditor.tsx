@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ChevronRight, User, UserPlus, Search, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
@@ -87,6 +87,17 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   // Availability conflict
   const [conflictWarning, setConflictWarning] = useState<{ reason: string; dayStatus: string; isDoubleBook: boolean } | null>(null)
 
+  // Escape key to dismiss conflict warning
+  const handleConflictEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') setConflictWarning(null)
+  }, [])
+  useEffect(() => {
+    if (conflictWarning) {
+      document.addEventListener('keydown', handleConflictEscape)
+      return () => document.removeEventListener('keydown', handleConflictEscape)
+    }
+  }, [conflictWarning, handleConflictEscape])
+
   // Reset form state when modal opens (matches ClientEditor, TransactionEditor, etc.)
   useEffect(() => {
     if (isOpen) {
@@ -163,6 +174,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
   async function createNewClientInline() {
     if (!newClientAlias.trim()) return
+    try {
     if (!await canAddClient()) {
       showToast('Free plan limit reached — upgrade to add more clients')
       return
@@ -196,6 +208,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
     setNewClientScreeningMethod('')
     setNewClientPreferences('')
     setNewClientBoundaries('')
+    } catch {
+      showToast('Failed to create client', 'error')
+    }
   }
 
   function selectServiceRate(rateDuration: number, rate: number) {
@@ -405,7 +420,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
               {/* Client list */}
               <div className="max-h-40 overflow-y-auto">
                 {filteredClients.map(c => (
-                  <button key={c.id}
+                  <button key={c.id} type="button"
                     onClick={() => { setClientId(c.id); setShowClientPicker(false); setClientSearch('') }}
                     className="flex items-center gap-2 px-3 py-2.5 w-full text-left active:bg-white/5"
                     style={{ borderTop: '1px solid var(--border)' }}>
@@ -430,6 +445,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
               {/* New Client button */}
               <button
+                type="button"
                 onClick={() => {
                   setShowNewClient(true)
                   if (clientSearch.trim() && !filteredClients.length) setNewClientAlias(clientSearch.trim())
@@ -539,9 +555,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                     style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }} />
 
                   <div className="flex gap-2 pt-1">
-                    <button onClick={() => { setShowNewClient(false); setNewClientAlias(''); setNewClientPhone('') }}
+                    <button type="button" onClick={() => { setShowNewClient(false); setNewClientAlias(''); setNewClientPhone('') }}
                       className="flex-1 py-2 rounded-lg text-sm" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
-                    <button onClick={createNewClientInline} disabled={!newClientAlias.trim()}
+                    <button type="button" onClick={createNewClientInline} disabled={!newClientAlias.trim()}
                       className={`flex-1 py-2 rounded-lg text-sm font-semibold ${newClientAlias.trim() ? 'bg-purple-600 text-white' : 'opacity-40 bg-purple-600 text-white'}`}>
                       Create & Select
                     </button>
@@ -650,6 +666,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
           {locationType === 'Incall' && (
             <>
               <button
+                type="button"
                 onClick={() => setShowVenuePicker(true)}
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg mb-1"
                 style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
@@ -661,6 +678,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
               </button>
               {venueId && (
                 <button
+                  type="button"
                   onClick={() => { setVenueId(''); setVenueName(''); setLocationAddress('') }}
                   className="text-xs text-purple-500 mb-1 px-1"
                 >
@@ -757,6 +775,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
     {/* Availability Conflict Warning — outside Modal to avoid transform containing block */}
     {conflictWarning && (
       <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
+        role="dialog" aria-modal="true"
         style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setConflictWarning(null)}>
         <div className="w-full max-w-sm rounded-2xl p-6"
           style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}

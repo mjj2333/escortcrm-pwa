@@ -25,6 +25,12 @@ export function SessionTimer({ startTime, durationMin }: SessionTimerProps) {
     return () => clearInterval(interval)
   }, [])
 
+  // Reset vibration refs when booking changes
+  useEffect(() => {
+    vibratedWarning.current = false
+    vibratedEnd.current = false
+  }, [startTime, durationMin])
+
   const endMs = new Date(startTime).getTime() + durationMin * 60000
   const remaining = endMs - now
   const isOvertime = remaining <= 0

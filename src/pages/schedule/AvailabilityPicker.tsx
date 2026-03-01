@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { startOfDay } from 'date-fns'
 import { fmtShortDayDate } from '../../utils/dateFormat'
 import { db, newId } from '../../db'
@@ -23,12 +23,24 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
   const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus | null>(current?.status ?? null)
   const [startTime, setStartTime] = useState(current?.startTime ?? '10:00')
   const [endTime, setEndTime] = useState(current?.endTime ?? '22:00')
+  const [saving, setSaving] = useState(false)
+
+  // Escape key to close
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
 
   async function handleStatusTap(status: AvailabilityStatus) {
+    if (saving) return
     setSelectedStatus(status)
 
     // Off / Busy: save immediately
     if (status === 'Off' || status === 'Busy') {
+      setSaving(true)
       try {
         const dayStart = startOfDay(date)
         const existing = await db.availability.where('date').equals(dayStart).first()
@@ -55,13 +67,20 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
         onClose()
       } catch {
         showToast('Failed to save availability', 'error')
+      } finally {
+        setSaving(false)
       }
     }
     // Available / Limited: user configures then taps Save
   }
 
   async function handleSave() {
-    if (!selectedStatus) return
+    if (!selectedStatus || saving) return
+    if (selectedStatus === 'Available' && startTime >= endTime) {
+      showToast('Start time must be before end time', 'error')
+      return
+    }
+    setSaving(true)
     try {
       const dayStart = startOfDay(date)
       const existing = await db.availability.where('date').equals(dayStart).first()
@@ -88,10 +107,14 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
       onClose()
     } catch {
       showToast('Failed to save availability', 'error')
+    } finally {
+      setSaving(false)
     }
   }
 
   async function handleClear() {
+    if (saving) return
+    setSaving(true)
     try {
       const dayStart = startOfDay(date)
       const existing = await db.availability.where('date').equals(dayStart).first()
@@ -99,6 +122,8 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
       onClose()
     } catch {
       showToast('Failed to clear availability', 'error')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -107,7 +132,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
   const showSaveButton = selectedStatus === 'Available' || selectedStatus === 'Limited'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50"
