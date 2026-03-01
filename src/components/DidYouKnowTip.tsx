@@ -14,8 +14,10 @@ const tips: Tip[] = [
     id: 'stealth',
     text: 'Triple-tap Home to disguise the app as a calculator. Enable in Settings \u2192 Stealth Mode.',
     skipIf: () => {
-      const raw = localStorage.getItem(lsKey('stealthEnabled'))
-      return raw ? JSON.parse(raw) === true : false
+      try {
+        const raw = localStorage.getItem(lsKey('stealthEnabled'))
+        return raw ? JSON.parse(raw) === true : false
+      } catch { return false }
     },
   },
   {

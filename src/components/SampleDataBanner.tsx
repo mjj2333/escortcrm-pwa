@@ -21,9 +21,13 @@ export function SampleDataBanner() {
 
   async function handleClear() {
     setClearing(true)
-    await clearSampleData()
+    try {
+      await clearSampleData()
+      setVisible(false)
+    } catch {
+      // Keep banner visible so user can retry
+    }
     setClearing(false)
-    setVisible(false)
   }
 
   return (

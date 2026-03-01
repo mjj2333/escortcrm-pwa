@@ -4,6 +4,8 @@ import { Plus, Trash2, ChevronDown } from 'lucide-react'
 import { db, newId, bookingDurationFormatted, formatCurrency, CURRENCY_KEY, DEFAULT_CURRENCY } from '../../db'
 import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldTextInput, fieldInputStyle, deriveCurrencySymbol } from '../../components/FormFields'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { showToast } from '../../components/Toast'
 import { useLocalStorage } from '../../hooks/useSettings'
 
 interface ProfilePageProps {
@@ -55,8 +57,9 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
   const serviceRates = useLiveQuery(() => db.serviceRates.orderBy('sortOrder').toArray()) ?? []
   const [showAddRate, setShowAddRate] = useState(false)
   const [newRateName, setNewRateName] = useState('')
-  const [newRateDuration, setNewRateDuration] = useState(1)
+  const [newRateDurationText, setNewRateDurationText] = useState('')
   const [newRateAmount, setNewRateAmount] = useState(0)
+  const [deleteRateId, setDeleteRateId] = useState<string | null>(null)
 
   // Default deposit
   const [depositType, setDepositType] = useLocalStorage<'percent' | 'flat'>('defaultDepositType', 'percent')
@@ -64,28 +67,45 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
   const [depositFlat, setDepositFlat] = useLocalStorage('defaultDepositFlat', 0)
 
   async function addRate() {
-    if (!newRateName.trim() || newRateAmount <= 0 || newRateDuration <= 0) return
-    const durationInMinutes = Math.round(newRateDuration * 60)
-    await db.serviceRates.add({
-      id: newId(),
-      name: newRateName.trim(),
-      duration: durationInMinutes,
-      rate: newRateAmount,
-      isActive: true,
-      sortOrder: serviceRates.length,
-    })
-    setNewRateName('')
-    setNewRateDuration(1)
-    setNewRateAmount(0)
-    setShowAddRate(false)
+    const duration = parseFloat(newRateDurationText)
+    if (!newRateName.trim() || newRateAmount <= 0 || isNaN(duration) || duration <= 0) return
+    const durationInMinutes = Math.round(duration * 60)
+    if (durationInMinutes < 1) return
+    try {
+      const maxOrder = serviceRates.reduce((max, r) => Math.max(max, r.sortOrder), -1)
+      await db.serviceRates.add({
+        id: newId(),
+        name: newRateName.trim(),
+        duration: durationInMinutes,
+        rate: Math.round(newRateAmount * 100) / 100,
+        isActive: true,
+        sortOrder: maxOrder + 1,
+      })
+      setNewRateName('')
+      setNewRateDurationText('')
+      setNewRateAmount(0)
+      setShowAddRate(false)
+    } catch {
+      showToast('Failed to add rate', 'error')
+    }
   }
 
-  async function deleteRate(id: string) {
-    await db.serviceRates.delete(id)
+  async function confirmDeleteRate() {
+    if (!deleteRateId) return
+    try {
+      await db.serviceRates.delete(deleteRateId)
+    } catch {
+      showToast('Failed to delete rate', 'error')
+    }
+    setDeleteRateId(null)
   }
 
   async function toggleRate(id: string, active: boolean) {
-    await db.serviceRates.update(id, { isActive: active })
+    try {
+      await db.serviceRates.update(id, { isActive: active })
+    } catch {
+      showToast('Failed to update rate', 'error')
+    }
   }
 
   function handleClose() {
@@ -145,7 +165,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
                 className={`text-xs px-2 py-1 rounded ${rate.isActive ? 'bg-green-500/15 text-green-500' : 'bg-gray-500/15 text-gray-500'}`}>
                 {rate.isActive ? 'Active' : 'Off'}
               </button>
-              <button type="button" onClick={() => deleteRate(rate.id)} className="text-red-500 p-1">
+              <button type="button" onClick={() => setDeleteRateId(rate.id)} className="text-red-500 p-1">
                 <Trash2 size={14} />
               </button>
             </div>
@@ -161,8 +181,8 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
                 <div className="flex-1">
                   <label className="text-[10px] uppercase block mb-1" style={{ color: 'var(--text-secondary)' }}>Duration (Hours)</label>
                   <input type="text" inputMode="decimal" placeholder="0"
-                    value={newRateDuration > 0 ? String(newRateDuration) : ''}
-                    onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '' || raw === '.') { setNewRateDuration(0); return }; const val = parseFloat(raw); if (!isNaN(val)) setNewRateDuration(val) }}
+                    value={newRateDurationText}
+                    onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if ((raw.match(/\./g) || []).length > 1) return; setNewRateDurationText(raw) }}
                     className="w-full text-sm bg-transparent outline-none py-1"
                     style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }} />
                 </div>
@@ -178,8 +198,8 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowAddRate(false)}
                   className="flex-1 py-2 rounded-lg text-sm" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
-                <button type="button" onClick={addRate} disabled={!newRateName.trim() || newRateAmount <= 0 || newRateDuration <= 0}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold text-white ${newRateName.trim() && newRateAmount > 0 && newRateDuration > 0 ? 'bg-purple-600 active:bg-purple-700' : 'opacity-40 bg-purple-600'}`}>Add Rate</button>
+                <button type="button" onClick={addRate} disabled={!newRateName.trim() || newRateAmount <= 0 || !newRateDurationText || parseFloat(newRateDurationText) <= 0}
+                  className={`flex-1 py-2 rounded-lg text-sm font-bold text-white ${newRateName.trim() && newRateAmount > 0 && parseFloat(newRateDurationText) > 0 ? 'bg-purple-600 active:bg-purple-700' : 'opacity-40 bg-purple-600'}`}>Add Rate</button>
               </div>
             </div>
           ) : (
@@ -377,6 +397,14 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
 
         <div className="h-8" />
       </div>
+      <ConfirmDialog
+        isOpen={!!deleteRateId}
+        title="Delete Rate"
+        message="Remove this service rate?"
+        confirmLabel="Delete"
+        onConfirm={confirmDeleteRate}
+        onCancel={() => setDeleteRateId(null)}
+      />
     </Modal>
   )
 }

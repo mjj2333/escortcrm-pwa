@@ -41,8 +41,12 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
     }
     thumbUrlsRef.current = next
     forceRender(n => n + 1)
-    return () => { for (const url of thumbUrlsRef.current.values()) URL.revokeObjectURL(url) }
   }, [docIdKey])
+
+  // Revoke all blob URLs on unmount only
+  useEffect(() => {
+    return () => { for (const url of thumbUrlsRef.current.values()) URL.revokeObjectURL(url) }
+  }, [])
 
   useEffect(() => {
     if (previewDoc) {
@@ -56,6 +60,7 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files
     if (!files) return
+    let uploaded = 0
     for (const file of Array.from(files)) {
       if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
         showToast('Only images and PDFs are supported')
@@ -73,9 +78,10 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
         data: file,
         uploadedAt: new Date(),
       })
+      uploaded++
     }
     e.target.value = ''
-    showToast(`${files.length} file${files.length > 1 ? 's' : ''} uploaded`)
+    if (uploaded > 0) showToast(`${uploaded} file${uploaded > 1 ? 's' : ''} uploaded`)
   }
 
   async function handleDelete(docId: string) {

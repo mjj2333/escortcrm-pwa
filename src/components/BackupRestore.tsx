@@ -47,7 +47,9 @@ async function encryptData(data: string, password: string): Promise<string> {
 }
 
 async function decryptData(encoded: string, password: string): Promise<string> {
-  const combined = new Uint8Array(atob(encoded).split('').map(c => c.charCodeAt(0)))
+  const binary = atob(encoded)
+  const combined = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) combined[i] = binary.charCodeAt(i)
   const salt = combined.slice(0, 16)
   const iv = combined.slice(16, 28)
   const ciphertext = combined.slice(28)
@@ -129,6 +131,7 @@ const PROFILE_LS_KEYS = [
   'goalWeekly', 'goalMonthly', 'goalQuarterly', 'goalYearly',
   'darkMode', 'oledBlack', 'remindersEnabled',
   'financeCards_v2', 'financeHintDismissed',
+  'defaultChecklistItems', 'stealthEnabled',
 ]
 
 export async function createBackup(): Promise<BackupPayload> {

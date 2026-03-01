@@ -332,7 +332,14 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showSendDirections, setShowSendDirections] = useState(false)
 
-  if (!venue) return null
+  if (!venue) return (
+    <div className="flex flex-col items-center justify-center p-8 text-center" style={{ minHeight: '40vh' }}>
+      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Venue not found or loading...</p>
+      <button onClick={onBack} className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97]">
+        Go back
+      </button>
+    </div>
+  )
 
   function copyText(text: string, field: string) {
     navigator.clipboard.writeText(text).catch(() => {})
@@ -931,7 +938,7 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
       costPerHour: costPerHour || undefined,
       costPerDay: costPerDay || undefined,
       costNotes: costNotes.trim() || undefined,
-      hotelFriendly: hotelFriendly || undefined,
+      hotelFriendly: venueType === 'Hotel' ? (hotelFriendly || undefined) : undefined,
       notes: notes.trim() || undefined,
       updatedAt: new Date(),
     }

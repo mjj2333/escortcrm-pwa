@@ -279,9 +279,14 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
           {/* Notifications */}
           <SectionLabel label="Notifications" />
           <FieldToggle label="Booking Reminders" value={remindersEnabled} onChange={(val) => {
+            if (val && !('Notification' in window)) {
+              showToast('Notifications are not supported in this browser', 'error')
+              return
+            }
             if (val && 'Notification' in window && Notification.permission === 'default') {
               Notification.requestPermission().then(p => {
                 setRemindersEnabled(p === 'granted')
+                if (p !== 'granted') showToast('Notification permission denied', 'error')
               })
             } else {
               setRemindersEnabled(val)
