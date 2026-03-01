@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { newId } from '../db'
+import { lsKey } from '../hooks/useSettings'
 import type { ClientTag } from '../types'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -75,10 +76,10 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
     }
     onChange([...selected, tag])
     // Save to localStorage for reuse
-    const saved = JSON.parse(localStorage.getItem('customTags') ?? '[]') as ClientTag[]
+    const saved = JSON.parse(localStorage.getItem(lsKey('customTags')) ?? '[]') as ClientTag[]
     if (!saved.some(t => t.name === name)) {
       saved.push(tag)
-      localStorage.setItem('customTags', JSON.stringify(saved))
+      localStorage.setItem(lsKey('customTags'), JSON.stringify(saved))
     }
     setCustomName('')
     setCustomIcon('')
@@ -90,7 +91,7 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
   }
 
   // Merge preset + saved custom for the picker
-  const allCustom = JSON.parse(localStorage.getItem('customTags') ?? '[]') as ClientTag[]
+  const allCustom = JSON.parse(localStorage.getItem(lsKey('customTags')) ?? '[]') as ClientTag[]
 
   return (
     <div>

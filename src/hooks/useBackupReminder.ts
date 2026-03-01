@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { db } from '../db'
+import { lsKey } from './useSettings'
 
-export const LAST_BACKUP_KEY = 'lastBackupAt'
-export const BACKUP_REMINDER_INTERVAL_KEY = 'backupReminderIntervalDays'
+export const LAST_BACKUP_KEY = lsKey('lastBackupAt')
+export const BACKUP_REMINDER_INTERVAL_KEY = lsKey('backupReminderIntervalDays')
 export const DEFAULT_REMINDER_INTERVAL = 14 // days
 
 /** Records the current timestamp as the last successful backup time. */

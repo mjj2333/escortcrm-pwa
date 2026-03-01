@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { fmtMediumDate } from '../../utils/dateFormat'
 import { db, newId, formatCurrency } from '../../db'
+import { lsKey } from '../../hooks/useSettings'
 import { Card } from '../../components/Card'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { SectionLabel, FieldTextInput, FieldSelect, FieldCurrency, FieldHint, fieldInputStyle } from '../../components/FormFields'
@@ -611,8 +612,8 @@ function CopyRow({ icon, label: _label, text, copied, onCopy }: {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function buildDirectionsMessage(_venueName: string, directions: string, address: string): string {
-  const workingName = localStorage.getItem('profileWorkingName')?.replace(/^"|"$/g, '') || ''
-  const raw = localStorage.getItem('directionsTemplate')
+  const workingName = localStorage.getItem(lsKey('profileWorkingName'))?.replace(/^"|"$/g, '') || ''
+  const raw = localStorage.getItem(lsKey('directionsTemplate'))
   const defaultTemplate = 'Hi! Here are the directions:\n\n📍 {address}\n\n{directions}\n\n— {name}'
   let template = defaultTemplate
   if (raw) {

@@ -6,6 +6,7 @@ import { fmtFullDayDate, fmtTime } from '../utils/dateFormat'
 import { showToast } from './Toast'
 import { contactMethodMeta, getContactValue, openChannel } from '../utils/contactChannel'
 import { fieldInputStyle } from './FormFields'
+import { lsKey } from '../hooks/useSettings'
 import type { Booking, Client, ContactMethod, IncallVenue } from '../types'
 
 const contactMethodIcons: Record<ContactMethod, typeof Phone> = {
@@ -87,7 +88,7 @@ const TEMPLATES: TemplateConfig[] = [
 // ── Placeholder resolution ──────────────────────────────────────
 
 function loadTemplate(config: TemplateConfig): string {
-  const raw = localStorage.getItem(config.storageKey)
+  const raw = localStorage.getItem(lsKey(config.storageKey))
   if (!raw) return config.defaultText
   try { return JSON.parse(raw) } catch { return raw }
 }
@@ -100,19 +101,19 @@ function resolveTemplatePlaceholders(
   totalPaid: number,
   serviceRates: { name: string; duration: number; rate: number }[],
 ): string {
-  const workingName = localStorage.getItem('profileWorkingName')?.replace(/^"|"$/g, '') || ''
-  const workEmail = localStorage.getItem('profileWorkEmail')?.replace(/^"|"$/g, '') || ''
-  const workPhone = localStorage.getItem('profileWorkPhone')?.replace(/^"|"$/g, '') || ''
-  const website = localStorage.getItem('profileWebsite')?.replace(/^"|"$/g, '') || ''
+  const workingName = localStorage.getItem(lsKey('profileWorkingName'))?.replace(/^"|"$/g, '') || ''
+  const workEmail = localStorage.getItem(lsKey('profileWorkEmail'))?.replace(/^"|"$/g, '') || ''
+  const workPhone = localStorage.getItem(lsKey('profileWorkPhone'))?.replace(/^"|"$/g, '') || ''
+  const website = localStorage.getItem(lsKey('profileWebsite'))?.replace(/^"|"$/g, '') || ''
 
   // Deposit string
   let depositStr: string
   if (booking && booking.depositAmount > 0) {
     depositStr = formatCurrency(booking.depositAmount)
   } else {
-    const depositType = localStorage.getItem('defaultDepositType')?.replace(/^"|"$/g, '') || 'percent'
-    const depositPct = parseInt(localStorage.getItem('defaultDepositPercentage')?.replace(/^"|"$/g, '') || '25')
-    const depositFlat = parseFloat(localStorage.getItem('defaultDepositFlat')?.replace(/^"|"$/g, '') || '0')
+    const depositType = localStorage.getItem(lsKey('defaultDepositType'))?.replace(/^"|"$/g, '') || 'percent'
+    const depositPct = parseInt(localStorage.getItem(lsKey('defaultDepositPercentage'))?.replace(/^"|"$/g, '') || '25')
+    const depositFlat = parseFloat(localStorage.getItem(lsKey('defaultDepositFlat'))?.replace(/^"|"$/g, '') || '0')
     if (depositType === 'flat' && depositFlat > 0) {
       depositStr = formatCurrency(depositFlat)
     } else if (depositPct > 0) {

@@ -1,4 +1,5 @@
 import { db, newId } from '../db'
+import { lsKey } from '../hooks/useSettings'
 import type {
   Client, Booking, Transaction, SafetyContact, SafetyCheck,
   ServiceRate, DayAvailability, BookingPayment, IncallVenue,
@@ -91,8 +92,9 @@ export async function seedSampleData(): Promise<void> {
   // pick up the new values (ProfilePage is always in the DOM).
   function setLS(key: string, value: unknown) {
     const json = JSON.stringify(value)
-    localStorage.setItem(key, json)
-    window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key, value } }))
+    const prefixedKey = lsKey(key)
+    localStorage.setItem(prefixedKey, json)
+    window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key: prefixedKey, value } }))
   }
   setLS('profileWorkingName', 'Valentina Rose')
   setLS('profileWorkEmail', 'valentina@protonmail.com')
@@ -829,14 +831,15 @@ export async function clearSampleData(): Promise<void> {
   const profileKeys: string[] = profileKeysRaw ? JSON.parse(profileKeysRaw) : []
 
   function clearLS(key: string, defaultValue: unknown) {
-    localStorage.removeItem(key)
-    window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key, value: defaultValue } }))
+    const prefixedKey = lsKey(key)
+    localStorage.removeItem(prefixedKey)
+    window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key: prefixedKey, value: defaultValue } }))
   }
 
   for (const key of profileKeys) {
     if (key in sampleDefaults) {
       // Only clear if user hasn't customized it
-      const current = localStorage.getItem(key)
+      const current = localStorage.getItem(lsKey(key))
       if (current !== null) {
         try {
           const parsed = JSON.parse(current)

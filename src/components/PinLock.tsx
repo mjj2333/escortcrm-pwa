@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Shield, Delete, Fingerprint } from 'lucide-react'
 import { isBiometricEnabled, assertBiometric } from '../hooks/useBiometric'
+import { lsKey } from '../hooks/useSettings'
 
 /** SHA-256 hash a PIN string → hex. Used for storage and comparison so
  *  the plaintext PIN never lives in localStorage. */
@@ -162,7 +163,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
         if (cancelled) { verifyingRef.current = false; return }
 
         // Duress PIN check — wipe all data silently
-        const duressRaw = localStorage.getItem('duressPin')
+        const duressRaw = localStorage.getItem(lsKey('duressPin'))
         const duressHash = duressRaw ? duressRaw.replace(/^"|"$/g, '') : ''
         if (duressHash && hash === duressHash) {
           setWiping(true)

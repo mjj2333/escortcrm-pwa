@@ -18,7 +18,7 @@ import { AdminPanel } from '../../components/AdminPanel'
 import { getActivation, isActivated, isBetaTester } from '../../components/Paywall'
 import { usePlanLimits, isPro } from '../../components/planLimits'
 import { ProBadge } from '../../components/ProGate'
-import { useLocalStorage } from '../../hooks/useSettings'
+import { useLocalStorage, lsKey } from '../../hooks/useSettings'
 import {
   BACKUP_REMINDER_INTERVAL_KEY, DEFAULT_REMINDER_INTERVAL,
   daysSinceBackup, LAST_BACKUP_KEY, recordBackupTimestamp,
@@ -104,7 +104,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
       const file = new File([json], filename, { type: 'application/json' })
 
       // 2. Get email from profile
-      const raw = localStorage.getItem('profileWorkEmail')
+      const raw = localStorage.getItem(lsKey('profileWorkEmail'))
       const email = raw ? raw.replace(/^"|"$/g, '') : ''
 
       // 3. Try Web Share API (works great on mobile — lets user pick email app)
@@ -162,7 +162,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
       await db.delete()
       const preserveKeys = [
         '_cstate_v2', '_cstate_rv', LAST_BACKUP_KEY, BACKUP_REMINDER_INTERVAL_KEY,
-        'darkMode', 'oledBlack', 'currency', 'pwaInstallDismissed',
+        lsKey('darkMode'), lsKey('oledBlack'), lsKey('currency'), lsKey('pwaInstallDismissed'),
       ]
       const saved = preserveKeys.map(k => [k, localStorage.getItem(k)] as const)
       localStorage.clear()
@@ -516,7 +516,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
       {/* Biometric PIN Verify Overlay */}
       {showBiometricVerify && (
         <PinLock
-          correctPin={localStorage.getItem('pinCode')?.replace(/^"|"$/g, '') || ''}
+          correctPin={localStorage.getItem(lsKey('pinCode'))?.replace(/^"|"$/g, '') || ''}
           isSetup={false}
           onCancel={() => setShowBiometricVerify(false)}
           onUnlock={async (plaintextPin) => {
@@ -534,7 +534,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
         isOpen={showResetConfirm}
         title="Reset All Data"
         message={(() => {
-          const raw = localStorage.getItem('profileWorkEmail')
+          const raw = localStorage.getItem(lsKey('profileWorkEmail'))
           const email = raw ? raw.replace(/^"|"$/g, '') : ''
           return email
             ? `A full backup will be created and sent to ${email} before wiping. This cannot be undone.`
@@ -561,7 +561,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
           onCancel={() => setShowDuressSetup(false)}
           onUnlock={() => setShowDuressSetup(false)}
           onSetPin={async (hash) => {
-            const mainPinHash = localStorage.getItem('pinCode')?.replace(/^"|"$/g, '') || ''
+            const mainPinHash = localStorage.getItem(lsKey('pinCode'))?.replace(/^"|"$/g, '') || ''
             if (hash === mainPinHash) {
               showToast('Duress PIN must differ from your main PIN')
               setShowDuressSetup(false)

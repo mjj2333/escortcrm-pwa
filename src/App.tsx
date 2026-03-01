@@ -6,7 +6,7 @@ import { ClientsPage } from './pages/clients/ClientsPage'
 import { SchedulePage } from './pages/schedule/SchedulePage'
 import { FinancesPage } from './pages/finances/FinancesPage'
 import { SafetyPage } from './pages/safety/SafetyPage'
-import { useLocalStorage } from './hooks/useSettings'
+import { useLocalStorage, lsKey } from './hooks/useSettings'
 
 // Lazy-load secondary screens — only fetched when the user navigates to them
 const ClientDetail = lazy(() => import('./pages/clients/ClientDetail').then(m => ({ default: m.ClientDetail })))
@@ -128,8 +128,8 @@ export default function App() {
 
   useEffect(() => {
     // Apply dark mode + OLED setting from localStorage
-    const dm = localStorage.getItem('darkMode')
-    const oled = localStorage.getItem('oledBlack')
+    const dm = localStorage.getItem(lsKey('darkMode'))
+    const oled = localStorage.getItem(lsKey('oledBlack'))
     const isDark = dm === null ? true : JSON.parse(dm)
     const isOled = oled === null ? true : JSON.parse(oled)
     document.documentElement.classList.toggle('dark', isDark)

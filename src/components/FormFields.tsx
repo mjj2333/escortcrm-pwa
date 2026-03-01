@@ -1,4 +1,5 @@
 import React from 'react'
+import { lsKey } from '../hooks/useSettings'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SHARED FORM FIELD COMPONENTS (vertical label style)
@@ -81,7 +82,7 @@ export function FieldTextArea({ label, value, onChange, placeholder, hint, icon 
 
 function deriveCurrencySymbol(): string {
   try {
-    const raw = localStorage.getItem('currency') || 'USD'
+    const raw = localStorage.getItem(lsKey('currency')) || 'USD'
     let currency: string
     try { currency = JSON.parse(raw) } catch { currency = raw }
     const parts = new Intl.NumberFormat(navigator.language || 'en-US', {

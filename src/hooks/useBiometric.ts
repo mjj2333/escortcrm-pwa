@@ -16,11 +16,12 @@
 //   This is the correct and honest value proposition for a PWA auth layer.
 
 import { useState, useEffect } from 'react'
+import { lsKey } from './useSettings'
 
-const BIOMETRIC_ENABLED_KEY    = 'biometricEnabled'
-const BIOMETRIC_CRED_ID_KEY    = 'biometricCredId'
-const BIOMETRIC_ENC_PIN_KEY    = 'biometricEncPin'   // base64 IV+ciphertext
-const BIOMETRIC_WRAP_KEY_KEY   = 'biometricWrapKey'  // base64 raw AES key
+const BIOMETRIC_ENABLED_KEY    = lsKey('biometricEnabled')
+const BIOMETRIC_CRED_ID_KEY    = lsKey('biometricCredId')
+const BIOMETRIC_ENC_PIN_KEY    = lsKey('biometricEncPin')   // base64 IV+ciphertext
+const BIOMETRIC_WRAP_KEY_KEY   = lsKey('biometricWrapKey')  // base64 raw AES key
 
 // ── Helpers ────────────────────────────────────────────────
 

@@ -2,6 +2,7 @@
 // Registers the service worker, detects updates, and handles PWA install prompt.
 
 import { useState, useEffect, useCallback } from 'react'
+import { lsKey } from './useSettings'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>
@@ -21,7 +22,7 @@ export function useServiceWorker() {
     if (isStandalone) return
 
     // User previously chose "Don't ask again"
-    const dismissed = localStorage.getItem('installDismissed')
+    const dismissed = localStorage.getItem(lsKey('installDismissed'))
     if (dismissed === 'true') return
 
     // Capture the beforeinstallprompt event for custom install button
@@ -94,7 +95,7 @@ export function useServiceWorker() {
   const dismissInstall = useCallback((neverAskAgain: boolean) => {
     setInstallPrompt(null)
     if (neverAskAgain) {
-      localStorage.setItem('installDismissed', 'true')
+      localStorage.setItem(lsKey('installDismissed'), 'true')
     }
   }, [])
 

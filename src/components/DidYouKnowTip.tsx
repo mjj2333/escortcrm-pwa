@@ -1,5 +1,5 @@
 import { Lightbulb, X } from 'lucide-react'
-import { useLocalStorage } from '../hooks/useSettings'
+import { useLocalStorage, lsKey } from '../hooks/useSettings'
 import { isBiometricEnabled } from '../hooks/useBiometric'
 import { daysSinceBackup } from '../hooks/useBackupReminder'
 
@@ -14,7 +14,7 @@ const tips: Tip[] = [
     id: 'stealth',
     text: 'Triple-tap Home to disguise the app as a calculator. Enable in Settings \u2192 Stealth Mode.',
     skipIf: () => {
-      const raw = localStorage.getItem('stealthEnabled')
+      const raw = localStorage.getItem(lsKey('stealthEnabled'))
       return raw ? JSON.parse(raw) === true : false
     },
   },
@@ -22,7 +22,7 @@ const tips: Tip[] = [
     id: 'duress',
     text: 'Set a duress PIN that silently erases all data if entered on the lock screen. Configure in Settings \u2192 Security.',
     skipIf: () => {
-      const raw = localStorage.getItem('duressPin')
+      const raw = localStorage.getItem(lsKey('duressPin'))
       return raw ? raw.replace(/^"|"$/g, '') !== '' : false
     },
   },

@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
+import { lsKey } from '../hooks/useSettings'
 import type {
   Client, Booking, Transaction, DayAvailability,
   SafetyContact, SafetyCheck, IncidentLog, ServiceRate, BookingPayment, JournalEntry, ScreeningDoc,
@@ -438,7 +439,7 @@ export const DEFAULT_CURRENCY = 'USD'
 
 export function getCurrency(): string {
   try {
-    const raw = localStorage.getItem(CURRENCY_KEY)
+    const raw = localStorage.getItem(lsKey(CURRENCY_KEY))
     if (!raw) return DEFAULT_CURRENCY
     // useLocalStorage stores values with JSON.stringify, so we need to parse
     try { return JSON.parse(raw) } catch { return raw }

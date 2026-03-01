@@ -5,6 +5,7 @@ import {
 import { db } from '../db'
 import { ConfirmDialog } from './ConfirmDialog'
 import { recordBackupTimestamp } from '../hooks/useBackupReminder'
+import { lsKey } from '../hooks/useSettings'
 
 interface BackupRestoreProps {
   isOpen: boolean
@@ -149,7 +150,7 @@ export async function createBackup(): Promise<BackupPayload> {
   // Snapshot localStorage profile settings
   const profile: Record<string, string> = {}
   for (const key of PROFILE_LS_KEYS) {
-    const val = localStorage.getItem(key)
+    const val = localStorage.getItem(lsKey(key))
     if (val !== null) profile[key] = val
   }
 
@@ -311,12 +312,12 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   if (payload.profile && typeof payload.profile === 'object') {
     for (const [key, val] of Object.entries(payload.profile)) {
       if (typeof val === 'string') {
-        localStorage.setItem(key, val)
+        localStorage.setItem(lsKey(key), val)
         // Notify mounted useLocalStorage hooks
         try {
-          window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key, value: JSON.parse(val) } }))
+          window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key: lsKey(key), value: JSON.parse(val) } }))
         } catch {
-          window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key, value: val } }))
+          window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key: lsKey(key), value: val } }))
         }
       }
     }
