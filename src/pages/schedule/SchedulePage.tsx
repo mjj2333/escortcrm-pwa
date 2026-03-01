@@ -248,6 +248,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
         <div className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           <button
             onClick={() => setViewMode('calendar')}
+            aria-label="Calendar view" aria-pressed={viewMode === 'calendar'}
             className={`px-3 py-1.5 rounded-md text-xs font-medium ${viewMode === 'calendar' ? 'bg-purple-600 text-white' : ''}`}
             style={viewMode !== 'calendar' ? { color: 'var(--text-secondary)' } : {}}
           >
@@ -255,6 +256,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           </button>
           <button
             onClick={() => setViewMode('list')}
+            aria-label="List view" aria-pressed={viewMode === 'list'}
             className={`px-3 py-1.5 rounded-md text-xs font-medium ${viewMode === 'list' ? 'bg-purple-600 text-white' : ''}`}
             style={viewMode !== 'list' ? { color: 'var(--text-secondary)' } : {}}
           >
@@ -263,6 +265,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
         </div>
 
         <button onClick={() => setShowEditor(true)}
+          aria-label="Add booking"
           className={`p-2 rounded-lg ${limits.canAddBooking ? 'text-purple-500' : ''}`}
           style={!limits.canAddBooking ? { color: 'var(--text-secondary)', opacity: 0.5 } : {}}>
           <Plus size={20} />
@@ -737,6 +740,7 @@ function DayDetailModal({
           </div>
           <button
             onClick={handleClose}
+            aria-label="Close"
             className="p-2 rounded-lg"
             style={{ color: 'var(--text-secondary)' }}
           >

@@ -18,6 +18,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
   const [depositOutcome, setDepositOutcome] = useState<DepositOutcome | ''>('')
   const [feeAmount, setFeeAmount] = useState('')
   const [feeMethod, setFeeMethod] = useState<PaymentMethod | ''>('')
+  const [saving, setSaving] = useState(false)
 
   const client = useLiveQuery(
     () => booking?.clientId ? db.clients.get(booking.clientId) : undefined,
@@ -55,7 +56,8 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
   if (!booking) return null
 
   async function handleConfirm() {
-    if (!booking) return
+    if (!booking || saving) return
+    setSaving(true)
     const fee = parseFloat(feeAmount) || 0
     const method = feeMethod as PaymentMethod | undefined
     const depOut = depositOutcome || undefined
@@ -138,12 +140,15 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
     onClose()
     } catch (err) {
       showToast(`Failed to ${mode === 'noshow' ? 'mark no-show' : 'cancel booking'}`, 'error')
+    } finally {
+      setSaving(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true"
+      aria-label={mode === 'noshow' ? 'Mark as No-Show' : 'Cancel Booking'}>
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
       <div
         className="relative w-full max-w-lg rounded-t-2xl p-5 safe-bottom"
         style={{ backgroundColor: 'var(--bg-card)', maxHeight: '85vh', overflowY: 'auto' }}
@@ -167,6 +172,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
               {(['client', 'provider'] as CancelledBy[]).map(who => (
                 <button
                   key={who}
+                  aria-pressed={cancelledBy === who}
                   onClick={() => setCancelledBy(who)}
                   className="flex-1 py-2 text-xs font-semibold transition-colors"
                   style={{
@@ -218,6 +224,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
               ] as { value: DepositOutcome; label: string; color: string }[]).map(opt => (
                 <button
                   key={opt.value}
+                  aria-pressed={depositOutcome === opt.value}
                   onClick={() => setDepositOutcome(prev => prev === opt.value ? '' : opt.value)}
                   className="flex-1 py-2 rounded-lg text-xs font-semibold transition-colors"
                   style={{
@@ -286,7 +293,8 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
         {/* Confirm button */}
         <button
           onClick={handleConfirm}
-          className="w-full py-3 rounded-xl text-sm font-semibold text-white"
+          disabled={saving}
+          className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
           style={{ backgroundColor: mode === 'noshow' ? '#ef4444' : '#6b7280' }}
         >
           {mode === 'noshow'

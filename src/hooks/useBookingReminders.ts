@@ -109,14 +109,15 @@ export function useBookingReminders(enabled: boolean) {
         }
       }
 
-      // Birthday check — once per day
+      // Birthday check — once per day (query all clients, not just booking-scoped ones)
       if (!birthdayCheckedRef.current) {
         birthdayCheckedRef.current = true
         const today = new Date()
         const todayMD = `${today.getMonth()}-${today.getDate()}`
 
-        const birthdayClients = clients.filter(c => {
-          if (!c.birthday || c.isBlocked) return false
+        const allClients = await db.clients.filter(c => !c.isBlocked).toArray()
+        const birthdayClients = allClients.filter(c => {
+          if (!c.birthday) return false
           const bday = new Date(c.birthday)
           return `${bday.getMonth()}-${bday.getDate()}` === todayMD
         })

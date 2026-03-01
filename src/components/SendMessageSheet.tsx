@@ -218,6 +218,16 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
     setMessage(resolveTemplatePlaceholders(template, client, booking, venue, totalPaid, serviceRates))
   }, [isOpen, selectedType, client.id, booking?.id, totalPaid, serviceRates.length])
 
+  // Escape key to close — must be before early return to satisfy Rules of Hooks
+  useEffect(() => {
+    if (!isOpen) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
   const method = client.preferredContact
@@ -244,18 +254,10 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
     setSent(true)
   }
 
-  // Escape key to close
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true"
+      aria-label="Message Client">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
       <div
         className="relative w-full max-w-lg rounded-t-2xl safe-bottom flex flex-col"
         style={{ backgroundColor: 'var(--bg-card)', maxHeight: '85vh' }}
@@ -274,8 +276,9 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
             {availableTemplates.map(t => (
               <button
                 key={t.key}
+                aria-pressed={selectedType === t.key}
                 onClick={() => { setSelectedType(t.key); setSent(false) }}
-                className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+                className="px-3 py-2.5 rounded-full text-xs font-semibold transition-colors"
                 style={selectedType === t.key
                   ? { backgroundColor: '#a855f7', color: '#fff' }
                   : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }

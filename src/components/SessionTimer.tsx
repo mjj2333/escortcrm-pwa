@@ -90,6 +90,11 @@ export function SessionTimer({ startTime, durationMin }: SessionTimerProps) {
       {/* Progress bar */}
       <div
         className="h-2 rounded-full overflow-hidden"
+        role="progressbar"
+        aria-valuenow={Math.round(progress * 100)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Session progress"
         style={{ backgroundColor: 'var(--border)' }}
       >
         <div

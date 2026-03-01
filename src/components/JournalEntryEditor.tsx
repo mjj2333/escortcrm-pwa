@@ -25,6 +25,7 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientAlias, exis
   const [tags, setTags] = useState<JournalTag[]>([])
   const [actualDuration, setActualDuration] = useState('')
   const [timingNotes, setTimingNotes] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -40,6 +41,8 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientAlias, exis
   }
 
   async function handleSave() {
+    if (saving) return
+    setSaving(true)
     const now = new Date()
     try {
       if (existingEntry) {
@@ -70,6 +73,8 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientAlias, exis
       onClose()
     } catch {
       showToast('Failed to save journal entry', 'error')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -81,7 +86,7 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientAlias, exis
       onClose={onClose}
       title={existingEntry ? 'Edit Journal' : 'Session Notes'}
       actions={
-        <button onClick={handleSave} className="p-2 text-purple-500">
+        <button onClick={handleSave} disabled={saving} aria-label="Save journal entry" className="p-2 text-purple-500 disabled:opacity-50">
           <Check size={20} />
         </button>
       }
@@ -113,8 +118,9 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientAlias, exis
             return (
               <button
                 key={tag}
+                aria-pressed={selected}
                 onClick={() => toggleTag(tag)}
-                className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold transition-all"
+                className="px-2.5 py-2 rounded-full text-[11px] font-semibold transition-all"
                 style={{
                   backgroundColor: selected ? colors.bg : 'transparent',
                   color: selected ? colors.fg : 'var(--text-secondary)',
@@ -174,8 +180,8 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientAlias, exis
 
         {/* Save button */}
         <div className="py-4">
-          <button onClick={handleSave}
-            className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 text-white active:bg-purple-700">
+          <button onClick={handleSave} disabled={saving}
+            className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 text-white active:bg-purple-700 disabled:opacity-50">
             {existingEntry ? 'Update Entry' : 'Save Entry'}
           </button>
           {!existingEntry && (

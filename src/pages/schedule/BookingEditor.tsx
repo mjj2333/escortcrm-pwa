@@ -205,6 +205,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
     setNewClientWhatsapp('')
     setNewClientPrimary('Text')
     setNewClientSecondary('')
+    setNewClientScreening('Unscreened')
     setNewClientScreeningMethod('')
     setNewClientPreferences('')
     setNewClientBoundaries('')
@@ -366,6 +367,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       title={isEditing ? 'Edit Booking' : 'New Booking'}
       actions={
         <button onClick={handleSave} disabled={!isValid}
+          aria-label="Save booking"
           className={`p-2 ${isValid ? 'text-purple-500' : 'opacity-30'}`}>
           <Check size={20} />
         </button>
@@ -548,11 +550,11 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                   <textarea placeholder="Preferences (likes, requests...)"
                     value={newClientPreferences} onChange={e => setNewClientPreferences(e.target.value)}
                     rows={2} className="w-full text-sm bg-transparent outline-none resize-none pb-1"
-                    style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }} />
+                    style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }} />
                   <textarea placeholder="Boundaries (hard limits...)"
                     value={newClientBoundaries} onChange={e => setNewClientBoundaries(e.target.value)}
                     rows={2} className="w-full text-sm bg-transparent outline-none resize-none pb-1"
-                    style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }} />
+                    style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }} />
 
                   <div className="flex gap-2 pt-1">
                     <button type="button" onClick={() => { setShowNewClient(false); setNewClientAlias(''); setNewClientPhone('') }}
@@ -680,7 +682,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                 <button
                   type="button"
                   onClick={() => { setVenueId(''); setVenueName(''); setLocationAddress('') }}
-                  className="text-xs text-purple-500 mb-1 px-1"
+                  className="text-xs text-purple-500 mb-1 px-1 py-2"
                 >
                   Clear venue
                 </button>

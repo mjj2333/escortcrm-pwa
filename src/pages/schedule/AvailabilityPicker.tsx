@@ -165,6 +165,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
               <button
                 key={s.status}
                 type="button"
+                aria-pressed={selectedStatus === s.status}
                 onClick={() => handleStatusTap(s.status)}
                 className="flex items-center gap-3 p-3.5 rounded-xl border active:scale-[0.97] transition-transform"
                 style={{

@@ -70,10 +70,9 @@ export async function checkBookingConflict(
   const bookingStartMs = bookingDateTime.getTime()
   const bookingEndMs = bookingStartMs + durationMinutes * 60000
 
-  const allBookings = await db.bookings.toArray()
-  const overlapping = allBookings.find(b => {
+  const activeBookings = await db.bookings.where('status').noneOf(['Cancelled', 'No Show', 'Completed']).toArray()
+  const overlapping = activeBookings.find(b => {
     if (b.id === excludeBookingId) return false
-    if (b.status === 'Cancelled' || b.status === 'No Show') return false
     const bStart = new Date(b.dateTime).getTime()
     const bEnd = bStart + b.duration * 60000
     return bookingStartMs < bEnd && bookingEndMs > bStart
@@ -181,14 +180,11 @@ export async function adjustAvailabilityForBooking(
   const bookingStartMins = timeToMinutes(bookingStart)
   const bookingEndMins = bookingStartMins + durationMinutes
 
-  // If booking crosses midnight, clamp the slot to end-of-day
-  const clampedEnd = bookingEndMins >= 1440
-    ? '23:59'
-    : addMinutesToTime(bookingStart, durationMinutes)
-
   // Snap to half-hour boundaries for cleanliness
   const slotStart = snapToHalfHour(bookingStart)
-  const slotEnd = bookingEndMins >= 1440 ? '23:59' : snapToHalfHour(clampedEnd, true)
+  const slotEnd = bookingEndMins >= 1440
+    ? '23:59'
+    : snapToHalfHour(addMinutesToTime(bookingStart, durationMinutes), true)
 
   const newSlot: TimeSlot = {
     start: slotStart,

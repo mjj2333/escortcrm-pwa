@@ -268,7 +268,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             <ArrowLeft size={18} />
             <span className="text-sm">Back</span>
           </button>
-          <button onClick={() => setShowEditor(true)} className="p-2 text-purple-500">
+          <button onClick={() => setShowEditor(true)} aria-label="Edit booking" className="p-2 text-purple-500">
             <Edit size={18} />
           </button>
         </div>
@@ -496,6 +496,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             )}
             <button
               onClick={() => openPaymentForm()}
+              aria-label="Add payment"
               className="text-xs font-medium py-2 px-3 rounded-lg"
               style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-secondary)' }}
             >
