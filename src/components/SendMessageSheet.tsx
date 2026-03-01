@@ -16,6 +16,7 @@ const contactMethodIcons: Record<ContactMethod, typeof Phone> = {
 // ── Template types ──────────────────────────────────────────────
 
 export type MessageTemplateType =
+  | 'intro'
   | 'confirmation'
   | 'depositReminder'
   | 'screening'
@@ -28,44 +29,58 @@ interface TemplateConfig {
   label: string
   storageKey: string
   defaultText: string
+  requiresBooking: boolean
 }
 
 const TEMPLATES: TemplateConfig[] = [
   {
+    key: 'intro',
+    label: 'Intro',
+    storageKey: 'introTemplate',
+    defaultText: 'Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}',
+    requiresBooking: false,
+  },
+  {
     key: 'confirmation',
-    label: 'Confirmation',
+    label: 'Confirm',
     storageKey: 'tplConfirmation',
     defaultText: 'Hi {client}! Your booking on {date} at {time} is confirmed. See you then!\n\n— {name}',
+    requiresBooking: true,
   },
   {
     key: 'depositReminder',
     label: 'Deposit',
     storageKey: 'tplDepositReminder',
     defaultText: 'Hi {client}, a deposit of {deposit} is needed to confirm your booking on {date} at {time}. Please let me know once sent!\n\n— {name}',
+    requiresBooking: true,
   },
   {
     key: 'screening',
     label: 'Screening',
     storageKey: 'tplScreening',
     defaultText: 'Hi {client}, before we can meet I\'ll need to verify your identity. Please send a photo of your ID and a selfie, or provide references I can check. Thank you for understanding!\n\n— {name}',
+    requiresBooking: false,
   },
   {
     key: 'cancellation',
-    label: 'Cancellation',
+    label: 'Cancel',
     storageKey: 'tplCancellation',
     defaultText: 'Hi {client}, I\'m sorry but I need to cancel our booking on {date} at {time}. I apologize for any inconvenience.\n\n— {name}',
+    requiresBooking: true,
   },
   {
     key: 'thankYou',
-    label: 'Thank You',
+    label: 'Thanks',
     storageKey: 'tplThankYou',
     defaultText: 'Hi {client}, thank you for our time together! I had a wonderful time and hope to see you again soon.\n\n— {name}',
+    requiresBooking: false,
   },
   {
     key: 'directions',
     label: 'Directions',
     storageKey: 'directionsTemplate',
     defaultText: 'Hi! Here are the directions:\n\n📍 {address}\n\n{directions}\n\n— {name}',
+    requiresBooking: true,
   },
 ]
 
@@ -80,15 +95,19 @@ function loadTemplate(config: TemplateConfig): string {
 function resolveTemplatePlaceholders(
   template: string,
   client: Client,
-  booking: Booking,
+  booking: Booking | null | undefined,
   venue: IncallVenue | null | undefined,
   totalPaid: number,
+  serviceRates: { name: string; duration: number; rate: number }[],
 ): string {
   const workingName = localStorage.getItem('profileWorkingName')?.replace(/^"|"$/g, '') || ''
+  const workEmail = localStorage.getItem('profileWorkEmail')?.replace(/^"|"$/g, '') || ''
+  const workPhone = localStorage.getItem('profileWorkPhone')?.replace(/^"|"$/g, '') || ''
+  const website = localStorage.getItem('profileWebsite')?.replace(/^"|"$/g, '') || ''
 
-  // Deposit: use booking's depositAmount if set, otherwise profile default
+  // Deposit string
   let depositStr: string
-  if (booking.depositAmount > 0) {
+  if (booking && booking.depositAmount > 0) {
     depositStr = formatCurrency(booking.depositAmount)
   } else {
     const depositType = localStorage.getItem('defaultDepositType')?.replace(/^"|"$/g, '') || 'percent'
@@ -103,21 +122,41 @@ function resolveTemplatePlaceholders(
     }
   }
 
-  const total = bookingTotal(booking)
+  // Rates string (for intro template)
+  let ratesStr: string
+  if (serviceRates.length > 0) {
+    ratesStr = serviceRates
+      .map(r => `• ${r.name} (${bookingDurationFormatted(r.duration)}) — ${formatCurrency(r.rate)}`)
+      .join('\n')
+  } else {
+    ratesStr = 'Please inquire about rates.'
+  }
+
+  const total = booking ? bookingTotal(booking) : 0
   const balance = Math.max(0, total - totalPaid)
 
-  return template
+  let result = template
     .replace(/\{client\}/g, client.alias || 'there')
     .replace(/\{name\}/g, workingName)
-    .replace(/\{date\}/g, fmtFullDayDate(booking.dateTime))
-    .replace(/\{time\}/g, fmtTime(booking.dateTime))
-    .replace(/\{duration\}/g, bookingDurationFormatted(booking.duration))
-    .replace(/\{rate\}/g, formatCurrency(total))
+    .replace(/\{email\}/g, workEmail)
+    .replace(/\{phone\}/g, workPhone)
+    .replace(/\{website\}/g, website)
+    .replace(/\{rates\}/g, ratesStr)
     .replace(/\{deposit\}/g, depositStr)
-    .replace(/\{balance\}/g, formatCurrency(balance))
     .replace(/\{venue\}/g, venue?.name || '')
     .replace(/\{address\}/g, venue?.address || '')
     .replace(/\{directions\}/g, venue?.directions || '')
+
+  if (booking) {
+    result = result
+      .replace(/\{date\}/g, fmtFullDayDate(booking.dateTime))
+      .replace(/\{time\}/g, fmtTime(booking.dateTime))
+      .replace(/\{duration\}/g, bookingDurationFormatted(booking.duration))
+      .replace(/\{rate\}/g, formatCurrency(total))
+      .replace(/\{balance\}/g, formatCurrency(balance))
+  }
+
+  return result
 }
 
 // ── Component ───────────────────────────────────────────────────
@@ -126,44 +165,57 @@ interface SendMessageSheetProps {
   isOpen: boolean
   onClose: () => void
   client: Client
-  booking: Booking
+  booking?: Booking | null
   venue?: IncallVenue | null
 }
 
 export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: SendMessageSheetProps) {
-  // Filter: only show "Directions" when venue with directions exists
-  const availableTemplates = TEMPLATES.filter(t =>
-    t.key !== 'directions' || (venue?.directions && venue.directions.length > 0)
-  )
+  const hasBooking = !!booking
+  const hasDirections = !!(venue?.directions && venue.directions.length > 0)
 
-  const [selectedType, setSelectedType] = useState<MessageTemplateType>(availableTemplates[0]?.key ?? 'confirmation')
+  // Filter templates based on context
+  const availableTemplates = TEMPLATES.filter(t => {
+    if (t.key === 'directions') return hasDirections
+    if (t.requiresBooking) return hasBooking
+    return true
+  })
+
+  const [selectedType, setSelectedType] = useState<MessageTemplateType>(availableTemplates[0]?.key ?? 'intro')
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState(false)
   const prevOpenRef = useRef(false)
 
+  // Service rates for intro template
+  const serviceRates = useLiveQuery(() =>
+    db.serviceRates.toArray().then(r => r.filter(s => s.isActive))
+  ) ?? []
+
   // Total paid for balance calculation
   const totalPaid = useLiveQuery(
-    () => db.payments.where('bookingId').equals(booking.id).toArray().then(ps => ps.reduce((s, p) => s + p.amount, 0)),
-    [booking.id]
+    () => booking
+      ? db.payments.where('bookingId').equals(booking.id).toArray().then(ps => ps.reduce((s, p) => s + p.amount, 0))
+      : Promise.resolve(0),
+    [booking?.id]
   ) ?? 0
 
-  // Build message when sheet opens or template type changes
+  // Reset when sheet opens
   useEffect(() => {
     const justOpened = isOpen && !prevOpenRef.current
     prevOpenRef.current = isOpen
     if (justOpened) {
       setSent(false)
-      setSelectedType(availableTemplates[0]?.key ?? 'confirmation')
+      setSelectedType(availableTemplates[0]?.key ?? 'intro')
     }
   }, [isOpen])
 
+  // Build message when template type changes
   useEffect(() => {
     if (!isOpen) return
     const config = TEMPLATES.find(t => t.key === selectedType)
     if (!config) return
     const template = loadTemplate(config)
-    setMessage(resolveTemplatePlaceholders(template, client, booking, venue, totalPaid))
-  }, [isOpen, selectedType, client.id, booking.id, totalPaid])
+    setMessage(resolveTemplatePlaceholders(template, client, booking, venue, totalPaid, serviceRates))
+  }, [isOpen, selectedType, client.id, booking?.id, totalPaid, serviceRates.length])
 
   if (!isOpen) return null
 
@@ -207,13 +259,13 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {/* Template type pills */}
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
+          {/* Template type pills — wrapping layout */}
+          <div className="flex flex-wrap gap-2">
             {availableTemplates.map(t => (
               <button
                 key={t.key}
                 onClick={() => { setSelectedType(t.key); setSent(false) }}
-                className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+                className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
                 style={selectedType === t.key
                   ? { backgroundColor: '#a855f7', color: '#fff' }
                   : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }

@@ -19,7 +19,7 @@ import { ClientEditor } from './ClientEditor'
 import { BookingEditor } from '../schedule/BookingEditor'
 import { ClientMergeModal } from './ClientMergeModal'
 import { JournalLog } from '../../components/JournalLog'
-import { SendIntroSheet } from '../../components/SendIntroSheet'
+import { SendMessageSheet } from '../../components/SendMessageSheet'
 import { JournalEntryEditor } from '../../components/JournalEntryEditor'
 import { ScreeningProofManager } from '../../components/ScreeningProofManager'
 import { ProGate } from '../../components/ProGate'
@@ -50,7 +50,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [showBlockConfirm, setShowBlockConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showMerge, setShowMerge] = useState(false)
-  const [showSendIntro, setShowSendIntro] = useState(false)
+  const [showMessageSheet, setShowMessageSheet] = useState(false)
   const [showAllHistory, setShowAllHistory] = useState(false)
   const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: any; booking: any } | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -411,13 +411,13 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           </div>
         )}
 
-        {/* Send Intro */}
+        {/* Message Client */}
         <button
-          onClick={() => setShowSendIntro(true)}
+          onClick={() => setShowMessageSheet(true)}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
           style={{ backgroundColor: 'rgba(59,130,246,0.12)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)' }}
         >
-          <Send size={14} /> Send Intro Message
+          <Send size={14} /> Message Client
         </button>
 
         {/* Upcoming Bookings (always visible if present) */}
@@ -668,9 +668,9 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           existingEntry={journalEditEntry.entry}
         />
       )}
-      <SendIntroSheet
-        isOpen={showSendIntro}
-        onClose={() => setShowSendIntro(false)}
+      <SendMessageSheet
+        isOpen={showMessageSheet}
+        onClose={() => setShowMessageSheet(false)}
         client={client}
       />
     </div>
