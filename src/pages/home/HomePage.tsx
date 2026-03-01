@@ -4,7 +4,7 @@ import {
   ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X, CircleUser, Building2
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { db, formatCurrency, isUpcoming, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card, CardHeader } from '../../components/Card'
@@ -18,10 +18,12 @@ import { availabilityStatusColors, bookingStatusColors } from '../../types'
 import type { Booking } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { useBackupReminder } from '../../hooks/useBackupReminder'
-import { BackupRestoreModal } from '../../components/BackupRestore'
 import { HomePageSkeleton } from '../../components/Skeleton'
-import { ProfilePage } from './ProfilePage'
-import { IncallBookPage } from './IncallBookPage'
+
+// Lazy-load heavy modals — only fetched when opened by user tap
+const ProfilePage = lazy(() => import('./ProfilePage').then(m => ({ default: m.ProfilePage })))
+const IncallBookPage = lazy(() => import('./IncallBookPage').then(m => ({ default: m.IncallBookPage })))
+const BackupRestoreModal = lazy(() => import('../../components/BackupRestore').then(m => ({ default: m.BackupRestoreModal })))
 import { GettingStarted, useGettingStartedDone } from '../../components/GettingStarted'
 import { DidYouKnowTip } from '../../components/DidYouKnowTip'
 
@@ -460,9 +462,11 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 
       </div>
 
-      <BackupRestoreModal isOpen={showBackup} onClose={() => { setShowBackup(false); setReminderDismissed(true) }} />
-      <ProfilePage isOpen={showProfile} onClose={() => setShowProfile(false)} />
-      <IncallBookPage isOpen={showIncallBook} onClose={() => setShowIncallBook(false)} />
+      <Suspense fallback={null}>
+        {showBackup && <BackupRestoreModal isOpen={showBackup} onClose={() => { setShowBackup(false); setReminderDismissed(true) }} />}
+        {showProfile && <ProfilePage isOpen={showProfile} onClose={() => setShowProfile(false)} />}
+        {showIncallBook && <IncallBookPage isOpen={showIncallBook} onClose={() => setShowIncallBook(false)} />}
+      </Suspense>
 
       {/* All Active Bookings Modal */}
       {showAllActive && (

@@ -2,10 +2,12 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { TabBar } from './components/TabBar'
 import { PinLock, hashPin } from './components/PinLock'
 import { HomePage } from './pages/home/HomePage'
-import { ClientsPage } from './pages/clients/ClientsPage'
-import { SchedulePage } from './pages/schedule/SchedulePage'
-import { FinancesPage } from './pages/finances/FinancesPage'
-import { SafetyPage } from './pages/safety/SafetyPage'
+
+// Lazy-load tab pages — only fetched when the user switches to that tab
+const SchedulePage = lazy(() => import('./pages/schedule/SchedulePage').then(m => ({ default: m.SchedulePage })))
+const ClientsPage = lazy(() => import('./pages/clients/ClientsPage').then(m => ({ default: m.ClientsPage })))
+const FinancesPage = lazy(() => import('./pages/finances/FinancesPage').then(m => ({ default: m.FinancesPage })))
+const SafetyPage = lazy(() => import('./pages/safety/SafetyPage').then(m => ({ default: m.SafetyPage })))
 import { useLocalStorage, lsKey } from './hooks/useSettings'
 
 // Lazy-load secondary screens — only fetched when the user navigates to them
