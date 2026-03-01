@@ -61,8 +61,9 @@ export function GettingStarted({ onOpenProfile, onOpenSettings, onNavigateTab }:
           </span>
           <button
             onClick={() => setDismissed(true)}
-            className="p-0.5"
+            className="p-2 -m-1"
             style={{ color: 'var(--text-secondary)' }}
+            aria-label="Dismiss getting started"
           >
             <X size={14} />
           </button>

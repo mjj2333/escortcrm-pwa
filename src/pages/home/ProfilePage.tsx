@@ -134,6 +134,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           <select
             value={currency}
             onChange={e => setCurrency(e.target.value)}
+            aria-label="Currency"
             className="w-full px-3 py-2.5 rounded-lg text-sm outline-none appearance-none"
             style={{
               ...fieldInputStyle,
@@ -162,10 +163,13 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
                 </p>
               </div>
               <button type="button" onClick={() => toggleRate(rate.id, !rate.isActive)}
-                className={`text-xs px-2 py-1 rounded ${rate.isActive ? 'bg-green-500/15 text-green-500' : 'bg-gray-500/15 text-gray-500'}`}>
+                aria-label={rate.isActive ? `Deactivate ${rate.name}` : `Activate ${rate.name}`}
+                className={`text-xs px-3 py-1.5 rounded ${rate.isActive ? 'bg-green-500/15 text-green-500' : 'bg-gray-500/15 text-gray-500'}`}>
                 {rate.isActive ? 'Active' : 'Off'}
               </button>
-              <button type="button" onClick={() => setDeleteRateId(rate.id)} className="text-red-500 p-1">
+              <button type="button" onClick={() => setDeleteRateId(rate.id)}
+                aria-label={`Delete ${rate.name}`}
+                className="text-red-500 p-2 -m-1">
                 <Trash2 size={14} />
               </button>
             </div>
@@ -243,7 +247,8 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
                 <input type="text" inputMode="numeric"
                   value={depositPct > 0 ? String(depositPct) : ''}
                   onChange={e => { const raw = e.target.value.replace(/[^0-9]/g, ''); if (raw === '') { setDepositPct(0); return }; const val = parseInt(raw); if (!isNaN(val) && val <= 100) setDepositPct(val) }}
-                  placeholder="0" className="w-20 px-3 py-2.5 rounded-lg text-sm outline-none"
+                  placeholder="0" aria-label="Deposit percentage"
+                  className="w-20 px-3 py-2.5 rounded-lg text-sm outline-none"
                   style={fieldInputStyle} />
                 <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>%</span>
               </div>
@@ -256,7 +261,8 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
                 <input type="text" inputMode="decimal"
                   value={depositFlat > 0 ? String(depositFlat) : ''}
                   onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '' || raw === '.') { setDepositFlat(0); return }; const val = parseFloat(raw); if (!isNaN(val)) setDepositFlat(val) }}
-                  placeholder="0" className="w-28 px-3 py-2.5 rounded-lg text-sm outline-none"
+                  placeholder="0" aria-label="Deposit amount"
+                  className="w-28 px-3 py-2.5 rounded-lg text-sm outline-none"
                   style={fieldInputStyle} />
               </div>
               <FieldHint text={`New bookings will default to ${formatCurrency(depositFlat)} deposit.`} />
@@ -271,6 +277,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           value={directionsTemplate}
           onChange={e => setDirectionsTemplate(e.target.value)}
           rows={6}
+          aria-label="Directions template"
           className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
           style={{ ...fieldInputStyle, fontSize: '16px' }}
         />
@@ -288,6 +295,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           value={introTemplate}
           onChange={e => setIntroTemplate(e.target.value)}
           rows={8}
+          aria-label="Intro message template"
           className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
           style={{ ...fieldInputStyle, fontSize: '16px' }}
         />
@@ -323,6 +331,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               value={tplConfirmation}
               onChange={e => setTplConfirmation(e.target.value)}
               rows={4}
+              aria-label="Confirmation template"
               className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
               style={{ ...fieldInputStyle, fontSize: '16px' }}
             />
@@ -338,6 +347,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               value={tplDepositReminder}
               onChange={e => setTplDepositReminder(e.target.value)}
               rows={4}
+              aria-label="Deposit reminder template"
               className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
               style={{ ...fieldInputStyle, fontSize: '16px' }}
             />
@@ -353,6 +363,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               value={tplScreening}
               onChange={e => setTplScreening(e.target.value)}
               rows={4}
+              aria-label="Screening request template"
               className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
               style={{ ...fieldInputStyle, fontSize: '16px' }}
             />
@@ -368,6 +379,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               value={tplCancellation}
               onChange={e => setTplCancellation(e.target.value)}
               rows={4}
+              aria-label="Cancellation template"
               className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
               style={{ ...fieldInputStyle, fontSize: '16px' }}
             />
@@ -383,6 +395,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               value={tplThankYou}
               onChange={e => setTplThankYou(e.target.value)}
               rows={4}
+              aria-label="Thank you template"
               className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
               style={{ ...fieldInputStyle, fontSize: '16px' }}
             />

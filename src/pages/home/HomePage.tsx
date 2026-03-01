@@ -199,8 +199,8 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
       <div className="px-4 py-4 space-y-4 max-w-lg mx-auto">
         {/* Safety Alert Banner */}
         {safetyChecks.length > 0 && (
-          <div
-            className="rounded-xl p-4 flex items-center gap-3 cursor-pointer"
+          <button
+            className="w-full rounded-xl p-4 flex items-center gap-3 text-left"
             style={{ backgroundColor: 'rgba(239,68,68,0.15)' }}
             onClick={() => onNavigateTab(4)}
           >
@@ -212,7 +212,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
               <p className="text-xs text-red-400">Tap to review</p>
             </div>
             <ChevronRight size={16} className="text-red-400" />
-          </div>
+          </button>
         )}
 
         {/* Availability Status */}
@@ -507,6 +507,12 @@ function AllActiveBookingsModal({
     requestAnimationFrame(() => setVisible(true))
   }, [])
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') handleClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
   function handleClose() {
     setVisible(false)
     setTimeout(onClose, 200)
@@ -516,6 +522,8 @@ function AllActiveBookingsModal({
     <div
       ref={backdropRef}
       className="fixed inset-0 z-50 flex items-end justify-center"
+      role="dialog"
+      aria-modal="true"
       style={{
         backgroundColor: visible ? 'rgba(0,0,0,0.5)' : 'transparent',
         transition: 'background-color 0.2s',

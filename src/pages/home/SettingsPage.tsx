@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Database, MessageSquare, Users, Plus, X } from 'lucide-react'
 import { db } from '../../db'
 import { seedSampleData, clearSampleData } from '../../data/sampleData'
@@ -53,6 +53,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
   const [showSampleConfirm, setShowSampleConfirm] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
   const [versionTaps, setVersionTaps] = useState(0)
+  const versionTapTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [defaultChecklistItems, setDefaultChecklistItems] = useLocalStorage<string[]>('defaultChecklistItems', ['Confirm venue', 'Check screening', 'Pack bag', 'Charge phone'])
   const [newChecklistItem, setNewChecklistItem] = useState('')
   const [duressPin, setDuressPin] = useLocalStorage('duressPin', '')
@@ -474,11 +475,14 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
               <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Version</span>
               <button
                 onClick={() => {
+                  clearTimeout(versionTapTimer.current)
                   const next = versionTaps + 1
-                  setVersionTaps(next)
                   if (next >= 7) {
                     setVersionTaps(0)
                     setShowAdmin(true)
+                  } else {
+                    setVersionTaps(next)
+                    versionTapTimer.current = setTimeout(() => setVersionTaps(0), 3000)
                   }
                 }}
                 className="text-sm select-none"

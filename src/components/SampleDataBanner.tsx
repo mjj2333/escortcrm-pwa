@@ -17,6 +17,14 @@ export function SampleDataBanner() {
     return () => window.removeEventListener(SAMPLE_DATA_EVENT, onSampleDataChange)
   }, [])
 
+  // Escape key closes confirm dialog
+  useEffect(() => {
+    if (!showConfirm) return
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setShowConfirm(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [showConfirm])
+
   if (!visible) return null
 
   async function handleClear() {
@@ -64,12 +72,14 @@ export function SampleDataBanner() {
       {/* Confirm dialog */}
       {showConfirm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-6"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          className="fixed inset-0 z-[80] flex items-center justify-center p-6"
+          role="dialog"
+          aria-modal="true"
           onClick={() => setShowConfirm(false)}
         >
+          <div className="absolute inset-0 bg-black/50" />
           <div
-            className="w-full max-w-sm rounded-2xl p-6"
+            className="relative w-full max-w-sm rounded-2xl p-6"
             style={{
               backgroundColor: 'var(--bg-secondary)',
               border: '1px solid var(--border)',

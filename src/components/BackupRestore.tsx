@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   Download, Upload, X, CheckCircle, AlertCircle, Lock, Unlock, Database, FileSpreadsheet
 } from 'lucide-react'
@@ -360,6 +360,14 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  // Escape key closes modal
+  useEffect(() => {
+    if (!isOpen) return
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
   async function handleBackup() {
@@ -456,7 +464,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
 
   return (
     <>
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div
         className="relative w-full max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden"

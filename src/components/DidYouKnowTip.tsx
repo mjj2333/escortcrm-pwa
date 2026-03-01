@@ -93,8 +93,9 @@ export function DidYouKnowTip() {
         </div>
         <button
           onClick={dismiss}
-          className="p-1 shrink-0"
+          className="p-2 -m-1 shrink-0"
           style={{ color: 'var(--text-secondary)' }}
+          aria-label="Dismiss tip"
         >
           <X size={14} />
         </button>

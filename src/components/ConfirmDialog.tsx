@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useId } from 'react'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -18,6 +18,7 @@ export function ConfirmDialog({
   const [inputValue, setInputValue] = useState('')
   const dialogRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const titleId = useId()
 
   useEffect(() => {
     if (isOpen) setInputValue('')
@@ -64,14 +65,14 @@ export function ConfirmDialog({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
       <div
         ref={dialogRef}
         className="relative w-full max-w-xs rounded-2xl p-5 text-center"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
-        <h3 id="confirm-dialog-title" className="font-bold text-base mb-2" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+        <h3 id={titleId} className="font-bold text-base mb-2" style={{ color: 'var(--text-primary)' }}>{title}</h3>
         <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>{message}</p>
         {inputPlaceholder && (
           <input
