@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { CheckCircle, Circle, ChevronRight, Rocket, X } from 'lucide-react'
 import { db } from '../db'
+import { ConfirmDialog } from './ConfirmDialog'
 import { useLocalStorage } from '../hooks/useSettings'
 
 interface GettingStartedProps {
@@ -35,7 +37,9 @@ export function GettingStarted({ onOpenProfile, onOpenSettings, onNavigateTab }:
   ]
 
   const completed = items.filter(i => i.done).length
+  const remaining = items.length - completed
   const allDone = completed === items.length
+  const [showConfirm, setShowConfirm] = useState(false)
 
   if (dismissed || allDone) return null
 
@@ -60,7 +64,7 @@ export function GettingStarted({ onOpenProfile, onOpenSettings, onNavigateTab }:
             {completed} of {items.length}
           </span>
           <button
-            onClick={() => setDismissed(true)}
+            onClick={() => setShowConfirm(true)}
             className="p-2 -m-1"
             style={{ color: 'var(--text-secondary)' }}
             aria-label="Dismiss getting started"
@@ -108,6 +112,14 @@ export function GettingStarted({ onOpenProfile, onOpenSettings, onNavigateTab }:
           </button>
         ))}
       </div>
+      <ConfirmDialog
+        isOpen={showConfirm}
+        title="Hide Checklist"
+        message={`You still have ${remaining} item${remaining !== 1 ? 's' : ''} remaining. Hide the getting started checklist?`}
+        confirmLabel="Hide"
+        onConfirm={() => { setShowConfirm(false); setDismissed(true) }}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   )
 }
