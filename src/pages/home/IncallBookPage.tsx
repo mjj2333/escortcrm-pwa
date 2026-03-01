@@ -14,6 +14,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { SectionLabel, FieldTextInput, FieldSelect, FieldCurrency, FieldHint, fieldInputStyle } from '../../components/FormFields'
 import { VenueDocManager } from '../../components/VenueDocManager'
 import { showToast } from '../../components/Toast'
+import { formatPhone } from '../../utils/formatPhone'
 import type { IncallVenue, VenueType, AccessMethod, Client, ContactMethod } from '../../types'
 import { venueTypeColors } from '../../types'
 import { contactMethodMeta, getContactValue, openChannel } from '../../utils/contactChannel'
@@ -1038,7 +1039,7 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
 
       <SectionLabel label="Contact Person" />
       <FieldTextInput label="Name" value={contactName} onChange={setContactName} placeholder="Landlord, front desk, host..." />
-      <FieldTextInput label="Phone" value={contactPhone} onChange={setContactPhone} placeholder="Phone number" />
+      <FieldTextInput label="Phone" value={contactPhone} onChange={v => setContactPhone(formatPhone(v))} placeholder="Phone number" />
       <FieldTextInput label="Email" value={contactEmail} onChange={setContactEmail} placeholder="Email" />
 
       <SectionLabel label="Costs" />

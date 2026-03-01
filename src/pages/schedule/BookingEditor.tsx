@@ -12,6 +12,7 @@ import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { checkBookingConflict, adjustAvailabilityForBooking } from '../../utils/availability'
 import { canAddClient, canAddBooking } from '../../components/planLimits'
+import { formatPhone } from '../../utils/formatPhone'
 import { VenuePicker } from '../home/IncallBookPage'
 import type {
   Booking, BookingStatus, LocationType, PaymentMethod, ContactMethod, ScreeningStatus, ScreeningMethod,
@@ -492,7 +493,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                       }
                       const c = cfg[newClientPrimary]
                       if (!c) return null
-                      return <input type={c.type} placeholder={c.ph} value={c.val} onChange={e => c.set(e.target.value)}
+                      return <input type={c.type} placeholder={c.ph} value={c.val} onChange={e => c.type === 'tel' ? c.set(formatPhone(e.target.value)) : c.set(e.target.value)}
                         className="w-full text-sm bg-transparent outline-none pb-1 mt-1"
                         style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }} />
                     })()}
@@ -520,7 +521,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
                       }
                       const c = cfg[newClientSecondary]
                       if (!c) return null
-                      return <input type={c.type} placeholder={c.ph} value={c.val} onChange={e => c.set(e.target.value)}
+                      return <input type={c.type} placeholder={c.ph} value={c.val} onChange={e => c.type === 'tel' ? c.set(formatPhone(e.target.value)) : c.set(e.target.value)}
                         className="w-full text-sm bg-transparent outline-none pb-1 mt-1"
                         style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }} />
                     })()}

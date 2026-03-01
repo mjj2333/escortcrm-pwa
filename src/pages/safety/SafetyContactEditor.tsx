@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Check } from 'lucide-react'
 import { db, newId } from '../../db'
+import { formatPhone } from '../../utils/formatPhone'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldTextInput, FieldToggle } from '../../components/FormFields'
@@ -92,7 +93,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
         <SectionLabel label="Contact Info" />
         <FieldTextInput label="Name" value={name} onChange={setName} placeholder="Full name" required
           hint="Your safety contact's name." />
-        <FieldTextInput label="Phone" value={phone} onChange={setPhone} placeholder="Phone number" type="tel" required
+        <FieldTextInput label="Phone" value={phone} onChange={v => setPhone(formatPhone(v))} placeholder="Phone number" type="tel" required
           hint={phone.trim() && !phoneValid ? 'Enter a valid phone number (at least 7 digits).' : 'The number that will be contacted for safety check-ins.'} />
 
         <SectionLabel label="Settings" />

@@ -9,6 +9,7 @@ import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { TagPicker } from '../../components/TagPicker'
 import { ScreeningProofManager } from '../../components/ScreeningProofManager'
 import { isPro, canAddClient } from '../../components/planLimits'
+import { formatPhone } from '../../utils/formatPhone'
 import type { Client, ClientTag, ContactMethod, ScreeningStatus, ScreeningMethod, RiskLevel } from '../../types'
 
 const contactMethods: ContactMethod[] = ['Phone', 'Text', 'Email', 'Telegram', 'Signal', 'WhatsApp', 'Other']
@@ -39,7 +40,7 @@ function ContactInput({ method, fieldMap }: {
       <input
         type={config.type}
         value={f.value}
-        onChange={e => f.set(e.target.value)}
+        onChange={e => config.type === 'tel' ? f.set(formatPhone(e.target.value)) : f.set(e.target.value)}
         placeholder={config.placeholder}
         className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
         style={{ ...fieldInputStyle, fontSize: '16px' }}
@@ -371,7 +372,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
                   <input
                     type={f.type}
                     value={fm.value}
-                    onChange={e => fm.set(e.target.value)}
+                    onChange={e => f.type === 'tel' ? fm.set(formatPhone(e.target.value)) : fm.set(e.target.value)}
                     placeholder={f.placeholder}
                     className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
                     style={{ ...fieldInputStyle, fontSize: '16px' }}

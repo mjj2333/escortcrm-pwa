@@ -6,6 +6,7 @@ import { Modal } from '../../components/Modal'
 import { SectionLabel, FieldHint, FieldTextInput, fieldInputStyle, deriveCurrencySymbol } from '../../components/FormFields'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { showToast } from '../../components/Toast'
+import { formatPhone } from '../../utils/formatPhone'
 import { useLocalStorage } from '../../hooks/useSettings'
 
 interface ProfilePageProps {
@@ -126,7 +127,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
         <div className="mt-2 space-y-0">
           <FieldTextInput label="Working Name" value={workingName} onChange={setWorkingName} placeholder="Your working name" />
           <FieldTextInput label="Email" value={workEmail} onChange={setWorkEmail} placeholder="Working email" />
-          <FieldTextInput label="Phone" value={workPhone} onChange={setWorkPhone} placeholder="Working phone" />
+          <FieldTextInput label="Phone" value={workPhone} onChange={v => setWorkPhone(formatPhone(v))} placeholder="Working phone" />
           <FieldTextInput label="Website / Ad Link" value={website} onChange={setWebsite} placeholder="https://" />
           <FieldTextInput label="Tagline" value={tagline} onChange={setTagline} placeholder="Short bio or tagline" />
         </div>
