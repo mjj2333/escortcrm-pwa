@@ -27,7 +27,9 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
     }
   }, [isOpen, contact])
 
-  const isValid = name.trim().length > 0 && phone.trim().length > 0
+  const phoneDigits = phone.replace(/\D/g, '')
+  const phoneValid = phoneDigits.length >= 7
+  const isValid = name.trim().length > 0 && phone.trim().length > 0 && phoneValid
 
   async function handleSave() {
     if (!isValid) return
@@ -81,19 +83,19 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
         </button>
       }
     >
-      <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <form onSubmit={e => { e.preventDefault(); handleSave() }} className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         <SectionLabel label="Contact Info" />
         <FieldTextInput label="Name" value={name} onChange={setName} placeholder="Full name" required
           hint="Your safety contact's name." />
         <FieldTextInput label="Phone" value={phone} onChange={setPhone} placeholder="Phone number" type="tel" required
-          hint="The number that will be contacted for safety check-ins." />
+          hint={phone.trim() && !phoneValid ? 'Enter a valid phone number (at least 7 digits).' : 'The number that will be contacted for safety check-ins.'} />
 
         <SectionLabel label="Settings" />
         <FieldToggle label="Primary Contact" value={isPrimary} onChange={setIsPrimary}
           hint="Primary contact receives all safety check-in alerts." />
 
         <div className="py-4">
-          <button onClick={handleSave} disabled={!isValid}
+          <button type="submit" disabled={!isValid}
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
               isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
@@ -101,7 +103,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
           </button>
         </div>
         <div className="h-8" />
-      </div>
+      </form>
     </Modal>
   )
 }

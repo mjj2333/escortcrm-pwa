@@ -362,8 +362,8 @@ export function bookingDurationFormatted(minutes: number): string {
   return `${m}m`
 }
 
-export function isUpcoming(b: Booking): boolean {
-  return new Date(b.dateTime) > new Date() && b.status !== 'Cancelled' && b.status !== 'Completed' && b.status !== 'No Show'
+export function isUpcoming(b: Booking, now?: Date): boolean {
+  return new Date(b.dateTime) > (now ?? new Date()) && b.status !== 'Cancelled' && b.status !== 'Completed' && b.status !== 'No Show'
 }
 
 /**

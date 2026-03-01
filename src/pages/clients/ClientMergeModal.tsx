@@ -9,7 +9,7 @@
 import { useState, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Search, ArrowRight, Check, ChevronDown, ChevronUp } from 'lucide-react'
-import { format } from 'date-fns'
+import { fmtMediumDate } from '../../utils/dateFormat'
 import { db } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
@@ -27,7 +27,7 @@ interface ClientMergeModalProps {
 function fmtDate(d?: Date | null): string {
   if (!d) return '—'
   const dt = d instanceof Date ? d : new Date(d)
-  return isNaN(dt.getTime()) ? '—' : format(dt, 'MMM d, yyyy')
+  return isNaN(dt.getTime()) ? '—' : fmtMediumDate(dt)
 }
 
 function dedupeTags(a: ClientTag[], b: ClientTag[]): ClientTag[] {

@@ -6,10 +6,11 @@ import {
 } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import {
-  format, startOfMonth, startOfWeek, startOfYear, startOfQuarter,
+  startOfMonth, startOfWeek, startOfYear, startOfQuarter,
   subMonths, getDay, getHours, eachMonthOfInterval,
   differenceInDays, endOfMonth, endOfWeek, endOfQuarter, endOfYear
 } from 'date-fns'
+import { fmtShortMonth, fmtShortDate, fmtMediumDate } from '../../utils/dateFormat'
 import { db, formatCurrency, bookingTotal, removeBookingPayment } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card } from '../../components/Card'
@@ -280,7 +281,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
         const bd = new Date(b.dateTime)
         return bd.getFullYear() === m.getFullYear() && bd.getMonth() === m.getMonth() && b.status === 'Completed'
       }).length
-      return { month: m, label: format(m, 'MMM'), income, expenses, bookings: bCount }
+      return { month: m, label: fmtShortMonth(m), income, expenses, bookings: bCount }
     })
   }, [allTransactions, allBookings])
 
@@ -670,7 +671,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
                   <div className="flex-1 min-w-0">
                     <p className="text-sm capitalize truncate" style={{ color: 'var(--text-primary)' }}>{t.category}</p>
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      {format(new Date(t.date), 'MMM d')}
+                      {fmtShortDate(new Date(t.date))}
                       {t.paymentMethod ? ` · ${t.paymentMethod}` : ''}
                     </p>
                   </div>
@@ -771,7 +772,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
             <div className="space-y-2">
               {[...monthly].reverse().slice(0, 6).map(m => (
                 <div key={m.label + m.month.getFullYear()} className="flex items-center justify-between py-1" style={{ borderBottom: '1px solid var(--border)' }}>
-                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{format(m.month, 'MMM yyyy')}</span>
+                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{`${fmtShortMonth(m.month)} ${m.month.getFullYear()}`}</span>
                   <div className="text-right">
                     <p className="text-sm font-medium text-green-500">{formatCurrency(m.income)}</p>
                     <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{m.bookings} bookings</p>
@@ -1432,7 +1433,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                     {t.category}
                   </p>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {format(new Date(t.date), 'MMM d, yyyy')}
+                    {fmtMediumDate(new Date(t.date))}
                     {t.paymentMethod ? ` · ${t.paymentMethod}` : ''}
                     {t.notes ? ` · ${t.notes.slice(0, 30)}` : ''}
                   </p>

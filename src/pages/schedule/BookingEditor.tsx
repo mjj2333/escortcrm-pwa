@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ChevronRight, User, UserPlus, Search, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
+import { fmtDateAndTime } from '../../utils/dateFormat'
 import { db, createBooking, createClient, formatCurrency, recordBookingPayment, completeBookingPayment } from '../../db'
 import { Modal } from '../../components/Modal'
 import { CollapsibleCard, useAccordion } from '../../components/CollapsibleCard'
@@ -355,7 +356,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         </button>
       }
     >
-      <div className="px-4 py-2 space-y-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <form onSubmit={e => { e.preventDefault(); handleSave() }} className="px-4 py-2 space-y-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         {/* ━━━ Client ━━━ */}
         <p className="text-xs font-semibold uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>Client</p>
         <div className="mb-3">
@@ -568,7 +569,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         {/* ━━━ Date & Time ━━━ */}
         <CollapsibleCard label="Date & Time" id="datetime" expanded={expanded} toggle={toggle}
           preview={<span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {dateTime ? format(new Date(dateTime), 'MMM d, h:mm a') : ''}
+            {dateTime ? fmtDateAndTime(new Date(dateTime)) : ''}
           </span>}>
           <div className="pt-1">
             <FieldDateTime label="Date & Time" value={dateTime} onChange={setDateTime} />
@@ -737,15 +738,20 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
         {/* Save Button */}
         <div className="py-4">
-          <button onClick={handleSave} disabled={!isValid}
+          <button type="submit" disabled={!isValid}
             className={`w-full py-3 rounded-xl font-semibold text-sm transition-colors ${
               isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
             {isEditing ? 'Save Changes' : 'Create Booking'}
           </button>
+          {!isValid && !isEditing && (
+            <p className="text-xs text-center mt-2" style={{ color: 'var(--text-secondary)' }}>
+              {!clientId ? 'Select a client' : baseRate <= 0 ? 'Set a rate' : duration <= 0 ? 'Set a duration' : !clientIsScreened ? 'Client must be screened' : ''}
+            </p>
+          )}
         </div>
         <div className="h-8" />
-      </div>
+      </form>
 
     </Modal>
     {/* Availability Conflict Warning — outside Modal to avoid transform containing block */}

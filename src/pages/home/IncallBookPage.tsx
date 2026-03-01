@@ -6,7 +6,7 @@ import {
   Search, Building2, Hotel, Home, Warehouse, HelpCircle, Send,
   MessageSquare,
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { fmtMediumDate } from '../../utils/dateFormat'
 import { db, newId, formatCurrency } from '../../db'
 import { Card } from '../../components/Card'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -542,8 +542,8 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
       {/* Meta */}
       <Card>
         <div className="flex justify-between text-xs" style={{ color: 'var(--text-secondary)' }}>
-          <span>Added {format(new Date(venue.createdAt), 'MMM d, yyyy')}</span>
-          <span>Updated {format(new Date(venue.updatedAt), 'MMM d, yyyy')}</span>
+          <span>Added {fmtMediumDate(new Date(venue.createdAt))}</span>
+          <span>Updated {fmtMediumDate(new Date(venue.updatedAt))}</span>
         </div>
       </Card>
 

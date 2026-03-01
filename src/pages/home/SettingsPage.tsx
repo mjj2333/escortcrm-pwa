@@ -310,7 +310,7 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
                 {getActivation().email && (
                   <div className="flex items-center justify-between py-1">
                     <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Account</span>
-                    <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{getActivation().email}</span>
+                    <span className="text-xs font-mono truncate max-w-[180px]" style={{ color: 'var(--text-secondary)' }}>{getActivation().email}</span>
                   </div>
                 )}
               </>

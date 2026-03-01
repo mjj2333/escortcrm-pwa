@@ -4,7 +4,7 @@ import {
   Phone, CheckCircle, XCircle, Clock, Siren, Edit2, Ban, Download
 } from 'lucide-react'
 import { useState } from 'react'
-import { format } from 'date-fns'
+import { fmtDateAndTime, fmtMediumDate } from '../../utils/dateFormat'
 import { db } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card } from '../../components/Card'
@@ -93,7 +93,7 @@ export function SafetyPage() {
     if (client) parts.push(`Client: ${client.alias}`)
     if (booking?.locationAddress) parts.push(`Location: ${booking.locationAddress}`)
     else if (booking?.locationType) parts.push(`Location type: ${booking.locationType}`)
-    if (booking?.dateTime) parts.push(`Scheduled: ${format(new Date(booking.dateTime), 'MMM d h:mm a')}`)
+    if (booking?.dateTime) parts.push(`Scheduled: ${fmtDateAndTime(new Date(booking.dateTime))}`)
     return parts.join('\n')
   }
 
@@ -169,7 +169,7 @@ export function SafetyPage() {
       Phone: c.phone ?? '',
       Email: c.email ?? '',
       'Risk Level': c.riskLevel,
-      'Date Added': c.dateAdded ? format(new Date(c.dateAdded), 'yyyy-MM-dd') : '',
+      'Date Added': c.dateAdded ? new Date(c.dateAdded).toISOString().slice(0, 10) : '',
     }))
     // Simple CSV export
     if (rows.length === 0) { showToast('No blacklisted clients to export'); return }
@@ -182,7 +182,7 @@ export function SafetyPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `blacklist-${format(new Date(), 'yyyy-MM-dd')}.csv`
+    a.download = `blacklist-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
     showToast(`Exported ${rows.length} blacklisted client${rows.length !== 1 ? 's' : ''}`)
@@ -295,7 +295,7 @@ export function SafetyPage() {
                               {statusLabel[check.status]}
                             </span>
                             <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                              {format(new Date(check.scheduledTime), 'MMM d, h:mm a')}
+                              {fmtDateAndTime(new Date(check.scheduledTime))}
                             </span>
                             <button
                               onClick={() => setEditingCheck(check)}
@@ -313,7 +313,7 @@ export function SafetyPage() {
                           )}
                           {booking && (
                             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                              Booking: {format(new Date(booking.dateTime), 'h:mm a')} · {booking.locationType}
+                              Booking: {fmtDateAndTime(new Date(booking.dateTime))} · {booking.locationType}
                             </p>
                           )}
                           {contact && (
@@ -323,7 +323,7 @@ export function SafetyPage() {
                           )}
                           {check.checkedInAt && (
                             <p className="text-[10px] mt-0.5 text-green-500">
-                              Checked in at {format(new Date(check.checkedInAt), 'h:mm a')}
+                              Checked in at {fmtDateAndTime(new Date(check.checkedInAt))}
                             </p>
                           )}
                           {/* Actions for pending/overdue */}
@@ -445,7 +445,7 @@ export function SafetyPage() {
                         </span>
                         <div className="flex items-center gap-2">
                           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                            {format(new Date(incident.date), 'MMM d, yyyy')}
+                            {fmtMediumDate(new Date(incident.date))}
                           </span>
                           <button
                             onClick={async () => {

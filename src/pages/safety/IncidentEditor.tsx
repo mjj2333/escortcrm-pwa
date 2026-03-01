@@ -66,7 +66,7 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
         </button>
       }
     >
-      <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <form onSubmit={e => { e.preventDefault(); handleSave() }} className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         <SectionLabel label="Details" />
         <FieldSelect label="Severity" value={severity} options={severities} onChange={setSeverity}
           displayFn={(v: string) => v.charAt(0).toUpperCase() + v.slice(1)} />
@@ -89,7 +89,7 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
           placeholder="Steps taken, boundaries enforced..." />
 
         <div className="py-4">
-          <button onClick={handleSave} disabled={!isValid}
+          <button type="submit" disabled={!isValid}
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
               isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
@@ -97,7 +97,7 @@ export function IncidentEditor({ isOpen, onClose }: IncidentEditorProps) {
           </button>
         </div>
         <div className="h-8" />
-      </div>
+      </form>
     </Modal>
   )
 }

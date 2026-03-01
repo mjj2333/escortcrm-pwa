@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { FileText, Clock, Edit3, ChevronDown, ChevronUp } from 'lucide-react'
-import { format } from 'date-fns'
+import { fmtMediumDate } from '../utils/dateFormat'
 import { db } from '../db'
 import type { JournalEntry, Booking } from '../types'
 import { journalTagColors } from '../types'
@@ -68,7 +68,7 @@ export function JournalLog({ clientId, onEditEntry }: JournalLogProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {format(new Date(entry.date), 'MMM d, yyyy')}
+                        {fmtMediumDate(new Date(entry.date))}
                       </p>
                       <div className="flex items-center gap-1.5">
                         {entry.actualDuration && (

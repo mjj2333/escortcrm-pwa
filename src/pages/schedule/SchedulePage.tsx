@@ -2,10 +2,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, CalendarDays, List, SlidersHorizontal, X, ChevronRight } from 'lucide-react'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import {
-  startOfMonth, endOfMonth, eachDayOfInterval, format, isSameDay, isToday,
+  startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday,
   startOfWeek, endOfWeek, isSameMonth, addMonths, subMonths, subDays,
   parseISO, startOfDay, endOfDay
 } from 'date-fns'
+import { fmtMonthYear, fmtMonth, fmtFullDayDate } from '../../utils/dateFormat'
 import { db, formatCurrency, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { EmptyState } from '../../components/EmptyState'
@@ -336,7 +337,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
               </button>
               <div className="flex items-center gap-2">
                 <h2 className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                  {format(currentMonth, 'MMMM yyyy')}
+                  {fmtMonthYear(currentMonth)}
                 </h2>
                 {!isViewingCurrentMonth && (
                   <button
@@ -397,7 +398,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                           fontWeight: today ? 700 : 400,
                         }}
                       >
-                        {format(day, 'd')}
+                        {day.getDate()}
                       </span>
                       {avail && (
                         <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: avail }} />
@@ -452,7 +453,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
             {/* ── Monthly Summary ───────────────────────────────────────── */}
             <div className="mt-5">
               <h3 className="font-semibold text-sm mb-3" style={{ color: 'var(--text-primary)' }}>
-                {format(currentMonth, 'MMMM')} Summary
+                {fmtMonth(currentMonth)} Summary
               </h3>
 
               {monthBookings.length === 0 ? (
@@ -716,7 +717,7 @@ function DayDetailModal({
         <div className="px-4 pb-3 flex items-center justify-between">
           <div>
             <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
-              {format(date, 'EEEE, MMMM d')}
+              {fmtFullDayDate(date)}
             </h2>
             {isToday(date) && (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-500">

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { startOfDay, format } from 'date-fns'
+import { startOfDay } from 'date-fns'
+import { fmtShortDayDate } from '../../utils/dateFormat'
 import { db, newId } from '../../db'
 import type { AvailabilityStatus, DayAvailability } from '../../types'
 import { formatTime12 } from '../../utils/availability'
@@ -114,7 +115,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
           <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ backgroundColor: 'var(--border)' }} />
 
           <p className="text-sm font-bold mb-1 text-center" style={{ color: 'var(--text-primary)' }}>
-            {format(date, 'EEEE, MMM d')}
+            {fmtShortDayDate(date)}
           </p>
           <p className="text-xs mb-4 text-center" style={{ color: 'var(--text-secondary)' }}>
             Tap a status below

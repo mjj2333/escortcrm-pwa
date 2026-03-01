@@ -5,7 +5,8 @@ import {
   CheckCircle, XCircle, UserX, RotateCcw, Shield,
   ChevronRight, Trash2, Plus, DollarSign
 } from 'lucide-react'
-import { format, addMinutes } from 'date-fns'
+import { addMinutes } from 'date-fns'
+import { fmtFullDayDateYear, fmtDateAndTime, fmtFullDateAndTime, fmtTime } from '../../utils/dateFormat'
 import { db, newId, formatCurrency, bookingTotal, bookingDurationFormatted, bookingEndTime, completeBookingPayment, recordBookingPayment, removeBookingPayment, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
 import { VerifiedBadge } from '../../components/VerifiedBadge'
@@ -258,7 +259,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             {formatCurrency(total)}
           </h2>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            {format(new Date(booking.dateTime), 'EEEE, MMMM d, yyyy')}
+            {fmtFullDayDateYear(new Date(booking.dateTime))}
           </p>
         </div>
 
@@ -306,14 +307,14 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         {/* Time & Location */}
         <CollapsibleCard label="Details" id="details" expanded={expanded} toggle={toggle}
           preview={<span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {format(new Date(booking.dateTime), 'h:mm a')} · {booking.locationType}
+            {fmtTime(new Date(booking.dateTime))} · {booking.locationType}
           </span>}>
           <div className="space-y-3 pt-1">
             <div className="flex items-center gap-3">
               <Clock size={16} style={{ color: 'var(--text-secondary)' }} />
               <div className="flex-1">
                 <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                  {format(new Date(booking.dateTime), 'h:mm a')} — {format(endTime, 'h:mm a')}
+                  {fmtTime(new Date(booking.dateTime))} — {fmtTime(endTime)}
                 </p>
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                   {bookingDurationFormatted(booking.duration)}
@@ -427,7 +428,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                         {p.label}{p.method ? ` · ${p.method}` : ''}
                       </p>
                       <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
-                        {format(new Date(p.date), 'MMM d, h:mm a')}
+                        {fmtDateAndTime(new Date(p.date))}
                         {p.notes ? ` — ${p.notes}` : ''}
                       </p>
                     </div>
@@ -595,7 +596,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             </div>
             {booking.cancelledAt && (
               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                {format(new Date(booking.cancelledAt), 'MMM d, yyyy · h:mm a')}
+                {fmtFullDateAndTime(new Date(booking.cancelledAt))}
               </p>
             )}
             {booking.cancellationReason && (
@@ -697,14 +698,14 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             <div className="flex justify-between">
               <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Created</span>
               <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                {format(new Date(booking.createdAt), 'MMM d, h:mm a')}
+                {fmtDateAndTime(new Date(booking.createdAt))}
               </span>
             </div>
             {booking.confirmedAt && (
               <div className="flex justify-between">
                 <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Confirmed</span>
                 <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  {format(new Date(booking.confirmedAt), 'MMM d, h:mm a')}
+                  {fmtDateAndTime(new Date(booking.confirmedAt))}
                 </span>
               </div>
             )}
@@ -712,7 +713,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <div className="flex justify-between">
                 <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Completed</span>
                 <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  {format(new Date(booking.completedAt), 'MMM d, h:mm a')}
+                  {fmtDateAndTime(new Date(booking.completedAt))}
                 </span>
               </div>
             )}

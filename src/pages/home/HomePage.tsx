@@ -69,7 +69,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   })
 
   const upcoming = allBookings
-    .filter(b => isUpcoming(b))
+    .filter(b => isUpcoming(b, now))
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
     .slice(0, 5)
 

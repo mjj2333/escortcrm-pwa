@@ -6,7 +6,7 @@ import {
   ThumbsUp, ShieldAlert, Plus, RotateCcw, Trash2, Merge,
   MapPin, Send, StickyNote
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { fmtShortDate, fmtMediumDate, fmtShortDayDate, fmtTime } from '../../utils/dateFormat'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
@@ -94,8 +94,9 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     .filter(b => b.status === 'Completed' || b.status === 'Cancelled' || b.status === 'No Show')
     .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
 
+  const detailNow = new Date()
   const upcomingBookings = bookings
-    .filter(b => new Date(b.dateTime) > new Date() && b.status !== 'Cancelled' && b.status !== 'Completed' && b.status !== 'No Show')
+    .filter(b => new Date(b.dateTime) > detailNow && b.status !== 'Cancelled' && b.status !== 'Completed' && b.status !== 'No Show')
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
 
   const noShowCount = bookings.filter(b => b.status === 'No Show').length
@@ -272,7 +273,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           <div className="w-px h-8" style={{ backgroundColor: 'var(--border)' }} />
           <div className="text-center flex-1">
             <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-              {client.lastSeen ? format(new Date(client.lastSeen), 'MMM d') : '—'}
+              {client.lastSeen ? fmtShortDate(new Date(client.lastSeen)) : '—'}
             </p>
             <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Last Seen</p>
           </div>
@@ -428,7 +429,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 className="flex items-center justify-between py-2 w-full text-left">
                 <div>
                   <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {format(new Date(b.dateTime), 'EEE, MMM d · h:mm a')}
+                    {`${fmtShortDayDate(new Date(b.dateTime))} · ${fmtTime(new Date(b.dateTime))}`}
                   </p>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                     {bookingDurationFormatted(b.duration)} · {b.locationType}
@@ -496,14 +497,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
               <div className="flex items-center gap-3 py-1.5">
                 <Gift size={16} className="text-pink-500" />
                 <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>Birthday</span>
-                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{format(new Date(client.birthday), 'MMM d')}</span>
+                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{fmtShortDate(new Date(client.birthday))}</span>
               </div>
             )}
             {client.clientSince && (
               <div className="flex items-center gap-3 py-1.5">
                 <Heart size={16} className="text-purple-500" />
                 <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>Client Since</span>
-                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{format(new Date(client.clientSince), 'MMM d, yyyy')}</span>
+                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{fmtMediumDate(new Date(client.clientSince))}</span>
               </div>
             )}
             {client.referenceSource && (
@@ -576,7 +577,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
               <button key={b.id} onClick={() => onOpenBooking(b.id)}
                 className="flex items-center justify-between py-2 w-full text-left">
                 <div>
-                  <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{format(new Date(b.dateTime), 'MMM d, yyyy')}</p>
+                  <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{fmtMediumDate(new Date(b.dateTime))}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                       {bookingDurationFormatted(b.duration)} · {b.locationType}

@@ -201,7 +201,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         </button>
       }
     >
-      <div className="px-4 py-2 space-y-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <form onSubmit={e => { e.preventDefault(); handleSave() }} className="px-4 py-2 space-y-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
 
         {/* ━━━ Name (always visible, required) ━━━ */}
         <FieldTextInput label="Name" value={alias} onChange={setAlias} placeholder="Name" required
@@ -374,15 +374,18 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
 
         {/* Save button */}
         <div className="py-4">
-          <button onClick={handleSave} disabled={!isValid}
+          <button type="submit" disabled={!isValid}
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
               isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
             {isEditing ? 'Save Changes' : 'Create Client'}
           </button>
+          {!isValid && alias.trim().length === 0 && (
+            <p className="text-xs text-center mt-2" style={{ color: 'var(--text-secondary)' }}>Name is required</p>
+          )}
         </div>
         <div className="h-8" />
-      </div>
+      </form>
     </Modal>
   )
 }

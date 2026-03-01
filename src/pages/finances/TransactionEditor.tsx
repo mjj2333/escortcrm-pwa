@@ -67,7 +67,7 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
         </button>
       }
     >
-      <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <form onSubmit={e => { e.preventDefault(); handleSave() }} className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         {/* Type Toggle */}
         <div className="pt-2 pb-3">
           <div className="flex rounded-xl overflow-hidden" style={{ border: '2px solid var(--border)' }}>
@@ -94,7 +94,7 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
         <FieldTextArea label="Notes" value={notes} onChange={setNotes} placeholder="Optional notes..." />
 
         <div className="py-4">
-          <button onClick={handleSave} disabled={!isValid}
+          <button type="submit" disabled={!isValid}
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
               isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
@@ -102,7 +102,7 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
           </button>
         </div>
         <div className="h-8" />
-      </div>
+      </form>
     </Modal>
   )
 }

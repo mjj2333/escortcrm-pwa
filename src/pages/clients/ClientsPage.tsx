@@ -28,6 +28,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   const [showBlocked, setShowBlocked] = useState(false)
   const [sortMode, setSortMode] = useState<SortMode>('az')
   const [pinnedToast, setPinnedToast] = useState<{ id: string; pinned: boolean } | null>(null)
+  const [renderLimit, setRenderLimit] = useState(50)
   const limits = usePlanLimits()
   const clients = useLiveQuery(() => db.clients.orderBy('alias').toArray())
 
@@ -165,7 +166,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
           />
         ) : (
           <div className="space-y-2">
-            {filtered.map(client => (
+            {filtered.slice(0, renderLimit).map(client => (
               <ClientRow
                 key={client.id}
                 client={client}
@@ -176,6 +177,15 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
                 pinToastValue={pinnedToast?.pinned ?? false}
               />
             ))}
+            {filtered.length > renderLimit && (
+              <button
+                onClick={() => setRenderLimit(l => l + 50)}
+                className="w-full py-3 text-sm font-medium rounded-xl active:scale-[0.98]"
+                style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)' }}
+              >
+                Show more ({filtered.length - renderLimit} remaining)
+              </button>
+            )}
           </div>
         )}
       </div>

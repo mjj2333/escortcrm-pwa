@@ -1,10 +1,11 @@
 import { useRef, useState, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { format, isToday, isTomorrow, differenceInDays, startOfDay, addMinutes } from 'date-fns'
+import { isToday, isTomorrow, differenceInDays, startOfDay, addMinutes } from 'date-fns'
 import { db, newId, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment, removeBookingPayment as removePayment, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../db'
 import { StatusBadge } from './StatusBadge'
 import { MiniTags } from './TagPicker'
 import { VerifiedBadge } from './VerifiedBadge'
+import { fmtTime, fmtWeekday, fmtShortDayDate } from '../utils/dateFormat'
 import { bookingStatusColors, screeningStatusColors } from '../types'
 import type { Booking, BookingStatus, Client, ScreeningStatus, AvailabilityStatus } from '../types'
 
@@ -13,11 +14,11 @@ import type { Booking, BookingStatus, Client, ScreeningStatus, AvailabilityStatu
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function formatRelativeDate(dt: Date): string {
-  if (isToday(dt)) return `Today · ${format(dt, 'h:mm a')}`
-  if (isTomorrow(dt)) return `Tomorrow · ${format(dt, 'h:mm a')}`
+  if (isToday(dt)) return `Today · ${fmtTime(dt)}`
+  if (isTomorrow(dt)) return `Tomorrow · ${fmtTime(dt)}`
   const daysAway = differenceInDays(startOfDay(dt), startOfDay(new Date()))
-  if (daysAway > 1 && daysAway <= 6) return `${format(dt, 'EEEE')} · ${format(dt, 'h:mm a')}`
-  return format(dt, 'EEE, MMM d · h:mm a')
+  if (daysAway > 1 && daysAway <= 6) return `${fmtWeekday(dt)} · ${fmtTime(dt)}`
+  return `${fmtShortDayDate(dt)} · ${fmtTime(dt)}`
 }
 
 const availDotColors: Record<AvailabilityStatus, string> = {

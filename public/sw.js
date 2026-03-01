@@ -1,4 +1,4 @@
-const CACHE_NAME = 'companion-v15'
+const CACHE_NAME = 'companion-__BUILD_ID__'
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

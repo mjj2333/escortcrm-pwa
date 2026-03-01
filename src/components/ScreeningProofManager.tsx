@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, X, FileText, ZoomIn, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
-import { format } from 'date-fns'
+import { fmtMediumDate } from '../utils/dateFormat'
 import { db, newId } from '../db'
 import { showToast } from './Toast'
 import type { ScreeningDoc } from '../types'
@@ -202,7 +202,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
             <div className="text-center">
               <p className="text-white text-sm font-medium truncate max-w-[200px]">{previewDoc.filename}</p>
               <p className="text-white/50 text-[10px]">
-                {format(new Date(previewDoc.uploadedAt), 'MMM d, yyyy')}
+                {fmtMediumDate(new Date(previewDoc.uploadedAt))}
               </p>
             </div>
             {editable ? (
