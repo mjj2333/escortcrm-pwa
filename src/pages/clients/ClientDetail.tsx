@@ -648,7 +648,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         title="Delete Client"
-        message={`Permanently delete ${client.alias} and all ${bookings.length} associated booking${bookings.length !== 1 ? 's' : ''}? This cannot be undone.`}
+        message={`Delete ${client.alias} and all ${bookings.length} associated booking${bookings.length !== 1 ? 's' : ''}? You can undo this briefly after.`}
         confirmLabel="Delete"
         onConfirm={confirmDelete}
         onCancel={() => setShowDeleteConfirm(false)}

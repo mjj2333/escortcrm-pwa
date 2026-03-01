@@ -553,7 +553,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         </div>
 
         {/* Unscreened client warning */}
-        {!isEditing && selectedClient && !clientIsScreened && (
+        {selectedClient && !clientIsScreened && (
           <div className="flex items-center gap-2.5 p-3 rounded-xl mb-2"
             style={{ backgroundColor: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
             <AlertTriangle size={16} className="text-orange-500 shrink-0" />

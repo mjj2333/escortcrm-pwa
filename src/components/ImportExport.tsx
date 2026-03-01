@@ -290,23 +290,30 @@ function validateEnum<T extends string>(value: string, allowed: T[], fallback: T
   return allowed.includes(value as T) ? (value as T) : fallback
 }
 
-async function importClients(rows: Record<string, unknown>[]): Promise<{ imported: number; skipped: number }> {
+async function importClients(rows: Record<string, unknown>[]): Promise<{ imported: number; skipped: number; duplicates: number }> {
   const { isPro, getActiveClientCount, FREE_CLIENT_LIMIT } = await import('./planLimits')
   const pro = isPro()
+  const existingClients = await db.clients.toArray()
+  const existingAliases = new Set(existingClients.map(c => c.alias.toLowerCase()))
   let imported = 0
   let skipped = 0
+  let duplicates = 0
   for (const row of rows) {
     // Check limit before each add (count grows as we import)
     if (!pro) {
       const current = await getActiveClientCount()
       if (current >= FREE_CLIENT_LIMIT) {
-        skipped += rows.length - imported - skipped
+        skipped += rows.length - imported - skipped - duplicates
         break
       }
     }
 
     const alias = String(row['Alias'] ?? row['alias'] ?? '').trim()
     if (!alias) continue
+
+    // Skip duplicates by alias
+    if (existingAliases.has(alias.toLowerCase())) { duplicates++; continue }
+    existingAliases.add(alias.toLowerCase())
 
     const client: Client = {
       id: newId(),
@@ -341,7 +348,7 @@ async function importClients(rows: Record<string, unknown>[]): Promise<{ importe
     await db.clients.add(client)
     imported++
   }
-  return { imported, skipped }
+  return { imported, skipped, duplicates }
 }
 
 async function importTransactions(rows: Record<string, unknown>[]): Promise<number> {
@@ -532,9 +539,10 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
       if (dataType === 'clients') {
         const result = await importClients(rows)
         count = result.imported
-        if (result.skipped > 0) {
-          skippedMsg = ` (${result.skipped} skipped — free plan limit of 5 clients reached)`
-        }
+        const parts: string[] = []
+        if (result.duplicates > 0) parts.push(`${result.duplicates} duplicate${result.duplicates !== 1 ? 's' : ''} skipped`)
+        if (result.skipped > 0) parts.push(`${result.skipped} skipped — free plan limit reached`)
+        if (parts.length) skippedMsg = ` (${parts.join(', ')})`
       } else if (dataType === 'transactions') {
         count = await importTransactions(rows)
       } else if (dataType === 'safety_contacts') {

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useId } from 'react'
 import { lsKey } from '../hooks/useSettings'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -39,13 +39,15 @@ export function SectionLabel({ label, optional }: { label: string; optional?: bo
 export function FieldTextInput({ label, value, onChange, placeholder, hint, required, type, icon }:
   { label: string; value: string; onChange: (v: string) => void; placeholder?: string; hint?: string; required?: boolean; type?: string; icon?: React.ReactNode }
 ) {
+  const id = useId()
   return (
     <div className="mb-3">
-      <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
+      <label htmlFor={id} className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
         {icon && <span className="inline-flex items-center gap-1.5">{icon} </span>}
         {label} {required && <span className="text-purple-400">*</span>}
       </label>
       <input
+        id={id}
         type={type ?? 'text'}
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -61,13 +63,15 @@ export function FieldTextInput({ label, value, onChange, placeholder, hint, requ
 export function FieldTextArea({ label, value, onChange, placeholder, hint, icon }:
   { label: string; value: string; onChange: (v: string) => void; placeholder?: string; hint?: string; icon?: React.ReactNode }
 ) {
+  const id = useId()
   return (
     <div className="mb-3">
-      <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
+      <label htmlFor={id} className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
         {icon && <span className="inline-flex items-center gap-1.5">{icon} </span>}
         {label}
       </label>
       <textarea
+        id={id}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
@@ -80,7 +84,7 @@ export function FieldTextArea({ label, value, onChange, placeholder, hint, icon 
   )
 }
 
-function deriveCurrencySymbol(): string {
+export function deriveCurrencySymbol(): string {
   try {
     const raw = localStorage.getItem(lsKey('currency')) || 'USD'
     let currency: string
@@ -97,6 +101,7 @@ function deriveCurrencySymbol(): string {
 export function FieldCurrency({ label, value, onChange, hint }:
   { label: string; value: number; onChange: (v: number) => void; hint?: string }
 ) {
+  const id = useId()
   const symbol = deriveCurrencySymbol()
   const [rawText, setRawText] = React.useState('')
   const [focused, setFocused] = React.useState(false)
@@ -107,12 +112,13 @@ export function FieldCurrency({ label, value, onChange, hint }:
 
   return (
     <div className="mb-3">
-      <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
+      <label htmlFor={id} className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
         {label}
       </label>
       <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
         <span className="pl-3 text-sm" style={{ color: 'var(--text-secondary)' }}>{symbol}</span>
         <input
+          id={id}
           type="text"
           inputMode="decimal"
           value={displayValue}
@@ -151,13 +157,15 @@ export function FieldCurrency({ label, value, onChange, hint }:
 export function FieldSelect<T extends string>({ label, value, options, onChange, hint, displayFn, icon }:
   { label: string; value: T; options: readonly T[]; onChange: (v: T) => void; hint?: string; displayFn?: (v: T) => string; icon?: React.ReactNode }
 ) {
+  const id = useId()
   return (
     <div className="mb-3">
-      <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
+      <label htmlFor={id} className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
         {icon && <span className="inline-flex items-center gap-1.5">{icon} </span>}
         {label}
       </label>
       <select
+        id={id}
         value={value}
         onChange={e => onChange(e.target.value as T)}
         className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
@@ -179,6 +187,8 @@ export function FieldToggle({ label, value, onChange, hint, disabled }:
     <div className="mb-3">
       <button
         type="button"
+        role="switch"
+        aria-checked={value}
         onClick={() => !disabled && onChange(!value)}
         className="flex items-center justify-between w-full"
         style={{ opacity: disabled ? 0.5 : 1 }}
@@ -202,13 +212,15 @@ export function FieldToggle({ label, value, onChange, hint, disabled }:
 export function FieldDate({ label, value, onChange, hint, icon }:
   { label: string; value: string; onChange: (v: string) => void; hint?: string; icon?: React.ReactNode }
 ) {
+  const id = useId()
   return (
     <div className="mb-3">
-      <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
+      <label htmlFor={id} className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>
         {icon && <span className="inline-flex items-center gap-1.5">{icon} </span>}
         {label}
       </label>
       <input
+        id={id}
         type="date"
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -223,10 +235,12 @@ export function FieldDate({ label, value, onChange, hint, icon }:
 export function FieldDateTime({ label, value, onChange, hint }:
   { label: string; value: string; onChange: (v: string) => void; hint?: string }
 ) {
+  const id = useId()
   return (
     <div className="mb-3">
-      <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>{label}</label>
+      <label htmlFor={id} className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>{label}</label>
       <input
+        id={id}
         type="datetime-local"
         value={value}
         onChange={e => onChange(e.target.value)}

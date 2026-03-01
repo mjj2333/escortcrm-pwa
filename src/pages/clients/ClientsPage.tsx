@@ -52,11 +52,15 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
 
   const filtered = clients
     .filter(c => showBlocked ? c.isBlocked : !c.isBlocked)
-    .filter(c =>
-      !search || c.alias.toLowerCase().includes(search.toLowerCase()) ||
-      c.nickname?.toLowerCase().includes(search.toLowerCase()) ||
-      c.phone?.includes(search)
-    )
+    .filter(c => {
+      if (!search) return true
+      const q = search.toLowerCase()
+      if (c.alias.toLowerCase().includes(q)) return true
+      if (c.nickname?.toLowerCase().includes(q)) return true
+      const digits = search.replace(/\D/g, '')
+      if (digits && c.phone?.replace(/\D/g, '').includes(digits)) return true
+      return false
+    })
     .sort((a, b) => {
       if (!showBlocked && a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1
       switch (sortMode) {

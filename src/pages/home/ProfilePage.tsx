@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Trash2, ChevronDown } from 'lucide-react'
 import { db, newId, bookingDurationFormatted, formatCurrency, CURRENCY_KEY, DEFAULT_CURRENCY } from '../../db'
 import { Modal } from '../../components/Modal'
-import { SectionLabel, FieldHint, FieldTextInput, fieldInputStyle } from '../../components/FormFields'
+import { SectionLabel, FieldHint, FieldTextInput, fieldInputStyle, deriveCurrencySymbol } from '../../components/FormFields'
 import { useLocalStorage } from '../../hooks/useSettings'
 
 interface ProfilePageProps {
@@ -167,7 +167,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
                     style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', fontSize: '16px' }} />
                 </div>
                 <div className="flex-1">
-                  <label className="text-[10px] uppercase" style={{ color: 'var(--text-secondary)' }}>Rate ($)</label>
+                  <label className="text-[10px] uppercase" style={{ color: 'var(--text-secondary)' }}>Rate ({deriveCurrencySymbol()})</label>
                   <input type="text" inputMode="decimal" placeholder="0"
                     value={newRateAmount > 0 ? String(newRateAmount) : ''}
                     onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '') { setNewRateAmount(0); return }; const v = parseFloat(raw); if (!isNaN(v)) setNewRateAmount(v) }}
@@ -232,7 +232,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           ) : (
             <>
               <div className="flex items-center gap-2">
-                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>$</span>
+                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{deriveCurrencySymbol()}</span>
                 <input type="text" inputMode="decimal"
                   value={depositFlat > 0 ? String(depositFlat) : ''}
                   onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '' || raw === '.') { setDepositFlat(0); return }; const val = parseFloat(raw); if (!isNaN(val)) setDepositFlat(val) }}

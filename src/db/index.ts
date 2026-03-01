@@ -421,7 +421,8 @@ export async function advanceBookingsOnScreen(
 ): Promise<number> {
   if (newStatus !== 'Screened' || oldStatus === 'Screened') return 0
   const bookings = await db.bookings.where('clientId').equals(clientId).toArray()
-  const toAdvance = bookings.filter(b => b.status === 'To Be Confirmed')
+  const now = new Date()
+  const toAdvance = bookings.filter(b => b.status === 'To Be Confirmed' && new Date(b.dateTime) > now)
   for (const b of toAdvance) {
     const nextSt: BookingStatus = (b.depositAmount ?? 0) > 0 && !b.depositReceived
       ? 'Pending Deposit' : 'Confirmed'

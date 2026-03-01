@@ -193,12 +193,6 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
 
     if (newStatus === 'Completed') {
       updates.completedAt = new Date()
-      // Record remaining payment via ledger
-      await completeBookingPayment(booking, client?.alias)
-      // Update client lastSeen
-      if (booking.clientId) {
-        await db.clients.update(booking.clientId, { lastSeen: new Date() })
-      }
     }
 
     if (newStatus === 'Cancelled') {
@@ -211,7 +205,15 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
       updates.cancelledAt = new Date()
     }
 
+    // Update status first, then record payment side-effects
     await db.bookings.update(booking.id, updates)
+
+    if (newStatus === 'Completed') {
+      await completeBookingPayment(booking, client?.alias)
+      if (booking.clientId) {
+        await db.clients.update(booking.clientId, { lastSeen: new Date() })
+      }
+    }
     // Create safety check when manually advancing to In Progress
     if (newStatus === 'In Progress' && booking.requiresSafetyCheck) {
       const existing = await db.safetyChecks.where('bookingId').equals(booking.id).first()

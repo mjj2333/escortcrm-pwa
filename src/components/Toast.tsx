@@ -26,7 +26,7 @@ export function showUndoToast(message: string, onUndo: () => void) {
 
 const DURATION: Record<ToastType, number> = {
   success: 2200,
-  error: 2200,
+  error: 4000,
   info: 2200,
   undo: 5000,
 }

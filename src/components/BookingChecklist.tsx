@@ -110,7 +110,7 @@ export function BookingChecklist({ bookingId }: BookingChecklistProps) {
             </span>
             <button
               onClick={() => deleteItem(item.id)}
-              className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="p-1 opacity-40"
               style={{ color: 'var(--text-secondary)' }}
             >
               <Trash2 size={14} />

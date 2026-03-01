@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { hashPin } from './PinLock'
 
 interface CalculatorProps {
@@ -7,6 +7,13 @@ interface CalculatorProps {
 }
 
 export default function Calculator({ onExit, pinHash }: CalculatorProps) {
+  // Hide app identity in browser tab title
+  useEffect(() => {
+    const prev = document.title
+    document.title = 'Calculator'
+    return () => { document.title = prev }
+  }, [])
+
   const [display, setDisplay] = useState('0')
   const [prevValue, setPrevValue] = useState<number | null>(null)
   const [operator, setOperator] = useState<string | null>(null)
