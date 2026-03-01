@@ -80,12 +80,16 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
     if (value) {
       setShowPinSetup(true)
     } else {
-      // Decrypt all data before disabling PIN
-      await disableFieldEncryption()
-      clearBiometric()
-      setBiometricOn(false)
-      setPinEnabled(false)
-      setPinCode('')
+      try {
+        // Decrypt all data before disabling PIN — only clear state on success
+        await disableFieldEncryption()
+        clearBiometric()
+        setBiometricOn(false)
+        setPinEnabled(false)
+        setPinCode('')
+      } catch (err) {
+        showToast('Failed to disable encryption — PIN kept enabled', 'error')
+      }
     }
   }
 
@@ -501,13 +505,22 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
           onCancel={() => setShowPinSetup(false)}
           onUnlock={() => setShowPinSetup(false)}
           onSetPin={async (hash, plaintextPin) => {
-            setPinCode(hash)
-            setPinEnabled(true)
-            if (isFieldEncryptionReady()) {
-              await reWrapMasterKey(plaintextPin)
-              await reWrapBiometricPin(plaintextPin)
-            } else {
-              await initFieldEncryption(plaintextPin)
+            try {
+              if (isFieldEncryptionReady()) {
+                await reWrapMasterKey(plaintextPin)
+                // If biometric re-wrap fails, clear biometric so stale PIN can't desync
+                try { await reWrapBiometricPin(plaintextPin) } catch {
+                  clearBiometric()
+                  setBiometricOn(false)
+                  showToast('Biometric cleared — re-enable after PIN change', 'info')
+                }
+              } else {
+                await initFieldEncryption(plaintextPin)
+              }
+              setPinCode(hash)
+              setPinEnabled(true)
+            } catch (err) {
+              showToast('Failed to update encryption — PIN not changed', 'error')
             }
           }}
         />
