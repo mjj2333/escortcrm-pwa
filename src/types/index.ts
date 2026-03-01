@@ -245,6 +245,14 @@ export const journalTagColors: Record<JournalTag, { bg: string; fg: string }> = 
   'Relaxed': { bg: 'rgba(59,130,246,0.15)', fg: '#3b82f6' },
 }
 
+export interface ChecklistItem {
+  id: string
+  bookingId: string
+  text: string
+  completed: boolean
+  sortOrder: number
+}
+
 // Display helpers
 
 export const screeningStatusColors: Record<ScreeningStatus, string> = {

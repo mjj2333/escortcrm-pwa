@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Clock, MapPin, Send,
   CheckCircle, XCircle, UserX, RotateCcw, Shield,
-  ChevronRight, Trash2, Plus, DollarSign
+  ChevronRight, Trash2, Plus, DollarSign, CalendarPlus
 } from 'lucide-react'
 import { addMinutes } from 'date-fns'
 import { fmtFullDayDateYear, fmtDateAndTime, fmtFullDateAndTime, fmtTime } from '../../utils/dateFormat'
@@ -18,6 +18,9 @@ import { JournalEntryEditor } from '../../components/JournalEntryEditor'
 import { ProGate } from '../../components/ProGate'
 import { isPro } from '../../components/planLimits'
 import { showToast, showUndoToast } from '../../components/Toast'
+import { downloadICS } from '../../utils/icsExport'
+import { SessionTimer } from '../../components/SessionTimer'
+import { BookingChecklist, useChecklistCount } from '../../components/BookingChecklist'
 import { CancellationSheet } from '../../components/CancellationSheet'
 import { SendMessageSheet } from '../../components/SendMessageSheet'
 import { bookingStatusColors, journalTagColors } from '../../types'
@@ -68,6 +71,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
     () => booking?.venueId ? db.incallVenues.get(booking.venueId) : undefined,
     [booking?.venueId]
   )
+  const checklistCount = useChecklistCount(bookingId)
   const [payAmount, setPayAmount] = useState('')
   const [payMethod, setPayMethod] = useState<PaymentMethod | ''>('')
   const [payLabel, setPayLabel] = useState<PaymentLabel>('Payment')
@@ -161,26 +165,29 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       const checksSnap = await db.safetyChecks.where('bookingId').equals(bookingId).toArray()
       const journalSnap = await db.journalEntries.where('bookingId').equals(bookingId).toArray()
       const incidentsSnap = await db.incidents.where('bookingId').equals(bookingId).toArray()
+      const checklistSnap = await db.bookingChecklist.where('bookingId').equals(bookingId).toArray()
 
-      await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries, db.incidents], async () => {
+      await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries, db.incidents, db.bookingChecklist], async () => {
         await db.payments.where('bookingId').equals(bookingId).delete()
         await db.transactions.where('bookingId').equals(bookingId).delete()
         await db.safetyChecks.where('bookingId').equals(bookingId).delete()
         await db.journalEntries.where('bookingId').equals(bookingId).delete()
         await db.incidents.where('bookingId').equals(bookingId).delete()
+        await db.bookingChecklist.where('bookingId').equals(bookingId).delete()
         await db.bookings.delete(bookingId)
       })
       setConfirmAction(null)
       onBack()
 
       showUndoToast('Booking deleted', async () => {
-        await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries, db.incidents], async () => {
+        await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries, db.incidents, db.bookingChecklist], async () => {
           if (bookingSnap) await db.bookings.put(bookingSnap)
           if (paymentsSnap.length) await db.payments.bulkPut(paymentsSnap)
           if (txnsSnap.length) await db.transactions.bulkPut(txnsSnap)
           if (checksSnap.length) await db.safetyChecks.bulkPut(checksSnap)
           if (journalSnap.length) await db.journalEntries.bulkPut(journalSnap)
           if (incidentsSnap.length) await db.incidents.bulkPut(incidentsSnap)
+          if (checklistSnap.length) await db.bookingChecklist.bulkPut(checklistSnap)
         })
       })
     } catch (err) {
@@ -264,6 +271,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             {fmtFullDayDateYear(new Date(booking.dateTime))}
           </p>
         </div>
+
+        {/* Session Timer */}
+        {booking.status === 'In Progress' && (
+          <SessionTimer startTime={booking.dateTime} durationMin={booking.duration} />
+        )}
 
         {/* Client */}
         {client && (
@@ -472,6 +484,22 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
           </div>
         </CollapsibleCard>
 
+        {/* Checklist */}
+        <CollapsibleCard label="Checklist" id="checklist" expanded={expanded} toggle={toggle}
+          badge={checklistCount ? (
+            <span
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              style={{
+                backgroundColor: checklistCount.completed === checklistCount.total ? 'rgba(34,197,94,0.15)' : 'rgba(168,85,247,0.15)',
+                color: checklistCount.completed === checklistCount.total ? '#22c55e' : '#a855f7',
+              }}
+            >
+              {checklistCount.completed}/{checklistCount.total}
+            </span>
+          ) : undefined}>
+          <BookingChecklist bookingId={bookingId} />
+        </CollapsibleCard>
+
         {/* Client Screening — quick toggle */}
         {client && client.screeningStatus !== 'Screened' && (
           <Card>
@@ -645,6 +673,15 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <span className="text-sm font-medium text-blue-500">Message Client</span>
             </button>
           )}
+
+          {/* Export to Calendar */}
+          <button
+            onClick={() => downloadICS(booking, client ?? undefined, venue ?? undefined)}
+            className="flex items-center gap-3 py-3 w-full text-left"
+          >
+            <CalendarPlus size={18} className="text-purple-500" />
+            <span className="text-sm font-medium text-purple-500">Export to Calendar</span>
+          </button>
 
           {/* Advance Status */}
           {next && (

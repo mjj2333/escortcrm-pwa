@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RotateCcw, Database, MessageSquare, Users } from 'lucide-react'
+import { RotateCcw, Database, MessageSquare, Users, Plus, X } from 'lucide-react'
 import { db } from '../../db'
 import { seedSampleData, clearSampleData } from '../../data/sampleData'
 import { Modal } from '../../components/Modal'
@@ -54,6 +54,12 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
   const [showSampleConfirm, setShowSampleConfirm] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
   const [versionTaps, setVersionTaps] = useState(0)
+  const [defaultChecklistItems, setDefaultChecklistItems] = useLocalStorage<string[]>('defaultChecklistItems', ['Confirm venue', 'Check screening', 'Pack bag', 'Charge phone'])
+  const [newChecklistItem, setNewChecklistItem] = useState('')
+  const [duressPin, setDuressPin] = useLocalStorage('duressPin', '')
+  const [showDuressSetup, setShowDuressSetup] = useState(false)
+  const [showDuressRemove, setShowDuressRemove] = useState(false)
+  const [stealthEnabled, setStealthEnabled] = useLocalStorage('stealthEnabled', false)
 
   function handleDarkModeChange(value: boolean) {
     setDarkMode(value)
@@ -215,6 +221,48 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
             />
           )}
 
+          {/* Duress PIN */}
+          {pinEnabled && (
+            <div className="mb-3">
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Duress PIN</span>
+                  {duressPin && (
+                    <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-500">Active</span>
+                  )}
+                </div>
+                {duressPin ? (
+                  <button
+                    onClick={() => setShowDuressRemove(true)}
+                    className="text-xs font-medium text-red-500 active:opacity-70"
+                  >
+                    Remove
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowDuressSetup(true)}
+                    className="text-xs font-medium text-purple-500 active:opacity-70"
+                  >
+                    Set Up
+                  </button>
+                )}
+              </div>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                Entering this PIN on the lock screen will permanently erase all data.
+              </p>
+            </div>
+          )}
+
+          {/* Stealth Mode */}
+          {pinEnabled && (
+            <FieldToggle
+              label="Stealth Mode"
+              value={stealthEnabled}
+              onChange={setStealthEnabled}
+              hint="Triple-tap Home to disguise as a calculator. Enter your PIN + = to return."
+            />
+          )}
+
           {/* Appearance */}
           <SectionLabel label="Appearance" />
           <FieldToggle label="Dark Mode" value={darkMode} onChange={handleDarkModeChange} />
@@ -287,6 +335,55 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
             <Users size={16} style={{ color: '#a855f7' }} />
             <span className="text-sm font-medium text-purple-500">Load Sample Data</span>
           </button>
+
+          {/* Default Checklist */}
+          <SectionLabel label="Default Checklist" />
+          <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
+            Items auto-added to new booking checklists.
+          </p>
+          <div className="space-y-1 mb-2">
+            {defaultChecklistItems.map((item, i) => (
+              <div key={i} className="flex items-center gap-2 py-1.5 px-2 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)' }}>
+                <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{item}</span>
+                <button
+                  onClick={() => setDefaultChecklistItems(prev => prev.filter((_, idx) => idx !== i))}
+                  className="p-1"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mb-3">
+            <input
+              type="text"
+              value={newChecklistItem}
+              onChange={e => setNewChecklistItem(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && newChecklistItem.trim()) {
+                  setDefaultChecklistItems(prev => [...prev, newChecklistItem.trim()])
+                  setNewChecklistItem('')
+                }
+              }}
+              placeholder="Add default item..."
+              className="flex-1 text-sm py-1.5 px-2 rounded-lg border-0 outline-none"
+              style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+            />
+            <button
+              onClick={() => {
+                if (newChecklistItem.trim()) {
+                  setDefaultChecklistItems(prev => [...prev, newChecklistItem.trim()])
+                  setNewChecklistItem('')
+                }
+              }}
+              disabled={!newChecklistItem.trim()}
+              className="p-1.5 rounded-lg disabled:opacity-30"
+              style={{ backgroundColor: 'rgba(168,85,247,0.1)' }}
+            >
+              <Plus size={16} className="text-purple-500" />
+            </button>
+          </div>
 
           {/* Help */}
           <SectionLabel label="Help" />
@@ -460,6 +557,37 @@ export function SettingsPage({ onClose, onRestartTour, onShowPaywall }: Settings
         confirmLabel="Load Samples"
         onConfirm={restoreSampleData}
         onCancel={() => setShowSampleConfirm(false)}
+      />
+
+      {/* Duress PIN Setup */}
+      {showDuressSetup && (
+        <PinLock
+          correctPin=""
+          isSetup
+          onCancel={() => setShowDuressSetup(false)}
+          onUnlock={() => setShowDuressSetup(false)}
+          onSetPin={async (hash) => {
+            const mainPinHash = localStorage.getItem('pinCode')?.replace(/^"|"$/g, '') || ''
+            if (hash === mainPinHash) {
+              showToast('Duress PIN must differ from your main PIN')
+              setShowDuressSetup(false)
+              return
+            }
+            setDuressPin(hash)
+            setShowDuressSetup(false)
+            showToast('Duress PIN set')
+          }}
+        />
+      )}
+
+      {/* Remove Duress PIN Confirm */}
+      <ConfirmDialog
+        isOpen={showDuressRemove}
+        title="Remove Duress PIN"
+        message="Remove the duress PIN? The emergency data wipe feature will be disabled."
+        confirmLabel="Remove"
+        onConfirm={() => { setDuressPin(''); setShowDuressRemove(false); showToast('Duress PIN removed') }}
+        onCancel={() => setShowDuressRemove(false)}
       />
     </>
   )

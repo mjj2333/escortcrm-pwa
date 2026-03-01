@@ -1,10 +1,11 @@
-import { memo } from 'react'
+import { memo, useRef, useCallback } from 'react'
 import { Home, Users, Calendar, DollarSign, Shield } from 'lucide-react'
 import { isPro } from './planLimits'
 
 interface TabBarProps {
   activeTab: number
   onTabChange: (tab: number) => void
+  onStealthTrigger?: () => void
 }
 
 const tabs = [
@@ -15,8 +16,24 @@ const tabs = [
   { icon: Shield, label: 'Safety' },
 ]
 
-export const TabBar = memo(function TabBar({ activeTab, onTabChange }: TabBarProps) {
+export const TabBar = memo(function TabBar({ activeTab, onTabChange, onStealthTrigger }: TabBarProps) {
   const pro = isPro()
+  const homeTaps = useRef<number[]>([])
+
+  const handleHomeTap = useCallback(() => {
+    if (!onStealthTrigger) {
+      onTabChange(0)
+      return
+    }
+    const now = Date.now()
+    homeTaps.current = [...homeTaps.current.filter(t => now - t < 800), now]
+    if (homeTaps.current.length >= 3) {
+      homeTaps.current = []
+      onStealthTrigger()
+    } else {
+      onTabChange(0)
+    }
+  }, [onStealthTrigger, onTabChange])
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t safe-bottom"
@@ -32,7 +49,7 @@ export const TabBar = memo(function TabBar({ activeTab, onTabChange }: TabBarPro
           return (
             <button
               key={tab.label}
-              onClick={() => onTabChange(index)}
+              onClick={index === 0 ? handleHomeTap : () => onTabChange(index)}
               className="flex flex-col items-center gap-0.5 py-2 px-3 min-w-[64px] transition-colors relative"
             >
               <Icon

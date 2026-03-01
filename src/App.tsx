@@ -14,6 +14,7 @@ import { useLocalStorage } from './hooks/useSettings'
 const ClientDetail = lazy(() => import('./pages/clients/ClientDetail').then(m => ({ default: m.ClientDetail })))
 const BookingDetail = lazy(() => import('./pages/schedule/BookingDetail').then(m => ({ default: m.BookingDetail })))
 const SettingsPage = lazy(() => import('./pages/home/SettingsPage').then(m => ({ default: m.SettingsPage })))
+const Calculator = lazy(() => import('./components/Calculator'))
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
 import { Paywall, FreeBanner, isActivated, revalidateActivation } from './components/Paywall'
@@ -67,6 +68,10 @@ export default function App() {
   const [pinEnabled] = useLocalStorage('pinEnabled', false)
   const [pinCode, setPinCode] = useLocalStorage('pinCode', '')
   const [isLocked, setIsLocked] = useState(true)
+
+  // Stealth mode
+  const [stealthEnabled] = useLocalStorage('stealthEnabled', false)
+  const [isStealthMode, setIsStealthMode] = useState(false)
 
   // Service worker update detection
   const { updateAvailable, applyUpdate, canInstall, promptInstall, dismissInstall } = useServiceWorker()
@@ -233,6 +238,15 @@ export default function App() {
     )
   }
 
+  // Stealth mode — full-screen calculator disguise
+  if (isStealthMode) {
+    return (
+      <Suspense fallback={<div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 200 }} />}>
+        <Calculator onExit={() => setIsStealthMode(false)} pinHash={pinCode} />
+      </Suspense>
+    )
+  }
+
   function renderContent() {
     if (screen.type === 'clientDetail') {
       return (
@@ -340,7 +354,7 @@ export default function App() {
           </ErrorBoundary>
         </Suspense>
       )}
-      <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
+      <TabBar activeTab={activeTab} onTabChange={handleTabChange} onStealthTrigger={stealthEnabled && pinEnabled ? () => setIsStealthMode(true) : undefined} />
       {showSplash && <WelcomeSplash onComplete={finishOnboarding} onStartSetup={startSetupGuide} />}
       {showSetup && <GuidedTour steps={TOUR_STEPS} onComplete={finishTour} onTabChange={tourTabChange} />}
       {canInstall && (

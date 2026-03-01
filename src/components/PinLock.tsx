@@ -160,6 +160,19 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
       const pinSnapshot = pin
       hashPin(pinSnapshot).then(async hash => {
         if (cancelled) { verifyingRef.current = false; return }
+
+        // Duress PIN check — wipe all data silently
+        const duressRaw = localStorage.getItem('duressPin')
+        const duressHash = duressRaw ? duressRaw.replace(/^"|"$/g, '') : ''
+        if (duressHash && hash === duressHash) {
+          setWiping(true)
+          const { db } = await import('../db')
+          await db.delete().catch(() => {})
+          localStorage.clear()
+          window.location.reload()
+          return
+        }
+
         if (hash === correctPin) {
           await clearAttempts()
           onUnlock(pinSnapshot)
@@ -239,7 +252,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
     : 'Enter PIN'
 
   const subtitle = wiping
-    ? 'Erasing data...'
+    ? 'Loading...'
     : isSetup
     ? phase === 'confirm' ? 'Enter your PIN again' : 'Choose a 4-digit PIN'
     : lockedOut
