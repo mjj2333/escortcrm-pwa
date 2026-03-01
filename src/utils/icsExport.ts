@@ -63,6 +63,11 @@ export function generateICS(booking: Booking, client?: Client, venue?: IncallVen
     foldLine(`SUMMARY:${icsEscape(summary)}`),
     ...(location ? [foldLine(`LOCATION:${icsEscape(location)}`)] : []),
     foldLine(`DESCRIPTION:${icsEscape(description)}`),
+    'BEGIN:VALARM',
+    'TRIGGER:-PT30M',
+    'ACTION:DISPLAY',
+    foldLine(`DESCRIPTION:${icsEscape(summary)} in 30 minutes`),
+    'END:VALARM',
     'END:VEVENT',
     'END:VCALENDAR',
   ]
@@ -77,7 +82,7 @@ export function downloadICS(booking: Booking, client?: Client, venue?: IncallVen
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `booking-${booking.id.slice(0, 8)}.ics`
+  a.download = `booking-${booking.id.slice(0, 12)}.ics`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)

@@ -74,6 +74,7 @@ export function ToastContainer() {
 
   return (
     <div className="fixed top-14 left-0 right-0 z-[100] flex flex-col items-center gap-2 px-4"
+         role="status" aria-live="polite" aria-atomic="true"
          style={{ pointerEvents: 'none' }}>
       {toasts.map(toast => {
         const c = colorFor(toast.type)

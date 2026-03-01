@@ -18,6 +18,7 @@ export function CollapsibleCard({ label, id, expanded, toggle, children, badge, 
     <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <button
         onClick={() => toggle(id)}
+        aria-expanded={isOpen}
         className="flex items-center justify-between w-full px-3 py-2.5 active:opacity-70"
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">
