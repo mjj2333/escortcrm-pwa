@@ -24,6 +24,7 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash')
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
 
   // Reset form when modal opens
   useEffect(() => {
@@ -34,13 +35,15 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
       setPaymentMethod('Cash')
       setDate(format(new Date(), 'yyyy-MM-dd'))
       setNotes('')
+      setSaving(false)
     }
   }, [isOpen, initialType])
 
   const isValid = amount > 0
 
   async function handleSave() {
-    if (!isValid) return
+    if (!isValid || saving) return
+    setSaving(true)
     try {
       const txn = createTransaction({
         amount, type, category, paymentMethod,
@@ -52,6 +55,7 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
       onClose()
     } catch (err) {
       showToast(`Save failed: ${(err as Error).message}`)
+      setSaving(false)
     }
   }
 
@@ -61,8 +65,9 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
       onClose={onClose}
       title="New Transaction"
       actions={
-        <button onClick={handleSave} disabled={!isValid}
-          className={`p-2 ${isValid ? 'text-purple-500' : 'opacity-30'}`}>
+        <button onClick={handleSave} disabled={!isValid || saving}
+          className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}
+          aria-label="Save transaction">
           <Check size={20} />
         </button>
       }
@@ -71,12 +76,12 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
         {/* Type Toggle */}
         <div className="pt-2 pb-3">
           <div className="flex rounded-xl overflow-hidden" style={{ border: '2px solid var(--border)' }}>
-            <button type="button" onClick={() => setType('income')}
+            <button type="button" onClick={() => { setType('income'); setCategory(c => ['supplies','travel','advertising','clothing','health','rent','phone'].includes(c) ? 'booking' : c) }}
               className={`flex-1 py-2.5 text-sm font-bold text-center transition-colors ${type === 'income' ? 'bg-green-600 text-white' : ''}`}
               style={type !== 'income' ? { color: 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' } : { WebkitTapHighlightColor: 'transparent' }}>
               Income
             </button>
-            <button type="button" onClick={() => setType('expense')}
+            <button type="button" onClick={() => { setType('expense'); setCategory(c => c === 'booking' || c === 'tip' || c === 'gift' ? 'supplies' : c) }}
               className={`flex-1 py-2.5 text-sm font-bold text-center transition-colors ${type === 'expense' ? 'bg-red-600 text-white' : ''}`}
               style={type !== 'expense' ? { color: 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' } : { WebkitTapHighlightColor: 'transparent' }}>
               Expense
@@ -94,11 +99,11 @@ export function TransactionEditor({ isOpen, onClose, initialType }: TransactionE
         <FieldTextArea label="Notes" value={notes} onChange={setNotes} placeholder="Optional notes..." />
 
         <div className="py-4">
-          <button type="submit" disabled={!isValid}
+          <button type="submit" disabled={!isValid || saving}
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
-              isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
+              isValid && !saving ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
-            Add {type === 'income' ? 'Income' : 'Expense'}
+            {saving ? 'Saving…' : `Add ${type === 'income' ? 'Income' : 'Expense'}`}
           </button>
         </div>
         <div className="h-8" />

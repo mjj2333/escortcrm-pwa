@@ -347,10 +347,10 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   return (
     <div className="pb-20">
       <PageHeader title="Finances">
-        <button onClick={() => setShowCardSettings(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
+        <button onClick={() => setShowCardSettings(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }} aria-label="Customize reports">
           <Settings2 size={18} />
         </button>
-        <button onClick={() => setShowEditor(true)} className="p-2 rounded-lg text-purple-500">
+        <button onClick={() => setShowEditor(true)} className="p-2 rounded-lg text-purple-500" aria-label="Add transaction">
           <Plus size={20} />
         </button>
       </PageHeader>
@@ -362,6 +362,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
             <button
               key={p}
               onClick={() => setPeriod(p)}
+              aria-pressed={period === p}
               className={`flex-1 py-2 rounded-md text-xs font-medium transition-colors ${
                 period === p ? 'bg-purple-600 text-white' : ''
               }`}
@@ -622,7 +623,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
               {bookingsWithBalance.slice(0, 5).map(({ booking, owing, client }) => (
                   <button
                     key={booking.id}
-                    className="flex items-center justify-between w-full text-left"
+                    className="flex items-center justify-between w-full text-left active:opacity-70"
                     onClick={() => onOpenBooking?.(booking.id)}
                   >
                     <div className="flex items-center gap-2">
@@ -1142,6 +1143,8 @@ function CardSettingsModal({ isOpen, onClose, visible, onChange }: {
                     <button
                       key={key}
                       onClick={() => toggle(key)}
+                      role="checkbox"
+                      aria-checked={visible.includes(key)}
                       className="flex items-center gap-3 w-full p-2.5 rounded-lg active:opacity-70"
                       style={{ backgroundColor: 'var(--bg-primary)' }}
                     >
@@ -1235,10 +1238,10 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   const hasAny = storedWeekly > 0 || storedMonthly > 0 || storedQuarterly > 0 || storedYearly > 0
 
   const fields = [
-    { label: 'Weekly', value: weekly, set: setWeekly },
-    { label: 'Monthly', value: monthly, set: setMonthly },
-    { label: 'Quarterly', value: quarterly, set: setQuarterly },
-    { label: 'Yearly', value: yearly, set: setYearly },
+    { label: 'Weekly', id: 'goal-weekly', value: weekly, set: setWeekly },
+    { label: 'Monthly', id: 'goal-monthly', value: monthly, set: setMonthly },
+    { label: 'Quarterly', id: 'goal-quarterly', value: quarterly, set: setQuarterly },
+    { label: 'Yearly', id: 'goal-yearly', value: yearly, set: setYearly },
   ]
 
   return (
@@ -1247,7 +1250,7 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
       onClose={onClose}
       title="Income Goals"
       actions={
-        <button onClick={save} className="p-2 text-purple-500">
+        <button onClick={save} className="p-2 text-purple-500" aria-label="Save goals">
           <Check size={20} />
         </button>
       }
@@ -1257,9 +1260,10 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
         <div className="space-y-3 mt-3">
           {fields.map(f => (
             <div key={f.label}>
-              <label className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>{f.label}</label>
+              <label htmlFor={f.id} className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>{f.label}</label>
               <input type="text" inputMode="numeric"
-                value={f.value ? Number(f.value).toLocaleString() : ''}
+                id={f.id}
+                value={f.value}
                 onChange={e => f.set(e.target.value.replace(/[^0-9]/g, ''))}
                 placeholder="0"
                 className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
@@ -1311,7 +1315,7 @@ function TaxSettingsEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
       onClose={onClose}
       title="Tax Settings"
       actions={
-        <button onClick={save} className="p-2 text-purple-500">
+        <button onClick={save} className="p-2 text-purple-500" aria-label="Save tax settings">
           <Check size={20} />
         </button>
       }
@@ -1325,6 +1329,7 @@ function TaxSettingsEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
           </div>
           <input type="range" min={0} max={50} step={1} value={taxRate}
             onChange={e => setTaxRate(parseInt(e.target.value))}
+            aria-label="Estimated tax rate"
             className="w-full accent-purple-500" />
           <FieldHint text="Your estimated tax bracket. Used to calculate how much tax you might owe." />
         </div>
@@ -1337,6 +1342,7 @@ function TaxSettingsEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
           </div>
           <input type="range" min={0} max={50} step={1} value={setAsideRate}
             onChange={e => setSetAsideRate(parseInt(e.target.value))}
+            aria-label="Set aside percentage"
             className="w-full accent-purple-500" />
           <FieldHint text="Set aside slightly more than your tax rate to cover self-employment tax." />
         </div>
@@ -1361,6 +1367,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const allTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray()) ?? []
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
   const [search, setSearch] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const filtered = allTransactions
     .filter(t => filterType === 'all' || t.type === filterType)
@@ -1380,6 +1387,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
               <button
                 key={f}
                 onClick={() => setFilterType(f)}
+                aria-pressed={filterType === f}
                 className={`flex-1 py-2 rounded-md text-xs font-medium capitalize transition-colors ${
                   filterType === f ? 'bg-purple-600 text-white' : ''
                 }`}
@@ -1400,10 +1408,10 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="flex-1 bg-transparent text-sm outline-none"
-              style={{ color: 'var(--text-primary)' }}
+              style={{ color: 'var(--text-primary)', fontSize: '16px' }}
             />
             {search && (
-              <button onClick={() => setSearch('')}>
+              <button onClick={() => setSearch('')} className="p-1" aria-label="Clear search">
                 <X size={14} style={{ color: 'var(--text-secondary)' }} />
               </button>
             )}
@@ -1442,7 +1450,10 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                 </p>
                 <button
+                  disabled={deletingId === t.id}
                   onClick={async () => {
+                    if (deletingId) return
+                    setDeletingId(t.id)
                     try {
                       // Snapshot for undo
                       const txnSnap = await db.transactions.get(t.id)
@@ -1476,10 +1487,13 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                       })
                     } catch (err) {
                       showToast(`Delete failed: ${(err as Error).message}`)
+                    } finally {
+                      setDeletingId(null)
                     }
                   }}
                   className="p-1 opacity-40 active:opacity-100"
                   style={{ color: 'var(--text-secondary)' }}
+                  aria-label={`Delete ${t.category} transaction`}
                 >
                   <Trash2 size={14} />
                 </button>
