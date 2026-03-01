@@ -69,7 +69,8 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(true)
 
   // Service worker update detection
-  const { updateAvailable, applyUpdate, canInstall, promptInstall } = useServiceWorker()
+  const { updateAvailable, applyUpdate, canInstall, promptInstall, dismissInstall } = useServiceWorker()
+  const [installNeverAsk, setInstallNeverAsk] = useState(false)
 
   // Online/offline detection
   const isOnline = useOnlineStatus()
@@ -304,25 +305,12 @@ export default function App() {
           </button>
         </div>
       )}
-      {canInstall && (
-        <div
-          style={{ backgroundColor: '#7c3aed', color: '#fff', paddingTop: updateAvailable ? '10px' : 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', textAlign: 'center', fontSize: '13px', fontWeight: 500 }}
-        >
-          Install Companion for the best experience.{' '}
-          <button
-            onClick={promptInstall}
-            style={{ background: 'none', border: 'none', color: '#fff', textDecoration: 'underline', fontWeight: 700, fontSize: '13px', cursor: 'pointer', padding: '8px 12px', margin: '-8px -12px' }}
-          >
-            Install now
-          </button>
-        </div>
-      )}
       {!isOnline && (
         <div
           style={{
             backgroundColor: 'rgba(30,30,30,0.97)',
             color: '#facc15',
-            paddingTop: (updateAvailable || canInstall) ? '10px' : 'calc(env(safe-area-inset-top, 0px) + 10px)',
+            paddingTop: updateAvailable ? '10px' : 'calc(env(safe-area-inset-top, 0px) + 10px)',
             paddingBottom: '10px',
             paddingLeft: '16px',
             paddingRight: '16px',
@@ -355,6 +343,47 @@ export default function App() {
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
       {showSplash && <WelcomeSplash onComplete={finishOnboarding} onStartSetup={startSetupGuide} />}
       {showSetup && <GuidedTour steps={TOUR_STEPS} onComplete={finishTour} onTabChange={tourTabChange} />}
+      {canInstall && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ pointerEvents: 'none' }}>
+          <div className="absolute inset-0 bg-black/40" style={{ pointerEvents: 'auto' }} onClick={() => dismissInstall(installNeverAsk)} />
+          <div
+            className="relative w-full max-w-md rounded-t-2xl p-5 pb-8 animate-slide-up"
+            style={{ backgroundColor: 'var(--bg-card)', pointerEvents: 'auto', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)' }}
+          >
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-purple-600 flex items-center justify-center text-2xl shadow-lg">
+                <img src="/icon-192.png" alt="" className="w-10 h-10 rounded-lg" />
+              </div>
+              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Install Companion</h3>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Add to your home screen for quick access, offline support, and the full app experience.
+              </p>
+              <button
+                onClick={promptInstall}
+                className="w-full py-3 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97] transition-transform"
+              >
+                Install
+              </button>
+              <button
+                onClick={() => dismissInstall(installNeverAsk)}
+                className="text-sm font-medium py-2"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Not now
+              </button>
+              <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: 'var(--text-tertiary)' }}>
+                <input
+                  type="checkbox"
+                  checked={installNeverAsk}
+                  onChange={e => setInstallNeverAsk(e.target.checked)}
+                  className="rounded"
+                />
+                Don't ask again
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -13,7 +13,17 @@ export function useServiceWorker() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null)
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
 
+  // Already running as installed PWA — never show install prompt
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || (navigator as any).standalone === true // iOS Safari
+
   useEffect(() => {
+    if (isStandalone) return
+
+    // User previously chose "Don't ask again"
+    const dismissed = localStorage.getItem('installDismissed')
+    if (dismissed === 'true') return
+
     // Capture the beforeinstallprompt event for custom install button
     function onBeforeInstall(e: Event) {
       e.preventDefault()
@@ -81,10 +91,18 @@ export function useServiceWorker() {
     }
   }, [installPrompt])
 
+  const dismissInstall = useCallback((neverAskAgain: boolean) => {
+    setInstallPrompt(null)
+    if (neverAskAgain) {
+      localStorage.setItem('installDismissed', 'true')
+    }
+  }, [])
+
   return {
     updateAvailable,
     applyUpdate,
     canInstall: !!installPrompt,
     promptInstall,
+    dismissInstall,
   }
 }
