@@ -110,7 +110,8 @@ export function IncallBookPage({ isOpen, onClose }: IncallBookPageProps) {
           className="flex items-center justify-between px-4 py-3 border-b shrink-0"
           style={{ borderColor: 'var(--border)' }}
         >
-          <button onClick={handleBack} className="p-2 -ml-1" style={{ color: 'var(--text-secondary)' }}>
+          <button onClick={handleBack} className="p-2 -ml-1" style={{ color: 'var(--text-secondary)' }}
+            aria-label={screen.view === 'list' ? 'Close' : 'Back'}>
             {screen.view === 'list' ? <X size={20} /> : <ArrowLeft size={20} />}
           </button>
           <h2 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>
@@ -118,12 +119,12 @@ export function IncallBookPage({ isOpen, onClose }: IncallBookPageProps) {
           </h2>
           <div className="w-7">
             {screen.view === 'list' && (
-              <button onClick={() => setScreen({ view: 'editor' })} className="p-2 text-purple-500">
+              <button onClick={() => setScreen({ view: 'editor' })} className="p-2 text-purple-500" aria-label="Add venue">
                 <Plus size={20} />
               </button>
             )}
             {screen.view === 'detail' && (
-              <button onClick={() => setScreen({ view: 'editor', venueId: (screen as any).venueId })} className="p-2 text-purple-500">
+              <button onClick={() => setScreen({ view: 'editor', venueId: (screen as any).venueId })} className="p-2 text-purple-500" aria-label="Edit venue">
                 <Edit size={18} />
               </button>
             )}
@@ -206,7 +207,7 @@ function VenueList({ cities, grouped, search, onSearchChange, activeCount, archi
           style={{ color: 'var(--text-primary)', fontSize: '16px' }}
         />
         {search && (
-          <button onClick={() => onSearchChange('')}>
+          <button onClick={() => onSearchChange('')} aria-label="Clear search">
             <X size={14} style={{ color: 'var(--text-secondary)' }} />
           </button>
         )}
@@ -217,6 +218,7 @@ function VenueList({ cities, grouped, search, onSearchChange, activeCount, archi
         <div className="flex gap-2">
           <button
             onClick={() => showArchived && onToggleArchived()}
+            aria-pressed={!showArchived}
             className="text-xs font-medium px-3 py-1 rounded-full"
             style={{
               backgroundColor: !showArchived ? 'rgba(168,85,247,0.15)' : 'transparent',
@@ -228,6 +230,7 @@ function VenueList({ cities, grouped, search, onSearchChange, activeCount, archi
           </button>
           <button
             onClick={() => !showArchived && onToggleArchived()}
+            aria-pressed={showArchived}
             className="text-xs font-medium px-3 py-1 rounded-full"
             style={{
               backgroundColor: showArchived ? 'rgba(168,85,247,0.15)' : 'transparent',
@@ -388,7 +391,7 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{venue.name}</h3>
-              <button onClick={toggleFavorite} className="shrink-0">
+              <button onClick={toggleFavorite} className="shrink-0" aria-label={venue.isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
                 <Star size={16} fill={venue.isFavorite ? '#f59e0b' : 'none'} stroke={venue.isFavorite ? '#f59e0b' : 'var(--text-secondary)'} />
               </button>
             </div>
@@ -893,6 +896,7 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
   const [costNotes, setCostNotes] = useState('')
   const [hotelFriendly, setHotelFriendly] = useState(false)
   const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (existing) {
@@ -921,43 +925,50 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
       showToast('Name and city are required')
       return
     }
+    if (saving) return
+    setSaving(true)
 
-    const data = {
-      name: name.trim(),
-      venueType,
-      city: city.trim(),
-      address: address.trim(),
-      directions: directions.trim() || undefined,
-      contactName: contactName.trim() || undefined,
-      contactPhone: contactPhone.trim() || undefined,
-      contactEmail: contactEmail.trim() || undefined,
-      accessMethod: accessMethod || undefined,
-      accessNotes: accessNotes.trim() || undefined,
-      bookingApp: bookingApp.trim() || undefined,
-      bookingNotes: bookingNotes.trim() || undefined,
-      costPerHour: costPerHour || undefined,
-      costPerDay: costPerDay || undefined,
-      costNotes: costNotes.trim() || undefined,
-      hotelFriendly: venueType === 'Hotel' ? (hotelFriendly || undefined) : undefined,
-      notes: notes.trim() || undefined,
-      updatedAt: new Date(),
-    }
+    try {
+      const data = {
+        name: name.trim(),
+        venueType,
+        city: city.trim(),
+        address: address.trim(),
+        directions: directions.trim() || undefined,
+        contactName: contactName.trim() || undefined,
+        contactPhone: contactPhone.trim() || undefined,
+        contactEmail: contactEmail.trim() || undefined,
+        accessMethod: accessMethod || undefined,
+        accessNotes: accessNotes.trim() || undefined,
+        bookingApp: bookingApp.trim() || undefined,
+        bookingNotes: bookingNotes.trim() || undefined,
+        costPerHour: costPerHour || undefined,
+        costPerDay: costPerDay || undefined,
+        costNotes: costNotes.trim() || undefined,
+        hotelFriendly: venueType === 'Hotel' ? (hotelFriendly || undefined) : undefined,
+        notes: notes.trim() || undefined,
+        updatedAt: new Date(),
+      }
 
-    if (venueId && existing) {
-      await db.incallVenues.update(venueId, data)
-      showToast('Venue updated')
-      onSave(venueId)
-    } else {
-      const id = newId()
-      await db.incallVenues.add({
-        id,
-        ...data,
-        isFavorite: false,
-        isArchived: false,
-        createdAt: new Date(),
-      } as IncallVenue)
-      showToast('Venue added')
-      onSave(id)
+      if (venueId && existing) {
+        await db.incallVenues.update(venueId, data)
+        showToast('Venue updated')
+        onSave(venueId)
+      } else {
+        const id = newId()
+        await db.incallVenues.add({
+          id,
+          ...data,
+          isFavorite: false,
+          isArchived: false,
+          createdAt: new Date(),
+        } as IncallVenue)
+        showToast('Venue added')
+        onSave(id)
+      }
+    } catch (err) {
+      showToast(`Save failed: ${(err as Error).message}`)
+      setSaving(false)
     }
   }
 
@@ -973,6 +984,8 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
       {venueType === 'Hotel' && (
         <button
           onClick={() => setHotelFriendly(!hotelFriendly)}
+          role="checkbox"
+          aria-checked={hotelFriendly}
           className="flex items-center gap-3 w-full py-2.5 px-3 rounded-lg mb-1"
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
         >
@@ -1060,10 +1073,11 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
         </button>
         <button
           onClick={handleSave}
+          disabled={saving}
           className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
-          style={{ backgroundColor: '#a855f7' }}
+          style={{ backgroundColor: '#a855f7', opacity: saving ? 0.6 : 1 }}
         >
-          {venueId ? 'Save Changes' : 'Add Venue'}
+          {saving ? 'Saving…' : venueId ? 'Save Changes' : 'Add Venue'}
         </button>
       </div>
     </div>

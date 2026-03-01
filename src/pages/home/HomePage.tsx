@@ -131,6 +131,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           onClick={() => setShowIncallBook(true)}
           className="p-2 rounded-lg active:bg-white/10 transition-colors"
           style={{ color: 'var(--text-secondary)' }}
+          aria-label="Incall Book"
         >
           <Building2 size={20} />
         </button>
@@ -138,6 +139,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           onClick={() => setShowProfile(true)}
           className="p-2 rounded-lg active:bg-white/10 transition-colors relative"
           style={{ color: 'var(--text-secondary)' }}
+          aria-label="Profile"
         >
           <CircleUser size={20} />
           {!profileSetupDone && (
@@ -148,6 +150,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           onClick={onOpenSettings}
           className="p-2 rounded-lg active:bg-white/10 transition-colors"
           style={{ color: 'var(--text-secondary)' }}
+          aria-label="Settings"
         >
           <Settings size={20} />
         </button>
@@ -553,6 +556,7 @@ function AllActiveBookingsModal({
             onClick={handleClose}
             className="p-2 rounded-lg"
             style={{ color: 'var(--text-secondary)' }}
+            aria-label="Close"
           >
             <X size={20} />
           </button>

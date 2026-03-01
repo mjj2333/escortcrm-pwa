@@ -327,6 +327,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
                   key={days}
                   type="button"
                   onClick={() => setBackupReminderDays(days)}
+                  aria-pressed={backupReminderDays === days}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
                   style={{
                     backgroundColor: backupReminderDays === days ? '#a855f7' : 'var(--bg-primary)',
@@ -361,6 +362,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
                   onClick={() => setDefaultChecklistItems(prev => prev.filter((_, idx) => idx !== i))}
                   className="p-1"
                   style={{ color: 'var(--text-secondary)' }}
+                  aria-label={`Remove ${item}`}
                 >
                   <X size={14} />
                 </button>
@@ -380,7 +382,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
               }}
               placeholder="Add default item..."
               className="flex-1 text-sm py-1.5 px-2 rounded-lg border-0 outline-none"
-              style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+              style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '16px' }}
             />
             <button
               onClick={() => {
@@ -392,6 +394,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
               disabled={!newChecklistItem.trim()}
               className="p-1.5 rounded-lg disabled:opacity-30"
               style={{ backgroundColor: 'rgba(168,85,247,0.1)' }}
+              aria-label="Add checklist item"
             >
               <Plus size={16} className="text-purple-500" />
             </button>

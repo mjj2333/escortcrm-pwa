@@ -60,6 +60,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
   const [newRateDurationText, setNewRateDurationText] = useState('')
   const [newRateAmount, setNewRateAmount] = useState(0)
   const [deleteRateId, setDeleteRateId] = useState<string | null>(null)
+  const [addingRate, setAddingRate] = useState(false)
 
   // Default deposit
   const [depositType, setDepositType] = useLocalStorage<'percent' | 'flat'>('defaultDepositType', 'percent')
@@ -70,7 +71,8 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
     const duration = parseFloat(newRateDurationText)
     if (!newRateName.trim() || newRateAmount <= 0 || isNaN(duration) || duration <= 0) return
     const durationInMinutes = Math.round(duration * 60)
-    if (durationInMinutes < 1) return
+    if (durationInMinutes < 1 || addingRate) return
+    setAddingRate(true)
     try {
       const maxOrder = serviceRates.reduce((max, r) => Math.max(max, r.sortOrder), -1)
       await db.serviceRates.add({
@@ -88,6 +90,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
     } catch {
       showToast('Failed to add rate', 'error')
     }
+    setAddingRate(false)
   }
 
   async function confirmDeleteRate() {
@@ -221,6 +224,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           <div className="flex rounded-lg overflow-hidden mb-3" style={{ border: '1px solid var(--border)' }}>
             <button
               onClick={() => setDepositType('percent')}
+              aria-pressed={depositType === 'percent'}
               className="flex-1 py-2 text-xs font-semibold transition-colors"
               style={{
                 backgroundColor: depositType === 'percent' ? '#a855f7' : 'transparent',
@@ -231,6 +235,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
             </button>
             <button
               onClick={() => setDepositType('flat')}
+              aria-pressed={depositType === 'flat'}
               className="flex-1 py-2 text-xs font-semibold transition-colors"
               style={{
                 backgroundColor: depositType === 'flat' ? '#a855f7' : 'transparent',
