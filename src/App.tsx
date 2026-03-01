@@ -17,7 +17,9 @@ const SettingsPage = lazy(() => import('./pages/home/SettingsPage').then(m => ({
 const Calculator = lazy(() => import('./components/Calculator'))
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
-import { Paywall, FreeBanner, isActivated, revalidateActivation } from './components/Paywall'
+import { isActivated, revalidateActivation } from './components/paywallState'
+import { FreeBanner } from './components/FreeBanner'
+const Paywall = lazy(() => import('./components/Paywall').then(m => ({ default: m.Paywall })))
 import { ProGate } from './components/ProGate'
 import { ToastContainer, showToast } from './components/Toast'
 
@@ -199,14 +201,16 @@ export default function App() {
   // Paywall — shown when user requests upgrade (never blocks app)
   if (showPaywall) {
     return (
-      <Paywall
-        onActivated={() => {
-          setShowPaywall(false)
-          setDeepLinkCode(undefined)
-        }}
-        onClose={() => { setShowPaywall(false); setDeepLinkCode(undefined); }}
-        initialCode={deepLinkCode}
-      />
+      <Suspense fallback={null}>
+        <Paywall
+          onActivated={() => {
+            setShowPaywall(false)
+            setDeepLinkCode(undefined)
+          }}
+          onClose={() => { setShowPaywall(false); setDeepLinkCode(undefined); }}
+          initialCode={deepLinkCode}
+        />
+      </Suspense>
     )
   }
 

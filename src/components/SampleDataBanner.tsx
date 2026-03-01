@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Sparkles, Trash2 } from 'lucide-react'
-import { isSampleDataActive, clearSampleData, SAMPLE_DATA_EVENT } from '../data/sampleData'
+import { isSampleDataActive, clearSampleData, SAMPLE_DATA_EVENT } from '../data/sampleDataState'
 
 export function SampleDataBanner() {
   const [visible, setVisible] = useState(isSampleDataActive())

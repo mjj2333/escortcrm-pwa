@@ -27,5 +27,14 @@ export default defineConfig({
   ],
   build: {
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-dexie': ['dexie', 'dexie-react-hooks'],
+          'vendor-datefns': ['date-fns'],
+        },
+      },
+    },
   },
 })

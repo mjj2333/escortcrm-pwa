@@ -17,7 +17,8 @@
 // Encrypted field format:  enc:{base64( nonce || ciphertext )}
 // The "enc:" prefix distinguishes encrypted from plaintext values.
 
-import nacl from 'tweetnacl'
+import type naclType from 'tweetnacl'
+let nacl: typeof naclType
 
 // ── Sensitive fields per table ─────────────────────────────────────────
 // `alias` excluded: it's indexed for sorting and is typically a pseudonym.
@@ -221,6 +222,7 @@ async function unwrapFromStore(pin: string): Promise<Uint8Array> {
  * - No key → first-time: generate + encrypt existing data.
  */
 export async function initFieldEncryption(pin: string): Promise<void> {
+  if (!nacl) nacl = (await import('tweetnacl')).default
   const { db } = await import('./index')
   const record = await db.meta.get('field_encryption_key')
   if (record?.value) {
