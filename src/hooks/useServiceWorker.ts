@@ -1,15 +1,29 @@
 // src/hooks/useServiceWorker.ts
-// Registers the service worker and detects when a new version is waiting.
-// Returns { updateAvailable, applyUpdate } so the UI can prompt the user.
+// Registers the service worker, detects updates, and handles PWA install prompt.
 
 import { useState, useEffect, useCallback } from 'react'
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
 
 export function useServiceWorker() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null)
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator)) return
+    // Capture the beforeinstallprompt event for custom install button
+    function onBeforeInstall(e: Event) {
+      e.preventDefault()
+      setInstallPrompt(e as BeforeInstallPromptEvent)
+    }
+    window.addEventListener('beforeinstallprompt', onBeforeInstall)
+
+    if (!('serviceWorker' in navigator)) return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstall)
+    }
 
     function trackWaiting(sw: ServiceWorker) {
       setWaitingWorker(sw)
@@ -48,6 +62,7 @@ export function useServiceWorker() {
 
     return () => {
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
+      window.removeEventListener('beforeinstallprompt', onBeforeInstall)
     }
   }, [])
 
@@ -57,5 +72,19 @@ export function useServiceWorker() {
     // The controllerchange listener above will reload the page
   }, [waitingWorker])
 
-  return { updateAvailable, applyUpdate }
+  const promptInstall = useCallback(async () => {
+    if (!installPrompt) return
+    await installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') {
+      setInstallPrompt(null)
+    }
+  }, [installPrompt])
+
+  return {
+    updateAvailable,
+    applyUpdate,
+    canInstall: !!installPrompt,
+    promptInstall,
+  }
 }

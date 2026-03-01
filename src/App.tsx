@@ -69,7 +69,7 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(true)
 
   // Service worker update detection
-  const { updateAvailable, applyUpdate } = useServiceWorker()
+  const { updateAvailable, applyUpdate, canInstall, promptInstall } = useServiceWorker()
 
   // Online/offline detection
   const isOnline = useOnlineStatus()
@@ -304,12 +304,25 @@ export default function App() {
           </button>
         </div>
       )}
+      {canInstall && (
+        <div
+          style={{ backgroundColor: '#7c3aed', color: '#fff', paddingTop: updateAvailable ? '10px' : 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', textAlign: 'center', fontSize: '13px', fontWeight: 500 }}
+        >
+          Install Companion for the best experience.{' '}
+          <button
+            onClick={promptInstall}
+            style={{ background: 'none', border: 'none', color: '#fff', textDecoration: 'underline', fontWeight: 700, fontSize: '13px', cursor: 'pointer', padding: '8px 12px', margin: '-8px -12px' }}
+          >
+            Install now
+          </button>
+        </div>
+      )}
       {!isOnline && (
         <div
           style={{
             backgroundColor: 'rgba(30,30,30,0.97)',
             color: '#facc15',
-            paddingTop: updateAvailable ? '10px' : 'calc(env(safe-area-inset-top, 0px) + 10px)',
+            paddingTop: (updateAvailable || canInstall) ? '10px' : 'calc(env(safe-area-inset-top, 0px) + 10px)',
             paddingBottom: '10px',
             paddingLeft: '16px',
             paddingRight: '16px',
