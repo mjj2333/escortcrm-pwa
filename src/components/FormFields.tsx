@@ -130,6 +130,7 @@ export function FieldCurrency({ label, value, onChange, hint }:
           }}
           onChange={e => {
             const raw = e.target.value.replace(/[^0-9.]/g, '')
+            if ((raw.match(/\./g) || []).length > 1) return
             setRawText(raw)
             if (raw === '' || raw === '.') return
             const v = parseFloat(raw)

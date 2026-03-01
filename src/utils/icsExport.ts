@@ -49,7 +49,7 @@ export function generateICS(booking: Booking, client?: Client, venue?: IncallVen
   descParts.push(`Type: ${booking.locationType}`)
   descParts.push(`Total: ${formatCurrency(bookingTotal(booking))}`)
   if (booking.notes) descParts.push(`Notes: ${booking.notes}`)
-  const description = descParts.join('\\n')
+  const description = descParts.join('\n')
 
   const lines = [
     'BEGIN:VCALENDAR',

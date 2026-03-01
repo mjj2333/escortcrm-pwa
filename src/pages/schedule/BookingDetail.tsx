@@ -166,6 +166,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       const journalSnap = await db.journalEntries.where('bookingId').equals(bookingId).toArray()
       const incidentsSnap = await db.incidents.where('bookingId').equals(bookingId).toArray()
       const checklistSnap = await db.bookingChecklist.where('bookingId').equals(bookingId).toArray()
+      // Find child bookings that reference this one as parent (recurring chain)
+      const childBookings = await db.bookings.filter(b => b.parentBookingId === bookingId).toArray()
 
       await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries, db.incidents, db.bookingChecklist], async () => {
         await db.payments.where('bookingId').equals(bookingId).delete()
@@ -174,6 +176,10 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         await db.journalEntries.where('bookingId').equals(bookingId).delete()
         await db.incidents.where('bookingId').equals(bookingId).delete()
         await db.bookingChecklist.where('bookingId').equals(bookingId).delete()
+        // Re-parent child bookings so the recurring chain isn't broken
+        for (const child of childBookings) {
+          await db.bookings.update(child.id, { parentBookingId: undefined })
+        }
         await db.bookings.delete(bookingId)
       })
       setConfirmAction(null)
@@ -188,6 +194,10 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
           if (journalSnap.length) await db.journalEntries.bulkPut(journalSnap)
           if (incidentsSnap.length) await db.incidents.bulkPut(incidentsSnap)
           if (checklistSnap.length) await db.bookingChecklist.bulkPut(checklistSnap)
+          // Restore parent references on child bookings
+          for (const child of childBookings) {
+            await db.bookings.update(child.id, { parentBookingId: bookingId })
+          }
         })
       })
     } catch (err) {

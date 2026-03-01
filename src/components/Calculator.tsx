@@ -111,8 +111,9 @@ export default function Calculator({ onExit, pinHash }: CalculatorProps) {
       setOperator(null)
       setWaitingForOperand(true)
     }
-    // Check exit code on = press
+    // Check exit code on = press, then reset buffer
     checkExitCode(digitBuffer.current)
+    digitBuffer.current = ''
   }
 
   // Format display value
