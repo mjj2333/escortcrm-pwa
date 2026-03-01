@@ -1,0 +1,315 @@
+import { useState, useEffect, useRef } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { Send, Copy, Phone, Mail, MessageSquare } from 'lucide-react'
+import { db, formatCurrency, bookingTotal, bookingDurationFormatted } from '../db'
+import { fmtFullDayDate, fmtTime } from '../utils/dateFormat'
+import { showToast } from './Toast'
+import { contactMethodMeta, getContactValue, openChannel } from '../utils/contactChannel'
+import { fieldInputStyle } from './FormFields'
+import type { Booking, Client, ContactMethod, IncallVenue } from '../types'
+
+const contactMethodIcons: Record<ContactMethod, typeof Phone> = {
+  'Phone': Phone, 'Text': MessageSquare, 'Email': Mail, 'Telegram': Send,
+  'Signal': MessageSquare, 'WhatsApp': Phone, 'Other': MessageSquare,
+}
+
+// ── Template types ──────────────────────────────────────────────
+
+export type MessageTemplateType =
+  | 'confirmation'
+  | 'depositReminder'
+  | 'screening'
+  | 'cancellation'
+  | 'thankYou'
+  | 'directions'
+
+interface TemplateConfig {
+  key: MessageTemplateType
+  label: string
+  storageKey: string
+  defaultText: string
+}
+
+const TEMPLATES: TemplateConfig[] = [
+  {
+    key: 'confirmation',
+    label: 'Confirmation',
+    storageKey: 'tplConfirmation',
+    defaultText: 'Hi {client}! Your booking on {date} at {time} is confirmed. See you then!\n\n— {name}',
+  },
+  {
+    key: 'depositReminder',
+    label: 'Deposit',
+    storageKey: 'tplDepositReminder',
+    defaultText: 'Hi {client}, a deposit of {deposit} is needed to confirm your booking on {date} at {time}. Please let me know once sent!\n\n— {name}',
+  },
+  {
+    key: 'screening',
+    label: 'Screening',
+    storageKey: 'tplScreening',
+    defaultText: 'Hi {client}, before we can meet I\'ll need to verify your identity. Please send a photo of your ID and a selfie, or provide references I can check. Thank you for understanding!\n\n— {name}',
+  },
+  {
+    key: 'cancellation',
+    label: 'Cancellation',
+    storageKey: 'tplCancellation',
+    defaultText: 'Hi {client}, I\'m sorry but I need to cancel our booking on {date} at {time}. I apologize for any inconvenience.\n\n— {name}',
+  },
+  {
+    key: 'thankYou',
+    label: 'Thank You',
+    storageKey: 'tplThankYou',
+    defaultText: 'Hi {client}, thank you for our time together! I had a wonderful time and hope to see you again soon.\n\n— {name}',
+  },
+  {
+    key: 'directions',
+    label: 'Directions',
+    storageKey: 'directionsTemplate',
+    defaultText: 'Hi! Here are the directions:\n\n📍 {address}\n\n{directions}\n\n— {name}',
+  },
+]
+
+// ── Placeholder resolution ──────────────────────────────────────
+
+function loadTemplate(config: TemplateConfig): string {
+  const raw = localStorage.getItem(config.storageKey)
+  if (!raw) return config.defaultText
+  try { return JSON.parse(raw) } catch { return raw }
+}
+
+function resolveTemplatePlaceholders(
+  template: string,
+  client: Client,
+  booking: Booking,
+  venue: IncallVenue | null | undefined,
+  totalPaid: number,
+): string {
+  const workingName = localStorage.getItem('profileWorkingName')?.replace(/^"|"$/g, '') || ''
+
+  // Deposit: use booking's depositAmount if set, otherwise profile default
+  let depositStr: string
+  if (booking.depositAmount > 0) {
+    depositStr = formatCurrency(booking.depositAmount)
+  } else {
+    const depositType = localStorage.getItem('defaultDepositType')?.replace(/^"|"$/g, '') || 'percent'
+    const depositPct = parseInt(localStorage.getItem('defaultDepositPercentage')?.replace(/^"|"$/g, '') || '25')
+    const depositFlat = parseFloat(localStorage.getItem('defaultDepositFlat')?.replace(/^"|"$/g, '') || '0')
+    if (depositType === 'flat' && depositFlat > 0) {
+      depositStr = formatCurrency(depositFlat)
+    } else if (depositPct > 0) {
+      depositStr = `${depositPct}%`
+    } else {
+      depositStr = 'a deposit'
+    }
+  }
+
+  const total = bookingTotal(booking)
+  const balance = Math.max(0, total - totalPaid)
+
+  return template
+    .replace(/\{client\}/g, client.alias || 'there')
+    .replace(/\{name\}/g, workingName)
+    .replace(/\{date\}/g, fmtFullDayDate(booking.dateTime))
+    .replace(/\{time\}/g, fmtTime(booking.dateTime))
+    .replace(/\{duration\}/g, bookingDurationFormatted(booking.duration))
+    .replace(/\{rate\}/g, formatCurrency(total))
+    .replace(/\{deposit\}/g, depositStr)
+    .replace(/\{balance\}/g, formatCurrency(balance))
+    .replace(/\{venue\}/g, venue?.name || '')
+    .replace(/\{address\}/g, venue?.address || '')
+    .replace(/\{directions\}/g, venue?.directions || '')
+}
+
+// ── Component ───────────────────────────────────────────────────
+
+interface SendMessageSheetProps {
+  isOpen: boolean
+  onClose: () => void
+  client: Client
+  booking: Booking
+  venue?: IncallVenue | null
+}
+
+export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: SendMessageSheetProps) {
+  // Filter: only show "Directions" when venue with directions exists
+  const availableTemplates = TEMPLATES.filter(t =>
+    t.key !== 'directions' || (venue?.directions && venue.directions.length > 0)
+  )
+
+  const [selectedType, setSelectedType] = useState<MessageTemplateType>(availableTemplates[0]?.key ?? 'confirmation')
+  const [message, setMessage] = useState('')
+  const [sent, setSent] = useState(false)
+  const prevOpenRef = useRef(false)
+
+  // Total paid for balance calculation
+  const totalPaid = useLiveQuery(
+    () => db.payments.where('bookingId').equals(booking.id).toArray().then(ps => ps.reduce((s, p) => s + p.amount, 0)),
+    [booking.id]
+  ) ?? 0
+
+  // Build message when sheet opens or template type changes
+  useEffect(() => {
+    const justOpened = isOpen && !prevOpenRef.current
+    prevOpenRef.current = isOpen
+    if (justOpened) {
+      setSent(false)
+      setSelectedType(availableTemplates[0]?.key ?? 'confirmation')
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const config = TEMPLATES.find(t => t.key === selectedType)
+    if (!config) return
+    const template = loadTemplate(config)
+    setMessage(resolveTemplatePlaceholders(template, client, booking, venue, totalPaid))
+  }, [isOpen, selectedType, client.id, booking.id, totalPaid])
+
+  if (!isOpen) return null
+
+  const method = client.preferredContact
+  const meta = contactMethodMeta[method]
+  const MethodIcon = contactMethodIcons[method]
+  const contactVal = getContactValue(client, method)
+
+  function handleSend() {
+    if (!message) return
+
+    if (!contactVal) {
+      navigator.clipboard.writeText(message).catch(() => {})
+      showToast('No contact info for this method — message copied to clipboard')
+      setSent(true)
+      return
+    }
+
+    const result = openChannel(method, contactVal, message)
+    if (result === 'copied') {
+      showToast('Message copied — paste it into your conversation')
+    } else {
+      showToast(`Opening ${meta.label}...`)
+    }
+    setSent(true)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div
+        className="relative w-full max-w-lg rounded-t-2xl safe-bottom flex flex-col"
+        style={{ backgroundColor: 'var(--bg-card)', maxHeight: '85vh' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Message Client</h3>
+          <button onClick={onClose} className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            {sent ? 'Done' : 'Cancel'}
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {/* Template type pills */}
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
+            {availableTemplates.map(t => (
+              <button
+                key={t.key}
+                onClick={() => { setSelectedType(t.key); setSent(false) }}
+                className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+                style={selectedType === t.key
+                  ? { backgroundColor: '#a855f7', color: '#fff' }
+                  : { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
+                }
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Client + method header */}
+          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+              style={{ backgroundColor: '#a855f7' }}
+            >
+              {client.alias.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {client.alias}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <MethodIcon size={12} style={{ color: meta.color }} />
+                <span className="text-xs" style={{ color: meta.color }}>
+                  via {meta.label}
+                </span>
+                {contactVal && (
+                  <span className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                    · {contactVal}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Editable message */}
+          <div>
+            <p className="text-xs font-semibold uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>Message</p>
+            <textarea
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              rows={10}
+              className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none"
+              style={{ ...fieldInputStyle, fontSize: '16px' }}
+            />
+            <p className="text-[10px] mt-1 px-1" style={{ color: 'var(--text-secondary)' }}>
+              Templates can be customized in Profile settings.
+            </p>
+          </div>
+
+          {/* No contact warning */}
+          {!contactVal && (
+            <p className="text-xs text-orange-500 px-1">
+              No {meta.label.toLowerCase()} contact info on file — message will be copied to clipboard instead.
+            </p>
+          )}
+
+          {/* Send button */}
+          {!sent ? (
+            <button
+              onClick={handleSend}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
+              style={{ backgroundColor: meta.color }}
+            >
+              <Send size={15} />
+              {contactVal ? `Send via ${meta.label}` : 'Copy to Clipboard'}
+            </button>
+          ) : (
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(message).catch(() => {})
+                  showToast('Message copied')
+                }}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+              >
+                <Copy size={14} />
+                Copy
+              </button>
+              <button
+                onClick={handleSend}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
+                style={{ backgroundColor: meta.color }}
+              >
+                <Send size={14} />
+                Resend
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Exported for ProfilePage template editors */
+export { TEMPLATES }

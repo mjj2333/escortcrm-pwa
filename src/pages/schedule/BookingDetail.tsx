@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
-  ArrowLeft, Edit, Clock, MapPin,
+  ArrowLeft, Edit, Clock, MapPin, Send,
   CheckCircle, XCircle, UserX, RotateCcw, Shield,
   ChevronRight, Trash2, Plus, DollarSign
 } from 'lucide-react'
@@ -19,6 +19,7 @@ import { ProGate } from '../../components/ProGate'
 import { isPro } from '../../components/planLimits'
 import { showToast, showUndoToast } from '../../components/Toast'
 import { CancellationSheet } from '../../components/CancellationSheet'
+import { SendMessageSheet } from '../../components/SendMessageSheet'
 import { bookingStatusColors, journalTagColors } from '../../types'
 import type { Booking, BookingStatus, PaymentMethod, PaymentLabel } from '../../types'
 
@@ -55,6 +56,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const [confirmAction, setConfirmAction] = useState<'noshow' | 'cancel' | 'delete' | null>(null)
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [showJournal, setShowJournal] = useState(false)
+  const [showMessageSheet, setShowMessageSheet] = useState(false)
   const { expanded, toggle } = useAccordion(['details', 'pricing'])
 
   // Journal entry for this booking
@@ -633,6 +635,17 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         <CollapsibleCard label="Actions" id="actions" expanded={expanded} toggle={toggle}>
           <div className="pt-1">
 
+          {/* Message Client */}
+          {client && (
+            <button
+              onClick={() => setShowMessageSheet(true)}
+              className="flex items-center gap-3 py-3 w-full text-left"
+            >
+              <Send size={18} className="text-blue-500" />
+              <span className="text-sm font-medium text-blue-500">Message Client</span>
+            </button>
+          )}
+
           {/* Advance Status */}
           {next && (
             <button
@@ -845,6 +858,17 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         onConfirm={confirmDeletePayment}
         onCancel={() => setDeletePaymentId(null)}
       />
+
+      {/* Message Client Sheet */}
+      {client && booking && (
+        <SendMessageSheet
+          isOpen={showMessageSheet}
+          onClose={() => setShowMessageSheet(false)}
+          client={client}
+          booking={booking}
+          venue={venue}
+        />
+      )}
     </div>
   )
 }

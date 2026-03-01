@@ -31,6 +31,23 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
     'Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}'
   )
 
+  // Booking message templates
+  const [tplConfirmation, setTplConfirmation] = useLocalStorage('tplConfirmation',
+    'Hi {client}! Your booking on {date} at {time} is confirmed. See you then!\n\n— {name}'
+  )
+  const [tplDepositReminder, setTplDepositReminder] = useLocalStorage('tplDepositReminder',
+    'Hi {client}, a deposit of {deposit} is needed to confirm your booking on {date} at {time}. Please let me know once sent!\n\n— {name}'
+  )
+  const [tplScreening, setTplScreening] = useLocalStorage('tplScreening',
+    'Hi {client}, before we can meet I\'ll need to verify your identity. Please send a photo of your ID and a selfie, or provide references I can check. Thank you for understanding!\n\n— {name}'
+  )
+  const [tplCancellation, setTplCancellation] = useLocalStorage('tplCancellation',
+    'Hi {client}, I\'m sorry but I need to cancel our booking on {date} at {time}. I apologize for any inconvenience.\n\n— {name}'
+  )
+  const [tplThankYou, setTplThankYou] = useLocalStorage('tplThankYou',
+    'Hi {client}, thank you for our time together! I had a wonderful time and hope to see you again soon.\n\n— {name}'
+  )
+
   // Service rates
   const serviceRates = useLiveQuery(() => db.serviceRates.orderBy('sortOrder').toArray()) ?? []
   const [showAddRate, setShowAddRate] = useState(false)
@@ -253,6 +270,91 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
         />
         <button
           onClick={() => setIntroTemplate('Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}')}
+          className="text-xs text-purple-500 mb-3 px-1"
+        >
+          Reset to default
+        </button>
+
+        {/* ── Booking Message Templates ── */}
+        <div className="mt-4 mb-2">
+          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+            Booking Message Templates
+          </p>
+          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary, var(--text-secondary))' }}>
+            Used from Booking Detail → Message Client. Placeholders: {'{client}'}, {'{name}'}, {'{date}'}, {'{time}'}, {'{duration}'}, {'{rate}'}, {'{deposit}'}, {'{balance}'}, {'{venue}'}, {'{address}'}, {'{directions}'}
+          </p>
+        </div>
+
+        <SectionLabel label="Confirmation" />
+        <textarea
+          value={tplConfirmation}
+          onChange={e => setTplConfirmation(e.target.value)}
+          rows={4}
+          className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
+          style={{ ...fieldInputStyle, fontSize: '16px' }}
+        />
+        <button
+          onClick={() => setTplConfirmation('Hi {client}! Your booking on {date} at {time} is confirmed. See you then!\n\n— {name}')}
+          className="text-xs text-purple-500 mb-3 px-1"
+        >
+          Reset to default
+        </button>
+
+        <SectionLabel label="Deposit Reminder" />
+        <textarea
+          value={tplDepositReminder}
+          onChange={e => setTplDepositReminder(e.target.value)}
+          rows={4}
+          className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
+          style={{ ...fieldInputStyle, fontSize: '16px' }}
+        />
+        <button
+          onClick={() => setTplDepositReminder('Hi {client}, a deposit of {deposit} is needed to confirm your booking on {date} at {time}. Please let me know once sent!\n\n— {name}')}
+          className="text-xs text-purple-500 mb-3 px-1"
+        >
+          Reset to default
+        </button>
+
+        <SectionLabel label="Screening Request" />
+        <textarea
+          value={tplScreening}
+          onChange={e => setTplScreening(e.target.value)}
+          rows={4}
+          className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
+          style={{ ...fieldInputStyle, fontSize: '16px' }}
+        />
+        <button
+          onClick={() => setTplScreening('Hi {client}, before we can meet I\'ll need to verify your identity. Please send a photo of your ID and a selfie, or provide references I can check. Thank you for understanding!\n\n— {name}')}
+          className="text-xs text-purple-500 mb-3 px-1"
+        >
+          Reset to default
+        </button>
+
+        <SectionLabel label="Cancellation" />
+        <textarea
+          value={tplCancellation}
+          onChange={e => setTplCancellation(e.target.value)}
+          rows={4}
+          className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
+          style={{ ...fieldInputStyle, fontSize: '16px' }}
+        />
+        <button
+          onClick={() => setTplCancellation('Hi {client}, I\'m sorry but I need to cancel our booking on {date} at {time}. I apologize for any inconvenience.\n\n— {name}')}
+          className="text-xs text-purple-500 mb-3 px-1"
+        >
+          Reset to default
+        </button>
+
+        <SectionLabel label="Thank You" />
+        <textarea
+          value={tplThankYou}
+          onChange={e => setTplThankYou(e.target.value)}
+          rows={4}
+          className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
+          style={{ ...fieldInputStyle, fontSize: '16px' }}
+        />
+        <button
+          onClick={() => setTplThankYou('Hi {client}, thank you for our time together! I had a wonderful time and hope to see you again soon.\n\n— {name}')}
           className="text-xs text-purple-500 mb-3 px-1"
         >
           Reset to default
