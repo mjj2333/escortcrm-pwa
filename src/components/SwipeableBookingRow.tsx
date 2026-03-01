@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { isToday, isTomorrow, differenceInDays, startOfDay, addMinutes } from 'date-fns'
 import { db, newId, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment, removeBookingPayment as removePayment, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../db'
 import { StatusBadge } from './StatusBadge'
+import { showToast } from './Toast'
 import { MiniTags } from './TagPicker'
 import { VerifiedBadge } from './VerifiedBadge'
 import { fmtTime, fmtWeekday, fmtShortDayDate } from '../utils/dateFormat'
@@ -113,6 +114,7 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
     currentX.current = 0
     isDragging.current = false
     setSwiping(true)
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
   }, [])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -151,50 +153,51 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
   // ━━━ Actions ━━━
   async function recordRemainingDeposit() {
     if (depositRemaining <= 0 || booking.depositAmount === 0) return
-    await recordBookingPayment({
-      bookingId: booking.id,
-      amount: depositRemaining,
-      method: booking.depositMethod,
-      label: 'Deposit',
-      clientAlias: client?.alias,
-    })
-    if (navigator.vibrate) navigator.vibrate(15)
+    try {
+      await recordBookingPayment({
+        bookingId: booking.id,
+        amount: depositRemaining,
+        method: booking.depositMethod ?? booking.paymentMethod,
+        label: 'Deposit',
+        clientAlias: client?.alias,
+      })
+      if (navigator.vibrate) navigator.vibrate(15)
+    } catch {
+      showToast('Failed to record deposit', 'error')
+    }
   }
 
   async function removeAllDeposits() {
     if (totalDeposits === 0) return
-    // Remove all deposit payments for this booking
-    const allDeposits = await db.payments
-      .where('bookingId').equals(booking.id)
-      .filter(p => p.label === 'Deposit')
-      .toArray()
-    for (const dep of allDeposits) {
-      await removePayment(dep.id)
+    try {
+      const allDeposits = await db.payments
+        .where('bookingId').equals(booking.id)
+        .filter(p => p.label === 'Deposit')
+        .toArray()
+      for (const dep of allDeposits) {
+        await removePayment(dep.id)
+      }
+      if (navigator.vibrate) navigator.vibrate(15)
+    } catch {
+      showToast('Failed to remove deposits', 'error')
     }
-    if (navigator.vibrate) navigator.vibrate(15)
   }
 
   async function setScreening(status: ScreeningStatus) {
     if (!client) return
-    const oldStatus = client.screeningStatus
-    await db.clients.update(client.id, { screeningStatus: status })
-    await advanceBookingsOnScreen(client.id, oldStatus, status)
-    const downgraded = await downgradeBookingsOnUnscreen(client.id, oldStatus, status)
-    if (downgraded > 0 && navigator.vibrate) navigator.vibrate([15, 50, 15])
-    else if (navigator.vibrate) navigator.vibrate(15)
+    try {
+      const oldStatus = client.screeningStatus
+      await db.clients.update(client.id, { screeningStatus: status })
+      await advanceBookingsOnScreen(client.id, oldStatus, status)
+      const downgraded = await downgradeBookingsOnUnscreen(client.id, oldStatus, status)
+      if (downgraded > 0 && navigator.vibrate) navigator.vibrate([15, 50, 15])
+      else if (navigator.vibrate) navigator.vibrate(15)
+    } catch {
+      showToast('Failed to update screening', 'error')
+    }
   }
 
   async function setBookingStatus(newStatus: BookingStatus) {
-    const updates: Partial<Booking> = { status: newStatus }
-
-    if (newStatus === 'Confirmed') {
-      updates.confirmedAt = new Date()
-    }
-
-    if (newStatus === 'Completed') {
-      updates.completedAt = new Date()
-    }
-
     if (newStatus === 'Cancelled') {
       // Delegate to parent's cancellation sheet
       if (onCancel) {
@@ -202,38 +205,47 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
         setTimeout(() => onCancel(booking), 300)
         return
       }
-      updates.cancelledAt = new Date()
     }
 
-    // Update status first, then record payment side-effects
-    await db.bookings.update(booking.id, updates)
+    try {
+      const updates: Partial<Booking> = { status: newStatus }
+      if (newStatus === 'Confirmed') updates.confirmedAt = new Date()
+      if (newStatus === 'Completed') updates.completedAt = new Date()
+      if (newStatus === 'Cancelled') updates.cancelledAt = new Date()
 
-    if (newStatus === 'Completed') {
-      await completeBookingPayment(booking, client?.alias)
-      if (booking.clientId) {
-        await db.clients.update(booking.clientId, { lastSeen: new Date() })
+      await db.bookings.update(booking.id, updates)
+
+      if (newStatus === 'Completed') {
+        // Re-fetch to get fresh data for payment calculation
+        const freshBooking = await db.bookings.get(booking.id)
+        if (freshBooking) await completeBookingPayment(freshBooking, client?.alias)
+        if (booking.clientId) {
+          await db.clients.update(booking.clientId, { lastSeen: new Date() })
+        }
       }
-    }
-    // Create safety check when manually advancing to In Progress
-    if (newStatus === 'In Progress' && booking.requiresSafetyCheck) {
-      const existing = await db.safetyChecks.where('bookingId').equals(booking.id).first()
-      if (!existing) {
-        const checkTime = addMinutes(new Date(booking.dateTime), booking.safetyCheckMinutesAfter || 15)
-        await db.safetyChecks.add({
-          id: newId(),
-          bookingId: booking.id,
-          safetyContactId: booking.safetyContactId,
-          scheduledTime: checkTime,
-          bufferMinutes: 15,
-          status: 'pending',
-        })
+      // Create safety check when manually advancing to In Progress
+      if (newStatus === 'In Progress' && booking.requiresSafetyCheck) {
+        const existing = await db.safetyChecks.where('bookingId').equals(booking.id).first()
+        if (!existing) {
+          const sessionStart = Math.max(new Date(booking.dateTime).getTime(), Date.now())
+          const checkTime = addMinutes(new Date(sessionStart), booking.safetyCheckMinutesAfter || 15)
+          await db.safetyChecks.add({
+            id: newId(),
+            bookingId: booking.id,
+            safetyContactId: booking.safetyContactId,
+            scheduledTime: checkTime,
+            bufferMinutes: 15,
+            status: 'pending',
+          })
+        }
       }
-    }
-    if (navigator.vibrate) navigator.vibrate(newStatus === 'Cancelled' ? [20, 50, 20] : 20)
-    closePanel()
-    if (newStatus === 'Completed' && onCompleted) {
-      // Small delay so the panel closes first
-      setTimeout(() => onCompleted(booking), 300)
+      if (navigator.vibrate) navigator.vibrate(newStatus === 'Cancelled' ? [20, 50, 20] : 20)
+      closePanel()
+      if (newStatus === 'Completed' && onCompleted) {
+        setTimeout(() => onCompleted(booking), 300)
+      }
+    } catch {
+      showToast('Failed to update booking status', 'error')
     }
   }
 
@@ -244,24 +256,27 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
       setTimeout(() => onNoShow(booking), 300)
       return
     }
-    // Fallback: direct update (shouldn't happen if callbacks are wired)
-    await db.bookings.update(booking.id, {
-      status: 'No Show' as BookingStatus,
-      cancelledAt: new Date(),
-    })
-    if (booking.clientId) {
-      const clientBookings = await db.bookings.where('clientId').equals(booking.clientId).toArray()
-      const noShows = clientBookings.filter(b => b.status === 'No Show').length
-      const currentClient = await db.clients.get(booking.clientId)
-      if (currentClient) {
-        let riskLevel = currentClient.riskLevel
-        if (noShows >= 2) riskLevel = 'High Risk'
-        else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
-        await db.clients.update(booking.clientId, { riskLevel })
+    try {
+      await db.bookings.update(booking.id, {
+        status: 'No Show' as BookingStatus,
+        cancelledAt: new Date(),
+      })
+      if (booking.clientId) {
+        const clientBookings = await db.bookings.where('clientId').equals(booking.clientId).toArray()
+        const noShows = clientBookings.filter(b => b.status === 'No Show').length
+        const currentClient = await db.clients.get(booking.clientId)
+        if (currentClient) {
+          let riskLevel = currentClient.riskLevel
+          if (noShows >= 2) riskLevel = 'High Risk'
+          else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
+          await db.clients.update(booking.clientId, { riskLevel })
+        }
       }
+      if (navigator.vibrate) navigator.vibrate([20, 50, 20])
+      closePanel()
+    } catch {
+      showToast('Failed to mark no-show', 'error')
     }
-    if (navigator.vibrate) navigator.vibrate([20, 50, 20])
-    closePanel()
   }
 
   // Booking status pills — simplified (Pending Deposit has its own deposit row)

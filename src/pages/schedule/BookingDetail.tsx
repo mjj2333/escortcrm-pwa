@@ -148,7 +148,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       if (status === 'In Progress' && booking!.requiresSafetyCheck) {
         const existing = await db.safetyChecks.where('bookingId').equals(bookingId).first()
         if (!existing) {
-          const checkTime = addMinutes(new Date(booking!.dateTime), booking!.safetyCheckMinutesAfter || 15)
+          const sessionStart = Math.max(new Date(booking!.dateTime).getTime(), Date.now())
+          const checkTime = addMinutes(new Date(sessionStart), booking!.safetyCheckMinutesAfter || 15)
           await db.safetyChecks.add({
             id: newId(),
             bookingId,
@@ -860,7 +861,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                 value={payAmount}
                 onChange={e => {
                   const raw = e.target.value.replace(/[^0-9.]/g, '')
-                  setPayAmount(raw)
+                  const parts = raw.split('.')
+                  setPayAmount(parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : raw)
                 }}
                 placeholder="0"
                 className="w-full text-2xl font-bold py-2 px-3 rounded-lg border-0 outline-none"

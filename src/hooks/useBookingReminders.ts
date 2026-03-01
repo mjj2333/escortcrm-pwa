@@ -35,8 +35,6 @@ export function useBookingReminders(enabled: boolean) {
       // sessionStorage full or unavailable — in-memory Set still prevents duplicates this session
     }
   }
-  const birthdayCheckedRef = useRef(false)
-
   useEffect(() => {
     if (!enabled) return
     if (!('Notification' in window)) return
@@ -110,10 +108,11 @@ export function useBookingReminders(enabled: boolean) {
       }
 
       // Birthday check — once per day (query all clients, not just booking-scoped ones)
-      if (!birthdayCheckedRef.current) {
-        birthdayCheckedRef.current = true
-        const today = new Date()
-        const todayMD = `${today.getMonth()}-${today.getDate()}`
+      const today = new Date()
+      const todayMD = `${today.getMonth()}-${today.getDate()}`
+      const birthdayKey = `birthday-${todayMD}`
+      if (!notifiedRef.current.has(birthdayKey)) {
+        addNotified(birthdayKey)
 
         const allClients = await db.clients.filter(c => !c.isBlocked).toArray()
         const birthdayClients = allClients.filter(c => {
@@ -127,7 +126,7 @@ export function useBookingReminders(enabled: boolean) {
           new Notification('🎂 Birthday today!', {
             body: names,
             icon: '/icon-192.png',
-            tag: `birthday-${todayMD}`,
+            tag: birthdayKey,
           })
         }
       }

@@ -65,7 +65,8 @@ export function useAutoStatusTransitions() {
           if (b.requiresSafetyCheck) {
             const existing = await db.safetyChecks.where('bookingId').equals(b.id).first()
             if (!existing) {
-              const checkTime = addMinutes(new Date(b.dateTime), b.safetyCheckMinutesAfter || 15)
+              const sessionStart = Math.max(new Date(b.dateTime).getTime(), Date.now())
+              const checkTime = addMinutes(new Date(sessionStart), b.safetyCheckMinutesAfter || 15)
               await db.safetyChecks.add({
                 id: newId(),
                 bookingId: b.id,
@@ -77,13 +78,16 @@ export function useAutoStatusTransitions() {
             }
           }
         } else if (b.status === 'In Progress' && now >= fiveAfterEnd) {
+          // Re-check status to avoid race with manual completion
+          const current = await db.bookings.get(b.id)
+          if (!current || current.status !== 'In Progress') continue
           await db.bookings.update(b.id, {
             status: 'Completed',
             completedAt: new Date(),
           })
           // Record remaining payment via ledger
           const client = b.clientId ? await db.clients.get(b.clientId) : undefined
-          await completeBookingPayment(b, client?.alias)
+          await completeBookingPayment(current, client?.alias)
           // Update lastSeen
           if (b.clientId) {
             await db.clients.update(b.clientId, { lastSeen: new Date() })

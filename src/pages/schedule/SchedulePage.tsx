@@ -687,6 +687,11 @@ function DayDetailModal({
     requestAnimationFrame(() => setVisible(true))
   }, [])
 
+  function handleClose() {
+    setVisible(false)
+    setTimeout(onClose, 200)
+  }
+
   // Escape key to close
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -694,12 +699,7 @@ function DayDetailModal({
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
-  function handleClose() {
-    setVisible(false)
-    setTimeout(onClose, 200)
-  }
+  }, [onClose])
 
   return (
     <div

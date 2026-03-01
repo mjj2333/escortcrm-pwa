@@ -67,6 +67,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   const [showClientPicker, setShowClientPicker] = useState(false)
   const [clientSearch, setClientSearch] = useState('')
   const [userEditedDeposit, setUserEditedDeposit] = useState(isEditing || !!rebookFrom)
+  const [saving, setSaving] = useState(false)
   const { expanded, toggle } = useAccordion(['datetime', 'duration', 'location'])
 
   // Inline new client state
@@ -221,7 +222,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   }
 
   async function handleSave() {
-    if (!isValid) return
+    if (!isValid || saving) return
     const dt = new Date(dateTime)
 
     const conflict = await checkBookingConflict(dt, duration, booking?.id)
@@ -240,7 +241,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
   async function saveBooking(overrideAvailability = false) {
     const dt = new Date(dateTime)
     const finalTravelFee = (locationType === 'Outcall' || locationType === 'Travel') ? travelFee : 0
-
+    setSaving(true)
     try {
     if (isEditing && booking) {
       await db.bookings.update(booking.id, {
@@ -355,6 +356,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
     onClose()
     } catch (err) {
       showToast(`Save failed: ${(err as Error).message}`)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -366,9 +369,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
       onClose={onClose}
       title={isEditing ? 'Edit Booking' : 'New Booking'}
       actions={
-        <button onClick={handleSave} disabled={!isValid}
+        <button onClick={handleSave} disabled={!isValid || saving}
           aria-label="Save booking"
-          className={`p-2 ${isValid ? 'text-purple-500' : 'opacity-30'}`}>
+          className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}>
           <Check size={20} />
         </button>
       }
@@ -758,9 +761,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
 
         {/* Save Button */}
         <div className="py-4">
-          <button type="submit" disabled={!isValid}
+          <button type="submit" disabled={!isValid || saving}
             className={`w-full py-3 rounded-xl font-semibold text-sm transition-colors ${
-              isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
+              isValid && !saving ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
             {isEditing ? 'Save Changes' : 'Create Booking'}
           </button>
