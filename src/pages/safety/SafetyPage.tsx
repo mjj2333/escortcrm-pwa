@@ -71,13 +71,13 @@ export function SafetyPage() {
   }
 
   async function checkInAll() {
-    for (const c of pendingChecks) {
+    for (const c of overdueChecks) {
       await db.safetyChecks.update(c.id, {
         status: 'checkedIn' as SafetyCheckStatus,
         checkedInAt: new Date(),
       })
     }
-    showToast(`${pendingChecks.length} check-in${pendingChecks.length > 1 ? 's' : ''} confirmed`)
+    showToast(`${overdueChecks.length} check-in${overdueChecks.length > 1 ? 's' : ''} confirmed`)
   }
 
   // Build the sms: URI — iOS wants sms:[phone]&body=[text], Android wants sms:[phone]?body=[text].
@@ -118,13 +118,13 @@ export function SafetyPage() {
   }
 
   async function sendAlertAll() {
-    for (const c of pendingChecks) {
+    for (const c of overdueChecks) {
       await db.safetyChecks.update(c.id, { status: 'alert' as SafetyCheckStatus })
     }
 
-    // Deduplicate contacts across all pending checks — notify each unique contact once
-    const contactsToNotify = new Map<string, { phone: string; name: string; checks: typeof pendingChecks }>()
-    for (const check of pendingChecks) {
+    // Deduplicate contacts across overdue checks — notify each unique contact once
+    const contactsToNotify = new Map<string, { phone: string; name: string; checks: typeof overdueChecks }>()
+    for (const check of overdueChecks) {
       const contact = contactFor(check.safetyContactId) ?? primaryContact
       if (!contact) continue
       if (!contactsToNotify.has(contact.id)) {
@@ -482,6 +482,7 @@ export function SafetyPage() {
                               onClick={() => setBlacklistConfirm({ clientId: linkedClient.id, alias: linkedClient.alias })}
                               className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full active:opacity-70"
                               style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
+                              aria-label={`Blacklist ${linkedClient.alias}`}
                             >
                               <Ban size={10} /> Blacklist
                             </button>
@@ -553,6 +554,7 @@ export function SafetyPage() {
                           }}
                           className="text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 active:opacity-70"
                           style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}
+                          aria-label={`Remove ${client.alias} from blacklist`}
                         >
                           Remove
                         </button>

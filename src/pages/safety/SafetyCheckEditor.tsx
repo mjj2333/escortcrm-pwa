@@ -34,13 +34,16 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
       setScheduledTime(toDateTimeLocal(new Date(check.scheduledTime)))
       setBufferMinutes(check.bufferMinutes)
       setSafetyContactId(check.safetyContactId ?? '')
+      setSaving(false)
     }
   }, [isOpen, check])
 
+  const [saving, setSaving] = useState(false)
   const isValid = scheduledTime.length > 0 && bufferMinutes > 0
 
   async function handleSave() {
-    if (!isValid) return
+    if (!isValid || saving) return
+    setSaving(true)
     try {
       await db.safetyChecks.update(check.id, {
         scheduledTime: new Date(scheduledTime),
@@ -50,6 +53,7 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
       onClose()
     } catch (err) {
       showToast(`Save failed: ${(err as Error).message}`)
+      setSaving(false)
     }
   }
 
@@ -61,15 +65,15 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
       actions={
         <button
           onClick={handleSave}
-          disabled={!isValid}
-          className={`p-2 ${isValid ? 'text-purple-500' : 'opacity-30'}`}
+          disabled={!isValid || saving}
+          className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}
           aria-label="Save safety check"
         >
           <Check size={20} />
         </button>
       }
     >
-      <div className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <form onSubmit={e => { e.preventDefault(); handleSave() }} className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         {/* Scheduled time */}
         <SectionLabel label="Schedule" />
         <div className="mb-3">
@@ -174,17 +178,17 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
 
         <div className="py-4">
           <button
-            onClick={handleSave}
-            disabled={!isValid}
+            type="submit"
+            disabled={!isValid || saving}
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
-              isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
+              isValid && !saving ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}
           >
-            Save Changes
+            {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
         <div className="h-8" />
-      </div>
+      </form>
     </Modal>
   )
 }
