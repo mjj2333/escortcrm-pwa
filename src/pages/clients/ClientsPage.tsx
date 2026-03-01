@@ -8,6 +8,7 @@ import { MiniTags } from '../../components/TagPicker'
 import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { EmptyState } from '../../components/EmptyState'
 import { ClientEditor } from './ClientEditor'
+import { showToast } from '../../components/Toast'
 import { screeningStatusColors, riskLevelColors } from '../../types'
 import { ClientsPageSkeleton } from '../../components/Skeleton'
 import { usePlanLimits, isPro } from '../../components/planLimits'
@@ -33,7 +34,12 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   const clients = useLiveQuery(() => db.clients.orderBy('alias').toArray())
 
   const fireClient = useCallback(async (clientId: string) => {
-    await db.clients.update(clientId, { isBlocked: true })
+    try {
+      await db.clients.update(clientId, { isBlocked: true })
+    } catch {
+      // Animation already played — at least make sure the UI reflects failure
+      showToast('Failed to blacklist client', 'error')
+    }
   }, [])
 
   const togglePin = useCallback(async (clientId: string) => {
@@ -86,11 +92,13 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
     <div className="pb-20">
       <PageHeader title="Clients">
         {isPro() && (
-          <button onClick={() => setShowImportExport(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
+          <button onClick={() => setShowImportExport(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}
+            aria-label="Import or export clients">
             <ArrowDownUp size={18} />
           </button>
         )}
         <button onClick={() => setShowEditor(true)}
+          aria-label="Add client"
           className={`p-2 rounded-lg ${limits.canAddClient ? 'text-purple-500' : ''}`}
           style={!limits.canAddClient ? { color: 'var(--text-secondary)', opacity: 0.5 } : {}}>
           <Plus size={20} />
@@ -112,7 +120,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
             type="text" placeholder="Search clients..." value={search}
             onChange={e => setSearch(e.target.value)}
             className="flex-1 bg-transparent text-sm outline-none"
-            style={{ color: 'var(--text-primary)' }}
+            style={{ color: 'var(--text-primary)', fontSize: '16px' }}
           />
         </div>
 

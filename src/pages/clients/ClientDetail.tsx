@@ -203,10 +203,12 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
             <span className="text-sm">Back</span>
           </button>
           <div className="flex items-center gap-2">
-            <button onClick={togglePin} className="p-2" style={{ color: client.isPinned ? '#a855f7' : 'var(--text-secondary)' }}>
+            <button onClick={togglePin} className="p-2" style={{ color: client.isPinned ? '#a855f7' : 'var(--text-secondary)' }}
+              aria-label={client.isPinned ? 'Unpin client' : 'Pin client'}>
               {client.isPinned ? <PinOff size={18} /> : <Pin size={18} />}
             </button>
-            <button onClick={() => setShowEditor(true)} className="p-2 text-purple-500">
+            <button onClick={() => setShowEditor(true)} className="p-2 text-purple-500"
+              aria-label="Edit client">
               <Edit size={18} />
             </button>
           </div>
@@ -348,9 +350,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
             <RiskLevelBar
               value={client.riskLevel}
               onChange={async (level) => {
-                await db.clients.update(client.id, { riskLevel: level })
                 const shouldRequireSafety = level === 'High Risk' || level === 'Unknown'
-                await db.clients.update(client.id, { requiresSafetyCheck: shouldRequireSafety })
+                await db.clients.update(client.id, { riskLevel: level, requiresSafetyCheck: shouldRequireSafety })
               }}
             />
           </div>

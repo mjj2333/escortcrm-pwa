@@ -92,6 +92,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
   const [referenceSource, setReferenceSource] = useState('')
   const [verificationNotes, setVerificationNotes] = useState('')
   const [tags, setTags] = useState<ClientTag[]>([])
+  const [saving, setSaving] = useState(false)
   const { expanded, toggle } = useAccordion(['contact', 'screening', 'risk'])
   const fieldMap: Record<string, { value: string; set: (v: string) => void }> = {
     phone: { value: phone, set: setPhone },
@@ -130,7 +131,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
   const isValid = alias.trim().length > 0
 
   async function handleSave() {
-    if (!isValid) return
+    if (!isValid || saving) return
+    setSaving(true)
 
     const data = {
       alias: alias.trim(),
@@ -176,6 +178,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       }
     } catch (err) {
       showToast(`Save failed: ${(err as Error).message}`)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -198,8 +202,9 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       onClose={() => onClose()}
       title={isEditing ? 'Edit Client' : 'New Client'}
       actions={
-        <button onClick={handleSave} disabled={!isValid}
-          className={`p-2 ${isValid ? 'text-purple-500' : 'opacity-30'}`}>
+        <button onClick={handleSave} disabled={!isValid || saving}
+          aria-label="Save client"
+          className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}>
           <Check size={20} />
         </button>
       }
@@ -377,9 +382,9 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
 
         {/* Save button */}
         <div className="py-4">
-          <button type="submit" disabled={!isValid}
+          <button type="submit" disabled={!isValid || saving}
             className={`w-full py-3 rounded-xl font-semibold text-sm ${
-              isValid ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
+              isValid && !saving ? 'bg-purple-600 text-white active:bg-purple-700' : 'opacity-40 bg-purple-600 text-white'
             }`}>
             {isEditing ? 'Save Changes' : 'Create Client'}
           </button>

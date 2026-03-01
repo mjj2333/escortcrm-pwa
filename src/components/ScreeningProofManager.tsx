@@ -77,15 +77,20 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
         showToast('File too large (10 MB max)')
         continue
       }
-      const doc: ScreeningDoc = {
-        id: newId(),
-        clientId,
-        filename: file.name,
-        mimeType: file.type,
-        data: file,
-        uploadedAt: new Date(),
+      try {
+        const doc: ScreeningDoc = {
+          id: newId(),
+          clientId,
+          filename: file.name,
+          mimeType: file.type,
+          data: file,
+          uploadedAt: new Date(),
+        }
+        await db.screeningDocs.add(doc)
+      } catch {
+        showToast(`Failed to upload ${file.name}`, 'error')
+        continue
       }
-      await db.screeningDocs.add(doc)
     }
     showToast(`${files.length} file${files.length > 1 ? 's' : ''} added`)
     if (fileInput.current) fileInput.current.value = ''
@@ -105,6 +110,16 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
     const next = docs[idx + direction]
     if (next) setPreviewDoc(next)
   }
+
+  // Escape key to close preview
+  useEffect(() => {
+    if (!previewDoc) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setPreviewDoc(null)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [previewDoc])
 
   const isImage = (doc: ScreeningDoc) => doc.mimeType.startsWith('image/')
 
