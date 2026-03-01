@@ -182,6 +182,8 @@ export function useAutoStatusTransitions() {
           }
         }
       }
+      } catch (err) {
+        console.error('Auto-status check failed:', err)
       } finally {
         running = false
       }

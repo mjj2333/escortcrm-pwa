@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { startOfDay } from 'date-fns'
 import { fmtShortDayDate } from '../../utils/dateFormat'
 import { db, newId } from '../../db'
+import { showToast } from '../../components/Toast'
 import type { AvailabilityStatus, DayAvailability } from '../../types'
 import { formatTime12 } from '../../utils/availability'
 
@@ -28,21 +29,55 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
 
     // Off / Busy: save immediately
     if (status === 'Off' || status === 'Busy') {
+      try {
+        const dayStart = startOfDay(date)
+        const existing = await db.availability.where('date').equals(dayStart).first()
+
+        // Toggle off if same status tapped
+        if (existing?.status === status) {
+          await db.availability.delete(existing.id)
+          onClose()
+          return
+        }
+
+        const record: Partial<DayAvailability> = {
+          status,
+          startTime: undefined,
+          endTime: undefined,
+          openSlots: undefined,
+        }
+
+        if (existing) {
+          await db.availability.update(existing.id, record)
+        } else {
+          await db.availability.add({ id: newId(), date: dayStart, ...record } as DayAvailability)
+        }
+        onClose()
+      } catch {
+        showToast('Failed to save availability', 'error')
+      }
+    }
+    // Available / Limited: user configures then taps Save
+  }
+
+  async function handleSave() {
+    if (!selectedStatus) return
+    try {
       const dayStart = startOfDay(date)
       const existing = await db.availability.where('date').equals(dayStart).first()
 
-      // Toggle off if same status tapped
-      if (existing?.status === status) {
-        await db.availability.delete(existing.id)
-        onClose()
-        return
+      const record: Partial<DayAvailability> = {
+        status: selectedStatus,
       }
 
-      const record: Partial<DayAvailability> = {
-        status,
-        startTime: undefined,
-        endTime: undefined,
-        openSlots: undefined,
+      if (selectedStatus === 'Available') {
+        record.startTime = startTime
+        record.endTime = endTime
+        record.openSlots = undefined
+      } else if (selectedStatus === 'Limited') {
+        record.startTime = undefined
+        record.endTime = undefined
+        if (existing?.openSlots) record.openSlots = existing.openSlots
       }
 
       if (existing) {
@@ -51,42 +86,20 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
         await db.availability.add({ id: newId(), date: dayStart, ...record } as DayAvailability)
       }
       onClose()
+    } catch {
+      showToast('Failed to save availability', 'error')
     }
-    // Available / Limited: user configures then taps Save
-  }
-
-  async function handleSave() {
-    if (!selectedStatus) return
-    const dayStart = startOfDay(date)
-    const existing = await db.availability.where('date').equals(dayStart).first()
-
-    const record: Partial<DayAvailability> = {
-      status: selectedStatus,
-    }
-
-    if (selectedStatus === 'Available') {
-      record.startTime = startTime
-      record.endTime = endTime
-      record.openSlots = undefined
-    } else if (selectedStatus === 'Limited') {
-      record.startTime = undefined
-      record.endTime = undefined
-      if (existing?.openSlots) record.openSlots = existing.openSlots
-    }
-
-    if (existing) {
-      await db.availability.update(existing.id, record)
-    } else {
-      await db.availability.add({ id: newId(), date: dayStart, ...record } as DayAvailability)
-    }
-    onClose()
   }
 
   async function handleClear() {
-    const dayStart = startOfDay(date)
-    const existing = await db.availability.where('date').equals(dayStart).first()
-    if (existing) await db.availability.delete(existing.id)
-    onClose()
+    try {
+      const dayStart = startOfDay(date)
+      const existing = await db.availability.where('date').equals(dayStart).first()
+      if (existing) await db.availability.delete(existing.id)
+      onClose()
+    } catch {
+      showToast('Failed to clear availability', 'error')
+    }
   }
 
   const showTimePicker = selectedStatus === 'Available'

@@ -49,6 +49,7 @@ export function useBookingReminders(enabled: boolean) {
     async function checkReminders() {
       if (Notification.permission !== 'granted') return
 
+      try {
       const now = Date.now()
       const bookings = await db.bookings.toArray()
       const clients = await db.clients.toArray()
@@ -124,6 +125,9 @@ export function useBookingReminders(enabled: boolean) {
             tag: `birthday-${todayMD}`,
           })
         }
+      }
+      } catch (err) {
+        console.error('Reminder check failed:', err)
       }
     }
 

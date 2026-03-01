@@ -49,6 +49,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
     const method = feeMethod as PaymentMethod | undefined
     const depOut = depositOutcome || undefined
 
+    try {
     await db.transaction('rw', [db.bookings, db.clients, db.payments, db.transactions], async () => {
       if (mode === 'noshow') {
         await db.bookings.update(booking.id, {
@@ -124,6 +125,9 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
         : fee > 0 ? `Booking cancelled · ${formatCurrency(fee)} fee recorded` : 'Booking cancelled'
     )
     onClose()
+    } catch (err) {
+      showToast(`Failed to ${mode === 'noshow' ? 'mark no-show' : 'cancel booking'}`, 'error')
+    }
   }
 
   return (

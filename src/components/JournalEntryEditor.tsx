@@ -41,32 +41,36 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientAlias, exis
 
   async function handleSave() {
     const now = new Date()
-    if (existingEntry) {
-      await db.journalEntries.update(existingEntry.id, {
-        notes: notes.trim(),
-        tags,
-        actualDuration: actualDuration ? parseInt(actualDuration) : undefined,
-        timingNotes: timingNotes.trim() || undefined,
-        updatedAt: now,
-      })
-      showToast('Journal updated')
-    } else {
-      const entry: JournalEntry = {
-        id: newId(),
-        bookingId: booking.id,
-        clientId: booking.clientId ?? '',
-        date: booking.completedAt ?? booking.dateTime,
-        notes: notes.trim(),
-        tags,
-        actualDuration: actualDuration ? parseInt(actualDuration) : undefined,
-        timingNotes: timingNotes.trim() || undefined,
-        createdAt: now,
-        updatedAt: now,
+    try {
+      if (existingEntry) {
+        await db.journalEntries.update(existingEntry.id, {
+          notes: notes.trim(),
+          tags,
+          actualDuration: actualDuration ? parseInt(actualDuration) : undefined,
+          timingNotes: timingNotes.trim() || undefined,
+          updatedAt: now,
+        })
+        showToast('Journal updated')
+      } else {
+        const entry: JournalEntry = {
+          id: newId(),
+          bookingId: booking.id,
+          clientId: booking.clientId ?? '',
+          date: booking.completedAt ?? booking.dateTime,
+          notes: notes.trim(),
+          tags,
+          actualDuration: actualDuration ? parseInt(actualDuration) : undefined,
+          timingNotes: timingNotes.trim() || undefined,
+          createdAt: now,
+          updatedAt: now,
+        }
+        await db.journalEntries.add(entry)
+        showToast('Journal entry saved')
       }
-      await db.journalEntries.add(entry)
-      showToast('Journal entry saved')
+      onClose()
+    } catch {
+      showToast('Failed to save journal entry', 'error')
     }
-    onClose()
   }
 
   const scheduledDuration = booking.duration
