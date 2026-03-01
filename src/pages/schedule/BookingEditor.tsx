@@ -18,7 +18,7 @@ import type {
   RecurrencePattern
 } from '../../types'
 
-const bookingStatuses: BookingStatus[] = ['To Be Confirmed', 'Pending Deposit', 'Confirmed', 'Completed', 'Cancelled', 'No Show']
+const bookingStatuses: BookingStatus[] = ['To Be Confirmed', 'Pending Deposit', 'Confirmed', 'In Progress', 'Completed', 'Cancelled', 'No Show']
 const locationTypes: LocationType[] = ['Incall', 'Outcall', 'Travel', 'Virtual']
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const recurrenceOptions: RecurrencePattern[] = ['none', 'weekly', 'biweekly', 'monthly']

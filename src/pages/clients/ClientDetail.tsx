@@ -151,12 +151,16 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
       const journalSnaps = await db.journalEntries.where('clientId').equals(clientId).toArray()
       const screeningDocSnaps = await db.screeningDocs.where('clientId').equals(clientId).toArray()
 
+      // Snapshot checklist items before delete
+      const checklistSnaps = bookingIds.length ? await db.bookingChecklist.where('bookingId').anyOf(bookingIds).toArray() : []
+
       // Execute cascade delete atomically
-      await db.transaction('rw', [db.clients, db.bookings, db.payments, db.transactions, db.safetyChecks, db.incidents, db.journalEntries, db.screeningDocs], async () => {
+      await db.transaction('rw', [db.clients, db.bookings, db.payments, db.transactions, db.safetyChecks, db.incidents, db.journalEntries, db.screeningDocs, db.bookingChecklist], async () => {
         for (const bid of bookingIds) {
           await db.payments.where('bookingId').equals(bid).delete()
           await db.transactions.where('bookingId').equals(bid).delete()
           await db.safetyChecks.where('bookingId').equals(bid).delete()
+          await db.bookingChecklist.where('bookingId').equals(bid).delete()
         }
         await db.bookings.where('clientId').equals(clientId).delete()
         await db.incidents.where('clientId').equals(clientId).delete()
@@ -169,7 +173,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
 
       const alias = clientSnap?.alias ?? 'Client'
       showUndoToast(`Deleted ${alias}`, async () => {
-        await db.transaction('rw', [db.clients, db.bookings, db.payments, db.transactions, db.safetyChecks, db.incidents, db.journalEntries, db.screeningDocs], async () => {
+        await db.transaction('rw', [db.clients, db.bookings, db.payments, db.transactions, db.safetyChecks, db.incidents, db.journalEntries, db.screeningDocs, db.bookingChecklist], async () => {
           if (clientSnap) await db.clients.put(clientSnap)
           if (bookingSnaps.length) await db.bookings.bulkPut(bookingSnaps)
           if (paymentSnaps.length) await db.payments.bulkPut(paymentSnaps)
@@ -178,6 +182,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           if (incidentSnaps.length) await db.incidents.bulkPut(incidentSnaps)
           if (journalSnaps.length) await db.journalEntries.bulkPut(journalSnaps)
           if (screeningDocSnaps.length) await db.screeningDocs.bulkPut(screeningDocSnaps)
+          if (checklistSnaps.length) await db.bookingChecklist.bulkPut(checklistSnaps)
         })
       })
     } catch (err) {

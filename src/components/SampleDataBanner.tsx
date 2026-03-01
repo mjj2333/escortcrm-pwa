@@ -68,7 +68,7 @@ export function SampleDataBanner() {
             className="w-full max-w-sm rounded-2xl p-6"
             style={{
               backgroundColor: 'var(--bg-secondary)',
-              border: '1px solid var(--border-primary)',
+              border: '1px solid var(--border)',
             }}
             onClick={e => e.stopPropagation()}
           >
@@ -89,7 +89,7 @@ export function SampleDataBanner() {
                 onClick={() => setShowConfirm(false)}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold"
                 style={{
-                  backgroundColor: 'var(--bg-tertiary)',
+                  backgroundColor: 'var(--bg-secondary)',
                   color: 'var(--text-primary)',
                 }}
               >

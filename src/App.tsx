@@ -141,6 +141,18 @@ export default function App() {
     if (!pinEnabled) setIsLocked(false)
   }, [pinEnabled])
 
+  // Re-lock when app is backgrounded (tab hidden / screen off)
+  useEffect(() => {
+    if (!pinEnabled) return
+    function onVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        setIsLocked(true)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [pinEnabled])
+
   // Migrate existing bookings to payment ledger (one-time)
   useEffect(() => {
     migrateToPaymentLedger().catch(() => {})

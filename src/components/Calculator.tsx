@@ -15,19 +15,29 @@ export default function Calculator({ onExit, pinHash }: CalculatorProps) {
   // Track digit presses for exit code detection
   const digitBuffer = useRef('')
   const checkingRef = useRef(false)
+  const failedAttempts = useRef(0)
+  const lockedUntil = useRef(0)
 
   const checkExitCode = useCallback(async (buffer: string) => {
     if (buffer.length < 4 || checkingRef.current) return
+    // Rate limit: lock out after 5 failed attempts for 30 seconds
+    if (Date.now() < lockedUntil.current) return
     checkingRef.current = true
     // Try the last 4-8 digits as a PIN
     for (let len = 4; len <= Math.min(8, buffer.length); len++) {
       const candidate = buffer.slice(-len)
       const hash = await hashPin(candidate)
       if (hash === pinHash) {
+        failedAttempts.current = 0
         onExit()
         checkingRef.current = false
         return
       }
+    }
+    failedAttempts.current++
+    if (failedAttempts.current >= 5) {
+      lockedUntil.current = Date.now() + 30000
+      failedAttempts.current = 0
     }
     checkingRef.current = false
   }, [pinHash, onExit])

@@ -113,6 +113,7 @@ export function useAutoStatusTransitions() {
               default: continue
             }
 
+            const needsDeposit = (b.depositAmount ?? 0) > 0
             const nextBooking = createBooking({
               clientId: b.clientId,
               dateTime: nextDate,
@@ -121,8 +122,8 @@ export function useAutoStatusTransitions() {
               locationAddress: b.locationAddress,
               locationNotes: b.locationNotes,
               venueId: b.venueId,
-              status: 'Confirmed',
-              confirmedAt: new Date(),
+              status: needsDeposit ? 'Pending Deposit' : 'Confirmed',
+              confirmedAt: needsDeposit ? undefined : new Date(),
               baseRate: b.baseRate,
               extras: b.extras,
               travelFee: b.travelFee,

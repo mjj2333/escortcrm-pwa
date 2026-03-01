@@ -81,9 +81,9 @@ export function SafetyPage() {
   }
 
   // Build the sms: URI — iOS wants sms:[phone]&body=[text], Android wants sms:[phone]?body=[text].
-  // The & separator works on both modern iOS and Android; ? only works on Android.
   function smsHref(phone: string, body: string): string {
-    return `sms:${phone}&body=${encodeURIComponent(body)}`
+    const sep = /iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?'
+    return `sms:${phone}${sep}body=${encodeURIComponent(body)}`
   }
 
   function buildAlertMessage(check: SafetyCheck): string {

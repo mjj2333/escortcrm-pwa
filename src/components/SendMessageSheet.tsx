@@ -150,8 +150,8 @@ function resolveTemplatePlaceholders(
 
   if (booking) {
     result = result
-      .replace(/\{date\}/g, fmtFullDayDate(booking.dateTime))
-      .replace(/\{time\}/g, fmtTime(booking.dateTime))
+      .replace(/\{date\}/g, fmtFullDayDate(new Date(booking.dateTime)))
+      .replace(/\{time\}/g, fmtTime(new Date(booking.dateTime)))
       .replace(/\{duration\}/g, bookingDurationFormatted(booking.duration))
       .replace(/\{rate\}/g, formatCurrency(total))
       .replace(/\{balance\}/g, formatCurrency(balance))

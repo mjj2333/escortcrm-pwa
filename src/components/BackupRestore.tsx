@@ -91,6 +91,7 @@ interface BackupPayload {
     // screeningDocs and venueDocs have Blob data — encoded as base64
     screeningDocs?: unknown[]
     venueDocs?: unknown[]
+    bookingChecklist?: unknown[]
   }
   // Profile & settings from localStorage
   profile?: Record<string, string>
@@ -171,6 +172,7 @@ export async function createBackup(): Promise<BackupPayload> {
       incallVenues: await db.incallVenues.toArray(),
       screeningDocs,
       venueDocs,
+      bookingChecklist: await db.bookingChecklist.toArray(),
     },
     profile,
   }
@@ -185,7 +187,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   // malformed or crafted backup can't inject broken records.
   const requiredFields: Record<string, string[]> = {
     clients:        ['id', 'alias'],
-    bookings:       ['id', 'clientId'],
+    bookings:       ['id'],
     transactions:   ['id', 'amount'],
     availability:   ['id', 'date'],
     safetyContacts: ['id', 'name'],
@@ -197,6 +199,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     incallVenues:   ['id', 'name'],
     screeningDocs:  ['id', 'clientId'],
     venueDocs:      ['id', 'venueId'],
+    bookingChecklist: ['id', 'bookingId'],
   }
 
   const t = payload.tables
@@ -236,6 +239,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     incallVenues:   ['createdAt', 'updatedAt'],
     screeningDocs:  ['uploadedAt'],
     venueDocs:      ['uploadedAt'],
+    bookingChecklist: ['createdAt'],
   }
 
   for (const [tableName, fields] of Object.entries(dateFields)) {
@@ -276,7 +280,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   await db.transaction('rw',
     [db.clients, db.bookings, db.transactions, db.availability, db.safetyContacts,
      db.safetyChecks, db.incidents, db.serviceRates, db.payments, db.journalEntries,
-     db.incallVenues, db.screeningDocs, db.venueDocs],
+     db.incallVenues, db.screeningDocs, db.venueDocs, db.bookingChecklist],
     async () => {
       await db.clients.clear()
       await db.bookings.clear()
@@ -291,20 +295,22 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
       await db.incallVenues.clear()
       await db.screeningDocs.clear()
       await db.venueDocs.clear()
+      await db.bookingChecklist.clear()
 
-      if (t.clients?.length)        { await db.clients.bulkAdd(t.clients as any); total += t.clients.length }
-      if (t.bookings?.length)       { await db.bookings.bulkAdd(t.bookings as any); total += t.bookings.length }
-      if (t.transactions?.length)   { await db.transactions.bulkAdd(t.transactions as any); total += t.transactions.length }
-      if (t.availability?.length)   { await db.availability.bulkAdd(t.availability as any); total += t.availability.length }
-      if (t.safetyContacts?.length) { await db.safetyContacts.bulkAdd(t.safetyContacts as any); total += t.safetyContacts.length }
-      if (t.safetyChecks?.length)   { await db.safetyChecks.bulkAdd(t.safetyChecks as any); total += t.safetyChecks.length }
-      if (t.incidents?.length)      { await db.incidents.bulkAdd(t.incidents as any); total += t.incidents.length }
-      if (t.serviceRates?.length)   { await db.serviceRates.bulkAdd(t.serviceRates as any); total += t.serviceRates.length }
-      if (t.payments?.length)       { await db.payments.bulkAdd(t.payments as any); total += t.payments.length }
-      if (t.journalEntries?.length) { await db.journalEntries.bulkAdd(t.journalEntries as any); total += t.journalEntries.length }
-      if (t.incallVenues?.length)   { await db.incallVenues.bulkAdd(t.incallVenues as any); total += t.incallVenues.length }
-      if (t.screeningDocs?.length)  { await db.screeningDocs.bulkAdd(t.screeningDocs as any); total += t.screeningDocs.length }
-      if (t.venueDocs?.length)      { await db.venueDocs.bulkAdd(t.venueDocs as any); total += t.venueDocs.length }
+      if (t.clients?.length)          { await db.clients.bulkAdd(t.clients as any); total += t.clients.length }
+      if (t.bookings?.length)         { await db.bookings.bulkAdd(t.bookings as any); total += t.bookings.length }
+      if (t.transactions?.length)     { await db.transactions.bulkAdd(t.transactions as any); total += t.transactions.length }
+      if (t.availability?.length)     { await db.availability.bulkAdd(t.availability as any); total += t.availability.length }
+      if (t.safetyContacts?.length)   { await db.safetyContacts.bulkAdd(t.safetyContacts as any); total += t.safetyContacts.length }
+      if (t.safetyChecks?.length)     { await db.safetyChecks.bulkAdd(t.safetyChecks as any); total += t.safetyChecks.length }
+      if (t.incidents?.length)        { await db.incidents.bulkAdd(t.incidents as any); total += t.incidents.length }
+      if (t.serviceRates?.length)     { await db.serviceRates.bulkAdd(t.serviceRates as any); total += t.serviceRates.length }
+      if (t.payments?.length)         { await db.payments.bulkAdd(t.payments as any); total += t.payments.length }
+      if (t.journalEntries?.length)   { await db.journalEntries.bulkAdd(t.journalEntries as any); total += t.journalEntries.length }
+      if (t.incallVenues?.length)     { await db.incallVenues.bulkAdd(t.incallVenues as any); total += t.incallVenues.length }
+      if (t.screeningDocs?.length)    { await db.screeningDocs.bulkAdd(t.screeningDocs as any); total += t.screeningDocs.length }
+      if (t.venueDocs?.length)        { await db.venueDocs.bulkAdd(t.venueDocs as any); total += t.venueDocs.length }
+      if (t.bookingChecklist?.length) { await db.bookingChecklist.bulkAdd(t.bookingChecklist as any); total += t.bookingChecklist.length }
     }
   )
 
