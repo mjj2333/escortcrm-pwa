@@ -233,7 +233,7 @@ export interface JournalEntry {
 }
 
 export const journalTagColors: Record<JournalTag, { bg: string; fg: string }> = {
-  'Regular': { bg: 'rgba(168,85,247,0.15)', fg: '#a855f7' },
+  'Regular': { bg: 'rgba(168,85,247,0.15)', fg: '#c084fc' },
   'Great Chemistry': { bg: 'rgba(34,197,94,0.15)', fg: '#22c55e' },
   'New Experience': { bg: 'rgba(59,130,246,0.15)', fg: '#3b82f6' },
   'Boundary Issue': { bg: 'rgba(239,68,68,0.15)', fg: '#ef4444' },

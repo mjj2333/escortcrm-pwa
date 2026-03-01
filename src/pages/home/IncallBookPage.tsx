@@ -441,7 +441,7 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
               <button
                 onClick={() => setShowSendDirections(true)}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-                style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
+                style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}
               >
                 <Send size={11} />
                 Send

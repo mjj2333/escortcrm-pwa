@@ -403,7 +403,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
               <button
                 onClick={() => setShowRebook(true)}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
-                style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
+                style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}
               >
                 <RotateCcw size={14} /> Rebook
               </button>
@@ -465,7 +465,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         {/* Contact Details */}
         {(client.phone || client.email || client.telegram || client.signal || client.whatsapp) && (
           <CollapsibleCard label="Contact Details" id="contact" expanded={expanded} toggle={toggle}
-            badge={<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}>
+            badge={<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}>
               Pref: {client.preferredContact}
             </span>}>
             {client.secondaryContact && (
@@ -793,7 +793,7 @@ function ContactActionBar({ client }: { client: Client }) {
       label: 'Email',
       icon: <Mail size={18} />,
       href: `mailto:${client.email}`,
-      bg: 'rgba(168,85,247,0.15)', fg: '#a855f7',
+      bg: 'rgba(168,85,247,0.15)', fg: '#c084fc',
       preferred: pref === 'Email',
     })
   }

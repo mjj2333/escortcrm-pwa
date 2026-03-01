@@ -463,7 +463,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
                     <MessageSquare size={16} style={{ color: '#a855f7' }} />
                     <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Share Feedback</span>
                   </div>
-                  <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(168,85,247,0.15)', color: '#a855f7' }}>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(168,85,247,0.15)', color: '#c084fc' }}>
                     Beta Tester ✨
                   </span>
                 </a>

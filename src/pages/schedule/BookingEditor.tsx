@@ -722,7 +722,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, r
         {/* ━━━ Status & Payment ━━━ */}
         <CollapsibleCard label="Status & Payment" id="status" expanded={expanded} toggle={toggle}
           badge={<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{
-            backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7',
+            backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc',
           }}>{status}</span>}>
           <div className="pt-1">
           <FieldSelect label="Booking Status" value={status} options={bookingStatuses} onChange={setStatus}

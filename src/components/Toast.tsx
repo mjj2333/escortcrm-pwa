@@ -67,7 +67,7 @@ export function ToastContainer() {
     switch (type) {
       case 'success': return { bg: 'rgba(34,197,94,0.15)',  border: 'rgba(34,197,94,0.3)',  text: '#22c55e' }
       case 'error':   return { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.3)',  text: '#ef4444' }
-      case 'info':    return { bg: 'rgba(168,85,247,0.15)', border: 'rgba(168,85,247,0.3)', text: '#a855f7' }
+      case 'info':    return { bg: 'rgba(168,85,247,0.15)', border: 'rgba(168,85,247,0.3)', text: '#c084fc' }
       case 'undo':    return { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.3)',  text: '#ef4444' }
     }
   }

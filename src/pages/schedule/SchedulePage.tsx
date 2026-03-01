@@ -346,7 +346,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                   <button
                     onClick={goToToday}
                     className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
+                    style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}
                   >
                     Today
                   </button>

@@ -236,7 +236,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
 
         {/* ━━━ Contact ━━━ */}
         <CollapsibleCard label="Contact" id="contact" expanded={expanded} toggle={toggle}
-          badge={<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}>
+          badge={<span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}>
             {primaryContact}
           </span>}>
           <div className="pt-1">

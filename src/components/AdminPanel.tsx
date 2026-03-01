@@ -130,7 +130,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
             <Shield size={18} style={{ color: '#a855f7' }} />
             <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Admin — Gift Codes</h2>
           </div>
-          <button onClick={onClose} style={{ color: 'var(--text-secondary)' }}>✕</button>
+          <button onClick={onClose} style={{ color: 'var(--text-secondary)' }} aria-label="Close">✕</button>
         </div>
 
         <div className="overflow-y-auto p-4 space-y-4" style={{ maxHeight: 'calc(90vh - 64px)' }}>
@@ -176,6 +176,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                       onClick={() => copyToClipboard(newCode.plaintext, 'new')}
                       className="p-1.5 rounded-lg"
                       style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}
+                      aria-label="Copy code"
                     >
                       {copiedId === 'new' ? <Check size={14} className="text-green-500" /> : <Copy size={14} className="text-green-500" />}
                     </button>
@@ -276,7 +277,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                             onClick={() => handleRevoke(code.id)}
                             className="p-1.5 rounded-lg"
                             style={{ backgroundColor: 'rgba(239,68,68,0.1)' }}
-                            title="Revoke Code"
+                            aria-label="Revoke code"
                           >
                             <Trash2 size={13} style={{ color: '#ef4444' }} />
                           </button>

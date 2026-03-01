@@ -336,7 +336,7 @@ export default function App() {
               <div className="w-14 h-14 rounded-2xl bg-purple-600 flex items-center justify-center text-2xl shadow-lg">
                 <img src="/icon-192.png" alt="" className="w-10 h-10 rounded-lg" />
               </div>
-              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Install Companion</h3>
+              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Install Companion</h2>
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 Add to your home screen for quick access, offline support, and the full app experience.
               </p>

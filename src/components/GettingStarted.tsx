@@ -59,7 +59,7 @@ export function GettingStarted({ onOpenProfile, onOpenSettings, onNavigateTab }:
         <div className="flex items-center gap-2">
           <span
             className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
+            style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}
           >
             {completed} of {items.length}
           </span>

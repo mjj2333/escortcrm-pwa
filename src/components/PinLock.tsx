@@ -355,6 +355,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
                   key={i}
                   onClick={handleDelete}
                   className="h-16 rounded-2xl flex items-center justify-center active:bg-white/10 transition-colors"
+                  aria-label="Delete digit"
                 >
                   <Delete size={22} style={{ color: 'var(--text-secondary)' }} />
                 </button>

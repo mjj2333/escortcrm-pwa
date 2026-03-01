@@ -6,7 +6,7 @@ interface StatusBadgeProps {
 }
 
 const colorMap: Record<string, { bg: string; text: string }> = {
-  purple: { bg: 'rgba(168,85,247,0.15)', text: '#a855f7' },
+  purple: { bg: 'rgba(168,85,247,0.15)', text: '#c084fc' },
   blue: { bg: 'rgba(59,130,246,0.15)', text: '#3b82f6' },
   orange: { bg: 'rgba(249,115,22,0.15)', text: '#f97316' },
   green: { bg: 'rgba(34,197,94,0.15)', text: '#22c55e' },
