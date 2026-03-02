@@ -175,22 +175,26 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
-        URL.revokeObjectURL(url)
+        // Delay revoking the blob URL — Android needs time to start the download
+        setTimeout(() => URL.revokeObjectURL(url), 5000)
 
-        // Open mailto with instructions
+        // Open mailto with instructions (use an anchor instead of window.open
+        // which can blank the page in Android standalone PWA mode)
         if (email) {
           const subject = encodeURIComponent(`Companion Backup — ${date}`)
           const body = encodeURIComponent(
             `Your Companion data backup is attached.\n\nFile: ${filename}\nDate: ${date}\n\nIMPORTANT: Attach the downloaded backup file (${filename}) to this email before sending.`
           )
-          window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank')
+          const mailLink = document.createElement('a')
+          mailLink.href = `mailto:${email}?subject=${subject}&body=${body}`
+          mailLink.click()
           showToast('Backup downloaded — attach it to the email')
         } else {
           showToast('Backup downloaded (no email set in Profile)')
         }
 
         // Brief pause so user sees the download / mailto
-        await new Promise(r => setTimeout(r, 1500))
+        await new Promise(r => setTimeout(r, 2000))
       }
 
       recordBackupTimestamp()
@@ -209,7 +213,9 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
       for (const [k, v] of saved) {
         if (v !== null) localStorage.setItem(k, v)
       }
-      window.location.reload()
+      // Use location.replace instead of reload — more reliable on Android PWAs,
+      // especially after navigator.share() which involves an Android intent switch
+      window.location.replace(window.location.origin + '/')
     } catch (err) {
       setResetting(false)
       showToast(`Reset failed: ${(err as Error).message}`)

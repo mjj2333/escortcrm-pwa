@@ -344,7 +344,8 @@ function downloadFile(content: string, filename: string) {
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  // Delay revoking — Android needs time to start the download
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
