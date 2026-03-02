@@ -151,18 +151,18 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   const filtered = useMemo(
     () => allTransactions.filter(t => {
       const td = new Date(t.date)
-      return td >= startDate && (period !== 'Custom' || td <= endDate)
+      return td >= startDate && td <= endDate
     }),
-    [allTransactions, startDate.getTime(), endDate.getTime(), period]
+    [allTransactions, startDate.getTime(), endDate.getTime()]
   )
 
   // Bookings filtered by period (used by timing/heatmap/client analytics)
   const filteredBookings = useMemo(
     () => allBookings.filter(b => {
       const bd = new Date(b.dateTime)
-      return bd >= startDate && (period !== 'Custom' || bd <= endDate)
+      return bd >= startDate && bd <= endDate
     }),
-    [allBookings, startDate.getTime(), endDate.getTime(), period]
+    [allBookings, startDate.getTime(), endDate.getTime()]
   )
 
   // Stats

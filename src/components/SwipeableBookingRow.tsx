@@ -114,7 +114,7 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
     currentX.current = 0
     isDragging.current = false
     setSwiping(true)
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   }, [])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -258,21 +258,23 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
       return
     }
     try {
-      await db.bookings.update(booking.id, {
-        status: 'No Show' as BookingStatus,
-        cancelledAt: new Date(),
-      })
-      if (booking.clientId) {
-        const clientBookings = await db.bookings.where('clientId').equals(booking.clientId).toArray()
-        const noShows = clientBookings.filter(b => b.status === 'No Show').length
-        const currentClient = await db.clients.get(booking.clientId)
-        if (currentClient) {
-          let riskLevel = currentClient.riskLevel
-          if (noShows >= 2) riskLevel = 'High Risk'
-          else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
-          await db.clients.update(booking.clientId, { riskLevel })
+      await db.transaction('rw', [db.bookings, db.clients], async () => {
+        await db.bookings.update(booking.id, {
+          status: 'No Show' as BookingStatus,
+          cancelledAt: new Date(),
+        })
+        if (booking.clientId) {
+          const clientBookings = await db.bookings.where('clientId').equals(booking.clientId).toArray()
+          const noShows = clientBookings.filter(b => b.status === 'No Show').length
+          const currentClient = await db.clients.get(booking.clientId)
+          if (currentClient) {
+            let riskLevel = currentClient.riskLevel
+            if (noShows >= 2) riskLevel = 'High Risk'
+            else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
+            await db.clients.update(booking.clientId, { riskLevel })
+          }
         }
-      }
+      })
       if (navigator.vibrate) navigator.vibrate([20, 50, 20])
       closePanel()
     } catch {
@@ -304,6 +306,7 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
       {/* Action panel behind */}
       <div
         className="absolute inset-y-0 right-0 flex flex-col justify-center gap-1.5 py-1.5"
+        aria-hidden={offset === 0}
         style={{
           width: `${PANEL_WIDTH}px`,
           background: 'linear-gradient(135deg, #1e1b2e, #1a1a2e)',

@@ -53,6 +53,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [showMessageSheet, setShowMessageSheet] = useState(false)
   const [showAllHistory, setShowAllHistory] = useState(false)
   const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: any; booking: any } | null>(null)
+  const [showUnblockConfirm, setShowUnblockConfirm] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const toggle = (key: string) => setExpanded(prev => {
     const next = new Set(prev)
@@ -124,8 +125,6 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     if (!client) return
     await db.clients.update(clientId, { isPinned: !client.isPinned })
   }
-
-  const [showUnblockConfirm, setShowUnblockConfirm] = useState(false)
 
   async function toggleBlock() {
     if (!client) return

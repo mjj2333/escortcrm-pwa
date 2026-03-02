@@ -68,6 +68,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
 
   async function handleUpload(files: FileList | null) {
     if (!files) return
+    let uploaded = 0
     for (const file of Array.from(files)) {
       if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
         showToast('Only images and PDFs are supported')
@@ -87,12 +88,13 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
           uploadedAt: new Date(),
         }
         await db.screeningDocs.add(doc)
+        uploaded++
       } catch {
         showToast(`Failed to upload ${file.name}`, 'error')
         continue
       }
     }
-    showToast(`${files.length} file${files.length > 1 ? 's' : ''} added`)
+    if (uploaded > 0) showToast(`${uploaded} file${uploaded > 1 ? 's' : ''} added`)
     if (fileInput.current) fileInput.current.value = ''
   }
 

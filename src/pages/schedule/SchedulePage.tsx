@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, CalendarDays, CalendarRange, List, SlidersHorizontal, X, ChevronRight } from 'lucide-react'
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import {
   startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday,
   startOfWeek, endOfWeek, isSameMonth, isSameWeek, addMonths, subMonths, addWeeks, subWeeks, subDays,
@@ -1014,10 +1014,10 @@ function DayDetailModal({
     requestAnimationFrame(() => setVisible(true))
   }, [])
 
-  function handleClose() {
+  const handleClose = useCallback(() => {
     setVisible(false)
     setTimeout(onClose, 200)
-  }
+  }, [onClose])
 
   // Escape key to close
   useEffect(() => {
@@ -1026,7 +1026,7 @@ function DayDetailModal({
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+  }, [handleClose])
 
   return (
     <div

@@ -38,12 +38,12 @@ interface HomePageProps {
 
 export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenClient }: HomePageProps) {
   // Force re-render at midnight so date-dependent data stays fresh
-  const [, forceRefresh] = useReducer(x => x + 1, 0)
+  const [tick, forceRefresh] = useReducer(x => x + 1, 0)
   useEffect(() => {
     const msUntilMidnight = endOfDay(new Date()).getTime() - Date.now() + 1000
     const timer = setTimeout(forceRefresh, msUntilMidnight)
     return () => clearTimeout(timer)
-  }, [])
+  }, [tick])
 
   const now = new Date()
   const todayStart = startOfDay(now)

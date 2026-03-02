@@ -24,6 +24,9 @@ export function ConfirmDialog({
     if (isOpen) setInputValue('')
   }, [isOpen])
 
+  const onCancelRef = useRef(onCancel)
+  onCancelRef.current = onCancel
+
   // Focus management and keyboard handling
   useEffect(() => {
     if (!isOpen) return
@@ -37,7 +40,7 @@ export function ConfirmDialog({
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        onCancel()
+        onCancelRef.current()
         return
       }
       // Focus trap
@@ -60,7 +63,7 @@ export function ConfirmDialog({
       document.removeEventListener('keydown', handleKeyDown)
       previousFocusRef.current?.focus()
     }
-  }, [isOpen, onCancel])
+  }, [isOpen])
 
   if (!isOpen) return null
 

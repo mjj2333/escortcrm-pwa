@@ -271,10 +271,12 @@ function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToast
   const [isBurning, setIsBurning] = useState(false)
   const [burnPhase, setBurnPhase] = useState(0) // 0=idle, 1=flames, 2=text, 3=collapse
 
-  // Clean up fire animation timers on unmount
+  // Clean up all timers on unmount
   useEffect(() => {
     return () => {
       fireTimers.current.forEach(clearTimeout)
+      if (tapTimer.current) clearTimeout(tapTimer.current)
+      if (longPressTimer.current) clearTimeout(longPressTimer.current)
     }
   }, [])
 

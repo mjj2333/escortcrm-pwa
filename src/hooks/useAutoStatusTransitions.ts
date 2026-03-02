@@ -97,7 +97,8 @@ export function useAutoStatusTransitions() {
         }
 
         // Spawn next recurring booking if this one completed
-        if (b.status === 'Completed' && b.recurrence && b.recurrence !== 'none') {
+        const effectiveStatus = (await db.bookings.get(b.id))?.status ?? b.status
+        if (effectiveStatus === 'Completed' && b.recurrence && b.recurrence !== 'none') {
           const existingChild = await db.bookings.filter(child => child.parentBookingId === b.id).first()
           if (!existingChild) {
             // Only auto-create if client still exists and is screened

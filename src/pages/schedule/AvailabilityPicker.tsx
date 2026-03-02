@@ -37,43 +37,25 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
 
   async function handleStatusTap(status: AvailabilityStatus) {
     if (saving) return
-    setSelectedStatus(status)
 
-    // Off / Busy: save immediately
-    if (status === 'Off' || status === 'Busy') {
+    // Toggle off if same status tapped
+    if (selectedStatus === status) {
       setSaving(true)
       try {
         const dayStart = startOfDay(date)
         const existing = await db.availability.where('date').equals(dayStart).first()
-
-        // Toggle off if same status tapped
-        if (existing?.status === status) {
-          await db.availability.delete(existing.id)
-          onClose()
-          return
-        }
-
-        const record: Partial<DayAvailability> = {
-          status,
-          startTime: undefined,
-          endTime: undefined,
-          openSlots: undefined,
-          notes: notes.trim() || undefined,
-        }
-
-        if (existing) {
-          await db.availability.update(existing.id, record)
-        } else {
-          await db.availability.add({ id: newId(), date: dayStart, ...record } as DayAvailability)
-        }
+        if (existing) await db.availability.delete(existing.id)
         onClose()
       } catch {
-        showToast('Failed to save availability', 'error')
+        showToast('Failed to clear availability', 'error')
       } finally {
         setSaving(false)
       }
+      return
     }
-    // Available / Limited: user configures then taps Save
+
+    setSelectedStatus(status)
+    // All statuses show Save button — user can add notes before saving
   }
 
   async function handleSave() {
@@ -100,6 +82,11 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
         record.startTime = undefined
         record.endTime = undefined
         if (existing?.openSlots) record.openSlots = existing.openSlots
+      } else {
+        // Off / Busy
+        record.startTime = undefined
+        record.endTime = undefined
+        record.openSlots = undefined
       }
 
       if (existing) {
@@ -132,7 +119,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
 
   const showTimePicker = selectedStatus === 'Available'
   const showOpenSlots = selectedStatus === 'Limited' && current?.openSlots && current.openSlots.length > 0
-  const showSaveButton = selectedStatus === 'Available' || selectedStatus === 'Limited'
+  const showSaveButton = !!selectedStatus
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
@@ -298,7 +285,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
             </div>
           )}
 
-          {/* Save button for Available / Limited */}
+          {/* Save button */}
           {showSaveButton && (
             <button
               type="button"
@@ -308,7 +295,11 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
             >
               {selectedStatus === 'Available'
                 ? `Save — ${formatTime12(startTime)} to ${formatTime12(endTime)}`
-                : 'Save as Limited'
+                : selectedStatus === 'Limited'
+                ? 'Save as Limited'
+                : selectedStatus === 'Off'
+                ? 'Save as Day Off'
+                : 'Save as Busy'
               }
             </button>
           )}

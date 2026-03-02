@@ -320,7 +320,12 @@ async function migrateAllToPlaintext(): Promise<void> {
           for (const f of fields) {
             const v = record[f]
             if (typeof v === 'string' && v.startsWith(ENC_PREFIX)) {
-              updates[f] = decryptFieldSync(v) as string
+              const decrypted = decryptFieldSync(v) as string
+              if (decrypted === '[encrypted]') {
+                console.warn(`[fieldCrypto] Skipping corrupted field "${f}" on record ${record.id} — cannot decrypt`)
+                continue
+              }
+              updates[f] = decrypted
               changed = true
             }
           }
