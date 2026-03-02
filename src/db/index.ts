@@ -384,7 +384,13 @@ export function bookingDurationFormatted(minutes: number): string {
 }
 
 export function isUpcoming(b: Booking, now?: Date): boolean {
-  return new Date(b.dateTime) > (now ?? new Date()) && b.status !== 'Cancelled' && b.status !== 'Completed' && b.status !== 'No Show'
+  if (b.status === 'Cancelled' || b.status === 'Completed' || b.status === 'No Show') return false
+  const n = now ?? new Date()
+  // Future bookings are always upcoming
+  if (new Date(b.dateTime) > n) return true
+  // Confirmed/Pending bookings whose time just passed stay visible until auto-transition fires
+  if (b.status === 'Confirmed' || b.status === 'Pending Deposit' || b.status === 'To Be Confirmed') return true
+  return false
 }
 
 /**
