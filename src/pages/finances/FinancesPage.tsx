@@ -165,6 +165,43 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
     [allBookings, startDate.getTime(), endDate.getTime()]
   )
 
+  // ── Pre-built lookup Maps (avoids O(n²) nested filtering) ──
+  const incomeByBookingId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const t of filtered) {
+      if (t.type === 'income' && t.bookingId) {
+        map.set(t.bookingId, (map.get(t.bookingId) ?? 0) + t.amount)
+      }
+    }
+    return map
+  }, [filtered])
+
+  const paymentsByBookingId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const p of allPayments) {
+      if (p.label !== 'Tip') {
+        map.set(p.bookingId, (map.get(p.bookingId) ?? 0) + p.amount)
+      }
+    }
+    return map
+  }, [allPayments])
+
+  const bookingsByClientId = useMemo(() => {
+    const map = new Map<string, typeof filteredBookings>()
+    for (const b of filteredBookings) {
+      const arr = map.get(b.clientId ?? '')
+      if (arr) arr.push(b)
+      else map.set(b.clientId ?? '', [b])
+    }
+    return map
+  }, [filteredBookings])
+
+  const clientMap = useMemo(() => {
+    const map = new Map<string, (typeof clients)[0]>()
+    for (const c of clients) map.set(c.id, c)
+    return map
+  }, [clients])
+
   // Stats
   const totalIncome = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const totalExpenses = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
@@ -197,16 +234,17 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   const goalIsAllPeriod = period === 'All' || period === 'Custom'
 
   // Outstanding balances — use payment ledger for accurate amounts (only Pending Deposit+ stages)
-  const bookingsWithBalance = allBookings
+  const bookingsWithBalance = useMemo(() => allBookings
     .filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed')
     .map(b => {
       const total = bookingTotal(b)
-      const paid = allPayments.filter(p => p.bookingId === b.id && p.label !== 'Tip').reduce((s, p) => s + p.amount, 0)
+      const paid = paymentsByBookingId.get(b.id) ?? 0
       const owing = total - paid
-      return { booking: b, owing, client: clients.find(c => c.id === b.clientId) }
+      return { booking: b, owing, client: clientMap.get(b.clientId ?? '') }
     })
     .filter(x => x.owing > 0)
-    .sort((a, b) => b.owing - a.owing)
+    .sort((a, b) => b.owing - a.owing),
+  [allBookings, paymentsByBookingId, clientMap])
   const totalOutstanding = bookingsWithBalance.reduce((s, x) => s + x.owing, 0)
 
   // Expense breakdown — show all categories; group smallest into "Other" if more than 7
@@ -237,17 +275,13 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
       const type = b.locationType || 'Other'
       if (!grouped[type]) grouped[type] = { count: 0, revenue: 0 }
       grouped[type].count++
-      // Revenue from transaction ledger
-      const rev = filtered
-        .filter(t => t.bookingId === b.id && t.type === 'income')
-        .reduce((s, t) => s + t.amount, 0)
-      // Fallback to booking total if no transactions linked
+      const rev = incomeByBookingId.get(b.id) ?? 0
       grouped[type].revenue += rev > 0 ? rev : (b.baseRate + (b.extras ?? 0) + (b.travelFee ?? 0))
     })
     return Object.entries(grouped)
       .map(([type, data]) => ({ type: type as LocationType, ...data }))
       .sort((a, b) => b.revenue - a.revenue)
-  }, [filteredBookings, filtered])
+  }, [filteredBookings, incomeByBookingId])
 
   // Payment method breakdown (income only)
   const paymentMethodBreakdown = useMemo(() => {
@@ -295,10 +329,10 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
     const data = Array(7).fill(0) as number[]
     completedBookings.forEach(b => {
       const day = getDay(new Date(b.dateTime))
-      data[day] += filtered.filter(t => t.bookingId === b.id && t.type === 'income').reduce((s, t) => s + t.amount, 0)
+      data[day] += incomeByBookingId.get(b.id) ?? 0
     })
     return data
-  }, [completedBookings, filtered])
+  }, [completedBookings, incomeByBookingId])
   const maxDayRev = Math.max(1, ...dayRevenue)
 
   // Trends: 12-month data
@@ -332,45 +366,62 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   // Client analytics (filtered by period)
   const clientStats = useMemo(() => {
     return clients.map(c => {
-      const cb = filteredBookings.filter(b => b.clientId === c.id)
+      const cb = bookingsByClientId.get(c.id) ?? []
       const completed = cb.filter(b => b.status === 'Completed')
       const cancelled = cb.filter(b => b.status === 'Cancelled' || b.status === 'No Show')
-      const revenue = completed.reduce((s, b) =>
-        s + filtered.filter(t => t.bookingId === b.id && t.type === 'income').reduce((ts, t) => ts + t.amount, 0), 0)
+      const revenue = completed.reduce((s, b) => s + (incomeByBookingId.get(b.id) ?? 0), 0)
       const cancelRate = cb.length > 0 ? Math.round((cancelled.length / cb.length) * 100) : 0
       return { client: c, bookingCount: completed.length, revenue, cancelRate, totalBookings: cb.length }
     }).filter(s => s.totalBookings > 0)
-  }, [clients, filteredBookings, filtered])
+  }, [clients, bookingsByClientId, incomeByBookingId])
 
   const topClients = useMemo(() => [...clientStats].sort((a, b) => b.revenue - a.revenue).slice(0, 10), [clientStats])
   const unreliableClients = useMemo(() => clientStats.filter(s => s.cancelRate >= 30 && s.totalBookings >= 2).sort((a, b) => b.cancelRate - a.cancelRate), [clientStats])
 
   const retentionMetrics = useMemo(() => {
-    const clientsWithCompleted = new Set(completedBookings.map(b => b.clientId))
-    const totalWithBookings = clientsWithCompleted.size
-    const repeatClients = clients.filter(c => completedBookings.filter(b => b.clientId === c.id).length >= 2)
-    const oneTimeClients = clients.filter(c => completedBookings.filter(b => b.clientId === c.id).length === 1)
+    // Build per-client completed booking count in one pass
+    const completedCountByClient = new Map<string, number>()
+    const earliestByClient = new Map<string, number>()
+    for (const b of completedBookings) {
+      const cid = b.clientId ?? ''
+      completedCountByClient.set(cid, (completedCountByClient.get(cid) ?? 0) + 1)
+      const dt = new Date(b.dateTime).getTime()
+      const prev = earliestByClient.get(cid)
+      if (prev === undefined || dt < prev) earliestByClient.set(cid, dt)
+    }
+
+    const totalWithBookings = completedCountByClient.size
+    const repeatClients = clients.filter(c => (completedCountByClient.get(c.id) ?? 0) >= 2)
+    const oneTimeClients = clients.filter(c => (completedCountByClient.get(c.id) ?? 0) === 1)
     const repeatRate = totalWithBookings > 0 ? Math.round((repeatClients.length / totalWithBookings) * 100) : 0
     const avgBookingsPerRepeat = repeatClients.length > 0
-      ? Math.round(repeatClients.reduce((s, c) => s + completedBookings.filter(b => b.clientId === c.id).length, 0) / repeatClients.length * 10) / 10
+      ? Math.round(repeatClients.reduce((s, c) => s + (completedCountByClient.get(c.id) ?? 0), 0) / repeatClients.length * 10) / 10
       : 0
     // New vs returning this month
-    const mStart = startOfMonth(new Date())
-    const thisMonthClients = new Set(completedBookings.filter(b => new Date(b.dateTime) >= mStart).map(b => b.clientId))
+    const mStart = startOfMonth(new Date()).getTime()
+    const thisMonthClients = new Set(completedBookings.filter(b => new Date(b.dateTime).getTime() >= mStart).map(b => b.clientId))
     let newThisMonth = 0, returningThisMonth = 0
     thisMonthClients.forEach(cid => {
-      if (completedBookings.some(b => b.clientId === cid && new Date(b.dateTime) < mStart)) returningThisMonth++
+      if ((earliestByClient.get(cid ?? '') ?? Infinity) < mStart) returningThisMonth++
       else newThisMonth++
     })
-    // Avg revenue comparison
-    const revOf = (cs: typeof clients) => cs.length > 0 ? Math.round(cs.reduce((s, c) =>
-      s + filtered.filter(t => completedBookings.some(b => b.id === t.bookingId && b.clientId === c.id) && t.type === 'income').reduce((ts, t) => ts + t.amount, 0), 0
-    ) / cs.length) : 0
+    // Avg revenue per client — use incomeByBookingId Map
+    const revOf = (cs: typeof clients) => {
+      if (cs.length === 0) return 0
+      let total = 0
+      for (const c of cs) {
+        const cBookings = bookingsByClientId.get(c.id) ?? []
+        for (const b of cBookings) {
+          if (b.status === 'Completed') total += incomeByBookingId.get(b.id) ?? 0
+        }
+      }
+      return Math.round(total / cs.length)
+    }
     return {
       repeatCount: repeatClients.length, oneTimeCount: oneTimeClients.length, repeatRate, avgBookingsPerRepeat,
       newThisMonth, returningThisMonth, avgRepeatRevenue: revOf(repeatClients), avgOneTimeRevenue: revOf(oneTimeClients),
     }
-  }, [clients, completedBookings, filtered])
+  }, [clients, completedBookings, bookingsByClientId, incomeByBookingId])
 
   const clientSourceCounts = useMemo(() => {
     const counts: Record<string, number> = {}
