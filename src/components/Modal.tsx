@@ -61,7 +61,7 @@ export function Modal({ isOpen, onClose, title, children, actions }: ModalProps)
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="relative mt-8 flex-1 flex flex-col rounded-t-2xl overflow-hidden animate-slide-up outline-none"
+        className="relative mt-8 flex-1 flex flex-col rounded-t-2xl overflow-hidden animate-slide-up outline-none safe-bottom"
         style={{ backgroundColor: 'var(--bg-card)' }}
       >
         {/* Header */}

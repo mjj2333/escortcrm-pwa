@@ -470,7 +470,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div
-        className="relative w-full max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden"
+        className="relative w-full max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden safe-bottom"
         style={{ backgroundColor: 'var(--bg-card)', maxHeight: '85vh' }}
       >
         {/* Header */}

@@ -133,7 +133,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
 
       {/* Panel */}
       <div
-        className="relative w-full max-w-lg rounded-t-2xl overflow-y-auto"
+        className="relative w-full max-w-lg rounded-t-2xl overflow-y-auto safe-bottom"
         style={{
           backgroundColor: 'var(--bg-card)',
           maxHeight: '80vh',

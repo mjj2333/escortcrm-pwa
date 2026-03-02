@@ -78,6 +78,12 @@ body {
   }
 }
 
+/* Eliminate 300ms tap delay on mobile */
+button, a, [role="button"], input, select, textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Smooth transitions — scoped to interactive elements only */
 button, a, [role="button"], input, select, textarea {
   transition-property: background-color, border-color, color, opacity;
