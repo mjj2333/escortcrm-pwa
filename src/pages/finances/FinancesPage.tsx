@@ -201,7 +201,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
     .filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed')
     .map(b => {
       const total = bookingTotal(b)
-      const paid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
+      const paid = allPayments.filter(p => p.bookingId === b.id && p.label !== 'Tip').reduce((s, p) => s + p.amount, 0)
       const owing = total - paid
       return { booking: b, owing, client: clients.find(c => c.id === b.clientId) }
     })
@@ -325,7 +325,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   const prevMonth = monthly.length >= 2 ? monthly[monthly.length - 2] : null
   const momChange = prevMonth && prevMonth.income > 0
     ? Math.round(((currentMonth.income - prevMonth.income) / prevMonth.income) * 100)
-    : 0
+    : null
   const maxMonthlyIncome = Math.max(1, ...monthly.map(m => m.income))
   const maxMonthlyBookings = Math.max(1, ...monthly.map(m => m.bookings))
 
@@ -793,8 +793,13 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
               <div className="flex-1">
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>vs Last Month</p>
                 <div className="flex items-center gap-1">
-                  {momChange >= 0 ? <TrendingUp size={18} className="text-green-500" /> : <TrendingDown size={18} className="text-red-500" />}
-                  <span className={`text-xl font-bold ${momChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>{Math.abs(momChange)}%</span>
+                  {momChange === null
+                    ? <span className="text-xl font-bold" style={{ color: 'var(--text-secondary)' }}>N/A</span>
+                    : <>
+                        {momChange >= 0 ? <TrendingUp size={18} className="text-green-500" /> : <TrendingDown size={18} className="text-red-500" />}
+                        <span className={`text-xl font-bold ${momChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>{Math.abs(momChange)}%</span>
+                      </>
+                  }
                 </div>
               </div>
             </div>

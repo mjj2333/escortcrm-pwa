@@ -39,7 +39,7 @@ export function SessionTimer({ startTime, durationMin }: SessionTimerProps) {
   // Progress: 0 → 1 as time passes
   const elapsed = now - new Date(startTime).getTime()
   const totalMs = durationMin * 60000
-  const progress = Math.min(Math.max(elapsed / totalMs, 0), 1)
+  const progress = totalMs > 0 ? Math.min(Math.max(elapsed / totalMs, 0), 1) : 1
 
   // Vibration alerts
   useEffect(() => {

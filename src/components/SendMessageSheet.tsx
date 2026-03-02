@@ -136,25 +136,29 @@ function resolveTemplatePlaceholders(
   const total = booking ? bookingTotal(booking) : 0
   const balance = Math.max(0, total - totalPaid)
 
+  // Use replacer functions to avoid $ corruption in replacement strings
+  // (String.replace treats $&, $', $$ etc. specially in string replacements)
+  const safe = (s: string) => () => s
+
   let result = template
-    .replace(/\{client\}/g, client.alias || 'there')
-    .replace(/\{name\}/g, workingName)
-    .replace(/\{email\}/g, workEmail)
-    .replace(/\{phone\}/g, workPhone)
-    .replace(/\{website\}/g, website)
-    .replace(/\{rates\}/g, ratesStr)
-    .replace(/\{deposit\}/g, depositStr)
-    .replace(/\{venue\}/g, venue?.name || '')
-    .replace(/\{address\}/g, venue?.address || '')
-    .replace(/\{directions\}/g, venue?.directions || '')
+    .replace(/\{client\}/g, safe(client.alias || 'there'))
+    .replace(/\{name\}/g, safe(workingName))
+    .replace(/\{email\}/g, safe(workEmail))
+    .replace(/\{phone\}/g, safe(workPhone))
+    .replace(/\{website\}/g, safe(website))
+    .replace(/\{rates\}/g, safe(ratesStr))
+    .replace(/\{deposit\}/g, safe(depositStr))
+    .replace(/\{venue\}/g, safe(venue?.name || ''))
+    .replace(/\{address\}/g, safe(venue?.address || ''))
+    .replace(/\{directions\}/g, safe(venue?.directions || ''))
 
   if (booking) {
     result = result
-      .replace(/\{date\}/g, fmtFullDayDate(new Date(booking.dateTime)))
-      .replace(/\{time\}/g, fmtTime(new Date(booking.dateTime)))
-      .replace(/\{duration\}/g, bookingDurationFormatted(booking.duration))
-      .replace(/\{rate\}/g, formatCurrency(total))
-      .replace(/\{balance\}/g, formatCurrency(balance))
+      .replace(/\{date\}/g, safe(fmtFullDayDate(new Date(booking.dateTime))))
+      .replace(/\{time\}/g, safe(fmtTime(new Date(booking.dateTime))))
+      .replace(/\{duration\}/g, safe(bookingDurationFormatted(booking.duration)))
+      .replace(/\{rate\}/g, safe(formatCurrency(total)))
+      .replace(/\{balance\}/g, safe(formatCurrency(balance)))
   }
 
   return result

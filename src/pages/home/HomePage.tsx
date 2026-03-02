@@ -83,8 +83,12 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const showNotificationPrompt = !remindersEnabled && 'Notification' in window && Notification.permission === 'default'
 
   const todaysBookings = allBookings.filter(b => {
-    const d = new Date(b.dateTime)
-    return isToday(d) && b.status !== 'Cancelled' && b.status !== 'No Show'
+    if (b.status === 'Cancelled' || b.status === 'No Show') return false
+    const start = new Date(b.dateTime)
+    if (isToday(start)) return true
+    // Include overnight sessions that started yesterday but end today
+    const endMs = start.getTime() + b.duration * 60_000
+    return start < todayStart && endMs > todayStart.getTime()
   })
 
   const upcoming = allBookings

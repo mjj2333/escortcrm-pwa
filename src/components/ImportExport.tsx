@@ -223,7 +223,9 @@ async function downloadSheet(rows: Record<string, unknown>[], name: string, form
 
   if (format === 'csv') {
     const escape = (v: unknown) => {
-      const s = String(v ?? '')
+      let s = String(v ?? '')
+      // Prevent CSV formula injection: prefix dangerous characters with a single-quote
+      if (s.length > 0 && '=+-@\t\r'.includes(s[0])) s = "'" + s
       return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
     }
     const lines = [headers.map(escape).join(',')]

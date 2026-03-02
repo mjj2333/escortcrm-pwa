@@ -326,12 +326,12 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             {(client.preferences || client.boundaries) && (
               <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
                 {client.preferences && (
-                  <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>
+                  <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
                     💜 {client.preferences.slice(0, 100)}{client.preferences.length > 100 ? '…' : ''}
                   </p>
                 )}
                 {client.boundaries && (
-                  <p className="text-xs text-red-400">
+                  <p className="text-xs text-red-400" style={{ whiteSpace: 'pre-wrap' }}>
                     🚫 {client.boundaries.slice(0, 100)}{client.boundaries.length > 100 ? '…' : ''}
                   </p>
                 )}
@@ -909,7 +909,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
               style={{ backgroundColor: '#a855f7' }}
             >
-              Record {payLabel} {payAmount ? `(${formatCurrency(parseFloat(payAmount))})` : ''}
+              Record {payLabel} {payAmount && !isNaN(parseFloat(payAmount)) ? `(${formatCurrency(parseFloat(payAmount))})` : ''}
             </button>
           </div>
         </div>

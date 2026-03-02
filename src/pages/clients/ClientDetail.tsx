@@ -110,7 +110,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const activeBookings = bookings.filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed')
   const outstandingBalance = activeBookings.reduce((sum, b) => {
     const bTotal = bookingTotal(b)
-    const bPaid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
+    const bPaid = allPayments.filter(p => p.bookingId === b.id && p.label !== 'Tip').reduce((s, p) => s + p.amount, 0)
     const owing = bTotal - bPaid
     return sum + (owing > 0 ? owing : 0)
   }, 0)
@@ -305,9 +305,9 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-500">
                 {activeBookings.filter(b => {
                   const bTotal = bookingTotal(b)
-                  const bPaid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
+                  const bPaid = allPayments.filter(p => p.bookingId === b.id && p.label !== 'Tip').reduce((s, p) => s + p.amount, 0)
                   return bTotal - bPaid > 0
-                }).length} booking{activeBookings.filter(b => bookingTotal(b) - allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0) > 0).length !== 1 ? 's' : ''}
+                }).length} booking{activeBookings.filter(b => bookingTotal(b) - allPayments.filter(p => p.bookingId === b.id && p.label !== 'Tip').reduce((s, p) => s + p.amount, 0) > 0).length !== 1 ? 's' : ''}
               </span>
             </div>
           </Card>
@@ -533,7 +533,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
             {client.verificationNotes && (
               <div className="py-1.5">
                 <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Verification Notes</p>
-                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{client.verificationNotes}</p>
+                <p className="text-sm" style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{client.verificationNotes}</p>
               </div>
             )}
           </CollapsibleCard>
@@ -550,7 +550,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#22c55e' }}>Likes & Preferences</p>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{client.preferences}</p>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{client.preferences}</p>
                 </div>
               </div>
             )}
@@ -565,7 +565,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#ef4444' }}>Boundaries — Do Not Cross</p>
-                  <p className="text-sm leading-relaxed" style={{ color: '#f87171' }}>{client.boundaries}</p>
+                  <p className="text-sm leading-relaxed" style={{ color: '#f87171', whiteSpace: 'pre-wrap' }}>{client.boundaries}</p>
                 </div>
               </div>
             )}
