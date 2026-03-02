@@ -774,10 +774,15 @@ function WeekView({
 
     let earliest = 24
     let latest = 0
-    for (const { booking: b } of weekBookings) {
-      const dt = new Date(b.dateTime)
-      const h = dt.getHours() + dt.getMinutes() / 60
-      const endH = h + (b.duration || 60) / 60
+    for (const { booking: b, dayIndex: di } of weekBookings) {
+      const bStart = new Date(b.dateTime).getTime()
+      const bEnd = bStart + (b.duration || 60) * 60_000
+      const dStart = startOfDay(weekDays[di]).getTime()
+      const dEnd = dStart + 24 * 60 * 60_000
+      const visS = Math.max(bStart, dStart)
+      const visE = Math.min(bEnd, dEnd)
+      const h = new Date(visS).getHours() + new Date(visS).getMinutes() / 60
+      const endH = h + (visE - visS) / 3_600_000
       if (h < earliest) earliest = h
       if (endH > latest) latest = endH
     }
@@ -943,13 +948,22 @@ function WeekView({
                   >
                     {dayBkgs.map(b => {
                       const dt = new Date(b.dateTime)
-                      const bHour = dt.getHours() + dt.getMinutes() / 60
-                      const bDuration = (b.duration || 60) / 60
+                      const bookingStart = dt.getTime()
+                      const bookingEnd = bookingStart + (b.duration || 60) * 60_000
+                      const dayStartMs = startOfDay(day).getTime()
+                      const dayEndMs = dayStartMs + 24 * 60 * 60_000
+                      // Clamp visible portion to this day column
+                      const visStart = Math.max(bookingStart, dayStartMs)
+                      const visEnd = Math.min(bookingEnd, dayEndMs)
+                      const visStartDate = new Date(visStart)
+                      const bHour = visStartDate.getHours() + visStartDate.getMinutes() / 60
+                      const bDuration = (visEnd - visStart) / 3_600_000
                       const top = (bHour - startHour) * HOUR_HEIGHT
                       const height = Math.max(24, bDuration * HOUR_HEIGHT)
                       const color = statusHex[bookingStatusColors[b.status]] ?? '#6b7280'
                       const client = clientFor(b.clientId)
-                      const timeStr = format(dt, 'h:mm')
+                      const isContinuation = bookingStart < dayStartMs
+                      const timeStr = isContinuation ? 'cont\u2019d' : format(dt, 'h:mm')
 
                       return (
                         <div
