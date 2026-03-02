@@ -42,8 +42,14 @@ export function openChannel(method: ContactMethod, contactValue: string, message
     }
     case 'Telegram': {
       if (contactValue.startsWith('@') || !/^\+?\d+$/.test(contactValue)) {
-        const username = contactValue.replace('@', '')
-        window.open(`https://t.me/${username}?text=${encoded}`, '_blank')
+        // Sanitize to valid Telegram username characters only
+        const username = contactValue.replace('@', '').replace(/[^a-zA-Z0-9_]/g, '')
+        if (username) {
+          window.open(`https://t.me/${username}?text=${encoded}`, '_blank')
+        } else {
+          navigator.clipboard.writeText(message).catch(() => {})
+          return 'copied'
+        }
       } else {
         window.open(`https://t.me/+${contactValue.replace(/[^0-9]/g, '')}?text=${encoded}`, '_blank')
       }
