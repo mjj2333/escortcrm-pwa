@@ -553,9 +553,12 @@ export async function removeBookingPayment(paymentId: string): Promise<void> {
       const totalDeposits = remainingDeposits.reduce((sum, p) => sum + p.amount, 0)
       const booking = await db.bookings.get(payment.bookingId)
       if (booking) {
-        await db.bookings.update(payment.bookingId, {
-          depositReceived: totalDeposits >= booking.depositAmount,
-        })
+        const depositMet = totalDeposits >= booking.depositAmount
+        await db.bookings.update(payment.bookingId, { depositReceived: depositMet })
+        // Revert to Pending Deposit if deposit no longer covers the required amount
+        if (!depositMet && booking.depositAmount > 0 && booking.status === 'Confirmed') {
+          await db.bookings.update(payment.bookingId, { status: 'Pending Deposit', confirmedAt: undefined })
+        }
       }
     }
     const booking = await db.bookings.get(payment.bookingId)

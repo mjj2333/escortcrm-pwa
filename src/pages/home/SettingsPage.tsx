@@ -118,6 +118,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
         setBiometricOn(false)
         setPinEnabled(false)
         setPinCode('')
+        setDuressPin('')
       } catch (err) {
         showToast('Failed to disable encryption — PIN kept enabled', 'error')
       } finally {

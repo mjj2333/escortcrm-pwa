@@ -225,16 +225,17 @@ export async function initFieldEncryption(pin: string): Promise<void> {
   if (!nacl) nacl = (await import('tweetnacl')).default
   const { db } = await import('./index')
   const record = await db.meta.get('field_encryption_key')
+  // Versioned re-encrypt: pick up newly added sensitive fields for existing users
+  // Bump this number whenever SENSITIVE_FIELDS is expanded.
+  const ENCRYPT_SCHEMA_VERSION = 3
   if (record?.value) {
     _key = await unwrapFromStore(pin)
   } else {
     _key = nacl.randomBytes(32)
     await wrapAndStore(pin, _key)
     await migrateAllToEncrypted()
+    await db.meta.put({ key: 'encrypt_schema_version', value: ENCRYPT_SCHEMA_VERSION })
   }
-  // Versioned re-encrypt: pick up newly added sensitive fields for existing users
-  // Bump this number whenever SENSITIVE_FIELDS is expanded.
-  const ENCRYPT_SCHEMA_VERSION = 3
   const currentVersion = await db.meta.get('encrypt_schema_version')
   if (!currentVersion || (currentVersion.value as number) < ENCRYPT_SCHEMA_VERSION) {
     await migrateAllToEncrypted()

@@ -131,7 +131,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
     .filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed')
     .map(b => {
       const total = bookingTotal(b)
-      const paid = allPayments.filter(p => p.bookingId === b.id).reduce((s, p) => s + p.amount, 0)
+      const paid = allPayments.filter(p => p.bookingId === b.id && p.label !== 'Tip').reduce((s, p) => s + p.amount, 0)
       const owing = total - paid
       return { booking: b, owing, client: clientForBooking(b.clientId) }
     })

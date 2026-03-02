@@ -59,7 +59,7 @@ export function useAutoStatusTransitions() {
         const fiveAfterEnd = endTime + 5 * 60_000
 
         // Pending Deposit → Confirmed when deposit is fully received
-        if (b.status === 'Pending Deposit' && b.depositReceived) {
+        if (b.status === 'Pending Deposit' && (b.depositReceived || b.depositAmount === 0)) {
           await db.bookings.update(b.id, { status: 'Confirmed', confirmedAt: new Date() })
           continue
         }

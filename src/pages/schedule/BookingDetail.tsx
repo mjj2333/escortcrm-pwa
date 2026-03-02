@@ -121,7 +121,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
     ? undefined
     : nextStatus[booking.status]
 
-  const totalPaid = (payments ?? []).reduce((sum, p) => sum + p.amount, 0)
+  const totalPaid = (payments ?? []).filter(p => p.label !== 'Tip').reduce((sum, p) => sum + p.amount, 0)
   const balance = total - totalPaid
   const isFullyPaid = balance <= 0
   const totalDeposits = (payments ?? []).filter(p => p.label === 'Deposit').reduce((sum, p) => sum + p.amount, 0)

@@ -3,7 +3,7 @@ import { Upload, X, FileSpreadsheet, FileText, CheckCircle, AlertCircle } from '
 import { db, newId } from '../db'
 import type {
   Client, Transaction, ClientTag, SafetyContact,
-  ContactMethod, ScreeningStatus, RiskLevel,
+  ContactMethod, ScreeningStatus, ScreeningMethod, RiskLevel,
   TransactionType, TransactionCategory, PaymentMethod,
 } from '../types'
 
@@ -44,7 +44,7 @@ function fmtDateTime(d?: Date | null): string {
 }
 
 function tagsToString(tags: ClientTag[]): string {
-  return tags.map(t => `${t.icon ?? ''}${t.name}`).join('; ')
+  return tags.map(t => `${t.icon ?? ''}${t.name}${t.color ? '|' + t.color : ''}`).join('; ')
 }
 
 async function exportClients(format: Format) {
@@ -61,6 +61,7 @@ async function exportClients(format: Format) {
     'Preferred Contact': c.preferredContact,
     'Secondary Contact': c.secondaryContact ?? '',
     'Screening Status': c.screeningStatus,
+    'Screening Method': c.screeningMethod ?? '',
     'Risk Level': c.riskLevel,
     Blacklisted: c.isBlocked ? 'Yes' : 'No',
     Preferences: c.preferences,
@@ -74,6 +75,7 @@ async function exportClients(format: Format) {
     Birthday: fmtDate(c.birthday),
     'Client Since': fmtDate(c.clientSince),
     Pinned: c.isPinned ? 'Yes' : 'No',
+    'Safety Check': c.requiresSafetyCheck ? 'Yes' : 'No',
   }))
   downloadSheet(rows, 'clients', format)
 }
@@ -260,17 +262,33 @@ function downloadBlob(blob: Blob, filename: string) {
 
 function parseDate(val: unknown): Date | undefined {
   if (!val) return undefined
-  const d = new Date(val as string)
+  const s = String(val).trim()
+  // Handle YYYY-MM-DD as local date (not UTC) to avoid timezone shifts on round-trip
+  const ymd = s.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (ymd) {
+    const d = new Date(+ymd[1], +ymd[2] - 1, +ymd[3])
+    return isNaN(d.getTime()) ? undefined : d
+  }
+  const d = new Date(s)
   return isNaN(d.getTime()) ? undefined : d
 }
 
 function parseTags(val: unknown): ClientTag[] {
   if (!val || typeof val !== 'string') return []
-  return val.split(';').map(s => s.trim()).filter(Boolean).map(s => {
-    const match = s.match(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/u)
+  // Split on semicolons (CSV export) or commas (Excel export) for cross-format compat
+  return val.split(/[;,]/).map(s => s.trim()).filter(Boolean).map(s => {
+    // Extract color suffix (e.g., "|#8b5cf6") if present
+    let color = '#8b5cf6'
+    let tag = s
+    const colorIdx = tag.lastIndexOf('|#')
+    if (colorIdx >= 0) {
+      color = tag.slice(colorIdx + 1)
+      tag = tag.slice(0, colorIdx)
+    }
+    const match = tag.match(/^(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/u)
     const icon = match ? match[1] : undefined
-    const name = match ? s.slice(match[0].length) : s
-    return { id: newId(), name, icon, color: '#8b5cf6' }
+    const name = match ? tag.slice(match[0].length) : tag
+    return { id: newId(), name, icon, color }
   })
 }
 
@@ -298,14 +316,11 @@ async function importClients(rows: Record<string, unknown>[]): Promise<{ importe
   let imported = 0
   let skipped = 0
   let duplicates = 0
+  let activeCount = pro ? 0 : await getActiveClientCount()
   for (const row of rows) {
-    // Check limit before each add (count grows as we import)
-    if (!pro) {
-      const current = await getActiveClientCount()
-      if (current >= FREE_CLIENT_LIMIT) {
-        skipped += rows.length - imported - skipped - duplicates
-        break
-      }
+    if (!pro && activeCount >= FREE_CLIENT_LIMIT) {
+      skipped += rows.length - imported - skipped - duplicates
+      break
     }
 
     const alias = String(row['Alias'] ?? row['alias'] ?? '').trim()
@@ -330,6 +345,7 @@ async function importClients(rows: Record<string, unknown>[]): Promise<{ importe
       screeningStatus: validateEnum(
         (() => { const s = String(row['Screening Status'] ?? row['screeningStatus'] ?? 'Unscreened').trim(); return s === 'Pending' || s === 'Declined' ? 'Unscreened' : s === 'Verified' ? 'Screened' : s })(),
         VALID_SCREENING_STATUSES, 'Unscreened'),
+      screeningMethod: (() => { const v = String(row['Screening Method'] ?? row['screeningMethod'] ?? '').trim(); const valid: ScreeningMethod[] = ['ID', 'LinkedIn', 'Provider Reference', 'Employment', 'Phone', 'Deposit', 'Other']; return valid.includes(v as ScreeningMethod) ? v as ScreeningMethod : undefined })(),
       riskLevel: validateEnum(String(row['Risk Level'] ?? row['riskLevel'] ?? 'Unknown'), VALID_RISK_LEVELS, 'Unknown'),
       isBlocked: yesNo(row['Blacklisted'] ?? row['Blocked'] ?? row['isBlocked']),
       preferences: String(row['Preferences'] ?? row['preferences'] ?? ''),
@@ -343,9 +359,10 @@ async function importClients(rows: Record<string, unknown>[]): Promise<{ importe
       birthday: parseDate(row['Birthday'] ?? row['birthday']),
       clientSince: parseDate(row['Client Since'] ?? row['clientSince']),
       isPinned: yesNo(row['Pinned'] ?? row['isPinned']),
-      requiresSafetyCheck: false,
+      requiresSafetyCheck: yesNo(row['Safety Check'] ?? row['requiresSafetyCheck'] ?? 'Yes'),
     }
     await db.clients.add(client)
+    if (!client.isBlocked) activeCount++
     imported++
   }
   return { imported, skipped, duplicates }
