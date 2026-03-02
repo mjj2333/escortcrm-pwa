@@ -57,11 +57,11 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
     setTimeout(() => setPinnedToast(null), 1500)
   }, [])
 
-  if (clients === undefined) return <ClientsPageSkeleton />
-
-  const blockedCount = useMemo(() => clients.filter(c => c.isBlocked).length, [clients])
+  // Hooks must be called before any early return to satisfy Rules of Hooks
+  const blockedCount = useMemo(() => clients ? clients.filter(c => c.isBlocked).length : 0, [clients])
 
   const filtered = useMemo(() => {
+    if (!clients) return []
     const q = search ? search.toLowerCase() : ''
     const digits = search ? search.replace(/\D/g, '') : ''
     return clients
@@ -100,6 +100,8 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
         }
       })
   }, [clients, search, showBlocked, filterScreening, filterRisk, sortMode])
+
+  if (clients === undefined) return <ClientsPageSkeleton />
 
 
   return (
