@@ -59,7 +59,7 @@ export function useServiceWorker() {
           }
         })
       })
-    }).catch(() => {})
+    }).catch(err => console.warn('Service worker registration failed:', err))
 
     // When the new SW activates (after skipWaiting), reload to pick up new assets
     let refreshing = false

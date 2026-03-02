@@ -178,6 +178,10 @@ export async function revalidateActivation(): Promise<boolean> {
         token: activation.token,
       }),
     })
+    if (!res.ok) {
+      // Server error — don't punish the user, try again next launch
+      return true
+    }
     const data = await res.json()
 
     if (data.valid) {
@@ -212,6 +216,7 @@ export async function verifyPurchase(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.trim().toLowerCase() }),
     })
+    if (!res.ok) return { valid: false, error: 'Server error — please try again later' }
     return await res.json()
   } catch {
     return { valid: false, error: 'Network error — check your connection' }
@@ -233,6 +238,7 @@ export async function matchGiftCode(code: string): Promise<{ expiresAt?: string;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code }),
     })
+    if (!res.ok) return 'network_error'
     const data = await res.json()
     if (data.valid) return { expiresAt: data.expiresAt ?? undefined, token: data.token ?? undefined, identifier: data.identifier ?? undefined }
     return null

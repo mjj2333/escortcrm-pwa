@@ -91,7 +91,11 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
         }
         await db.screeningDocs.add(doc)
         uploaded++
-      } catch {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'QuotaExceededError') {
+          showToast('Storage full — delete old files to free space', 'error')
+          break
+        }
         showToast(`Failed to upload ${file.name}`, 'error')
         continue
       }

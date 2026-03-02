@@ -98,7 +98,7 @@ export default function App() {
   // One-time migration: hash any existing plaintext PIN (4-digit numeric string)
   useEffect(() => {
     if (pinEnabled && pinCode && pinCode.length <= 6 && /^\d+$/.test(pinCode)) {
-      hashPin(pinCode).then(hash => setPinCode(hash))
+      hashPin(pinCode).then(hash => setPinCode(hash)).catch(() => {})
     }
   }, [])
 
@@ -114,7 +114,7 @@ export default function App() {
         // Subscription was revoked server-side — force paywall
         setShowPaywall(true)
       }
-    })
+    }).catch(() => {})
   }, [])
   // Check for ?code= URL param (deep link from share)
   useEffect(() => {

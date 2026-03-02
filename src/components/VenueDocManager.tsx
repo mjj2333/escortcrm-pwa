@@ -72,24 +72,36 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
         showToast(`${file.name} exceeds 10 MB limit`)
         continue
       }
-      await db.venueDocs.add({
-        id: newId(),
-        venueId,
-        filename: file.name,
-        mimeType: file.type,
-        data: file,
-        uploadedAt: new Date(),
-      })
-      uploaded++
+      try {
+        await db.venueDocs.add({
+          id: newId(),
+          venueId,
+          filename: file.name,
+          mimeType: file.type,
+          data: file,
+          uploadedAt: new Date(),
+        })
+        uploaded++
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'QuotaExceededError') {
+          showToast('Storage full — delete old files to free space', 'error')
+          break
+        }
+        showToast(`Failed to upload ${file.name}`, 'error')
+      }
     }
     e.target.value = ''
     if (uploaded > 0) showToast(`${uploaded} file${uploaded > 1 ? 's' : ''} uploaded`)
   }
 
   async function handleDelete(docId: string) {
-    await db.venueDocs.delete(docId)
-    if (previewDoc?.id === docId) setPreviewDoc(null)
-    showToast('Document deleted')
+    try {
+      await db.venueDocs.delete(docId)
+      if (previewDoc?.id === docId) setPreviewDoc(null)
+      showToast('Document deleted')
+    } catch {
+      showToast('Failed to delete document', 'error')
+    }
   }
 
   const previewIdx = previewDoc ? docs.findIndex(d => d.id === previewDoc.id) : -1

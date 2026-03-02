@@ -169,8 +169,13 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
         const duressHash = duressRaw ? duressRaw.replace(/^"|"$/g, '') : ''
         if (duressHash && hash === duressHash) {
           setWiping(true)
-          const { db } = await import('../db')
-          await db.delete().catch(err => console.error('Duress wipe failed:', err))
+          try {
+            const { db } = await import('../db')
+            await db.delete()
+          } catch (err) {
+            console.error('Duress wipe failed:', err)
+            setError('Data wipe incomplete — some data may remain')
+          }
           localStorage.clear()
           window.location.reload()
           return
@@ -186,12 +191,15 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
           if (attempts >= MAX_ATTEMPTS_BEFORE_WIPE) {
             setWiping(true)
             setError('Too many failed attempts — erasing all data for safety')
-            import('../db').then(({ db }) => {
-              db.delete().catch(err => console.error('Max-attempts wipe failed:', err)).finally(() => {
-                localStorage.clear()
-                window.location.reload()
-              })
-            })
+            try {
+              const { db } = await import('../db')
+              await db.delete()
+            } catch (err) {
+              console.error('Max-attempts wipe failed:', err)
+              setError('Data wipe incomplete — some data may remain')
+            }
+            localStorage.clear()
+            window.location.reload()
             return
           }
 
@@ -207,6 +215,10 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
           setTimeout(() => { if (!cancelled) { setShake(false); setPin('') } }, 600)
         }
         verifyingRef.current = false
+      }).catch(() => {
+        verifyingRef.current = false
+        setError('Verification failed — please try again')
+        setPin('')
       })
     }
     if (isSetup && phase === 'enter' && pin.length === maxLength) {
@@ -220,6 +232,11 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
           await clearAttempts() // reset any prior failed attempts
           onSetPin?.(hash, pin)
           onUnlockRef.current(pin)
+        }).catch(() => {
+          setError('Failed to set PIN — please try again')
+          setConfirmPin('')
+          setPhase('enter')
+          setPin('')
         })
       } else {
         setError('PINs don\'t match')

@@ -55,25 +55,37 @@ export function BookingChecklist({ bookingId }: BookingChecklistProps) {
   if (!items) return null
 
   async function toggleItem(id: string, completed: boolean) {
-    await db.bookingChecklist.update(id, { completed: !completed })
+    try {
+      await db.bookingChecklist.update(id, { completed: !completed })
+    } catch {
+      // silently fail — Dexie live query will keep UI consistent
+    }
   }
 
   async function addItem() {
     const text = newText.trim()
     if (!text) return
-    const maxOrder = items!.reduce((max, it) => Math.max(max, it.sortOrder), -1)
-    await db.bookingChecklist.add({
-      id: newId(),
-      bookingId,
-      text,
-      completed: false,
-      sortOrder: maxOrder + 1,
-    })
-    setNewText('')
+    try {
+      const maxOrder = items!.reduce((max, it) => Math.max(max, it.sortOrder), -1)
+      await db.bookingChecklist.add({
+        id: newId(),
+        bookingId,
+        text,
+        completed: false,
+        sortOrder: maxOrder + 1,
+      })
+      setNewText('')
+    } catch {
+      // silently fail — item won't appear via live query
+    }
   }
 
   async function deleteItem(id: string) {
-    await db.bookingChecklist.delete(id)
+    try {
+      await db.bookingChecklist.delete(id)
+    } catch {
+      // silently fail — item stays visible via live query
+    }
   }
 
   const completed = items.filter(i => i.completed).length
