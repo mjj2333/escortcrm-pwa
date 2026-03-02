@@ -1,10 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, CalendarDays, List, SlidersHorizontal, X, ChevronRight } from 'lucide-react'
+import { Plus, CalendarDays, CalendarRange, List, SlidersHorizontal, X, ChevronRight } from 'lucide-react'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday,
-  startOfWeek, endOfWeek, isSameMonth, addMonths, subMonths, subDays,
-  parseISO, startOfDay, endOfDay
+  startOfWeek, endOfWeek, isSameMonth, isSameWeek, addMonths, subMonths, addWeeks, subWeeks, subDays,
+  parseISO, startOfDay, endOfDay, format
 } from 'date-fns'
 import { fmtMonthYear, fmtMonth, fmtFullDayDate } from '../../utils/dateFormat'
 import { db, formatCurrency } from '../../db'
@@ -56,7 +56,7 @@ const statusHex: Record<string, string> = {
 const MAX_BARS = 2
 
 export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
-  const [viewMode, setViewMode]         = useState<'calendar' | 'list'>('calendar')
+  const [viewMode, setViewMode]         = useState<'calendar' | 'week' | 'list'>('calendar')
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [showEditor, setShowEditor]     = useState(false)
   const [editorPreDate, setEditorPreDate] = useState<Date | undefined>()
@@ -111,6 +111,12 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const days       = eachDayOfInterval({ start: calStart, end: calEnd })
 
   const isViewingCurrentMonth = isSameMonth(currentMonth, new Date())
+  const isViewingCurrentWeek = isSameWeek(currentMonth, new Date(), { weekStartsOn: 1 })
+
+  // Week view grid
+  const weekStart = startOfWeek(currentMonth, { weekStartsOn: 1 })
+  const weekEnd   = endOfWeek(currentMonth, { weekStartsOn: 1 })
+  const weekDays  = eachDayOfInterval({ start: weekStart, end: weekEnd })
 
   const bookingsForDay = (day: Date) =>
     bookings.filter(b => {
@@ -281,6 +287,14 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
             <CalendarDays size={14} />
           </button>
           <button
+            onClick={() => setViewMode('week')}
+            aria-label="Week view" aria-pressed={viewMode === 'week'}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium ${viewMode === 'week' ? 'bg-purple-600 text-white' : ''}`}
+            style={viewMode !== 'week' ? { color: 'var(--text-secondary)' } : {}}
+          >
+            <CalendarRange size={14} />
+          </button>
+          <button
             onClick={() => setViewMode('list')}
             aria-label="List view" aria-pressed={viewMode === 'list'}
             className={`px-3 py-1.5 rounded-md text-xs font-medium ${viewMode === 'list' ? 'bg-purple-600 text-white' : ''}`}
@@ -355,6 +369,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
       <div className="max-w-lg mx-auto">
         {viewMode === 'calendar' ? (
           <div className="px-4 py-3">
+
             {/* Month navigation */}
             <div className="flex items-center justify-between mb-4">
               <button
@@ -580,6 +595,18 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
               )}
             </div>
           </div>
+        ) : viewMode === 'week' ? (
+          <WeekView
+            weekDays={weekDays}
+            currentMonth={currentMonth}
+            setCurrentMonth={setCurrentMonth}
+            isViewingCurrentWeek={isViewingCurrentWeek}
+            bookingsForDay={bookingsForDay}
+            availColor={availColor}
+            clientFor={clientFor}
+            onOpenBooking={onOpenBooking}
+            onDayClick={setDayDetailDate}
+          />
         ) : (
           /* List view */
           <div className="px-4 py-3">
@@ -696,6 +723,259 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           clientAlias={clientFor(journalBooking.clientId)?.alias}
         />
       )}
+    </div>
+  )
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Week View — vertical timeline
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const HOUR_HEIGHT = 60 // px per hour
+const WEEK_DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+interface WeekViewProps {
+  weekDays: Date[]
+  currentMonth: Date
+  setCurrentMonth: (d: Date) => void
+  isViewingCurrentWeek: boolean
+  bookingsForDay: (day: Date) => Booking[]
+  availColor: (day: Date) => string | undefined
+  clientFor: (id?: string) => import('../../types').Client | undefined
+  onOpenBooking: (id: string) => void
+  onDayClick: (day: Date) => void
+}
+
+function WeekView({
+  weekDays, currentMonth, setCurrentMonth, isViewingCurrentWeek,
+  bookingsForDay, availColor, clientFor, onOpenBooking, onDayClick,
+}: WeekViewProps) {
+  // Gather all bookings for the week and compute the time range to display
+  const weekBookings = useMemo(() => {
+    const all: { booking: Booking; dayIndex: number }[] = []
+    weekDays.forEach((day, i) => {
+      for (const b of bookingsForDay(day)) {
+        all.push({ booking: b, dayIndex: i })
+      }
+    })
+    return all
+  }, [weekDays, bookingsForDay])
+
+  // Compute visible hour range from bookings (padded by 1 hour, clamped 6am–2am next day)
+  const { startHour, endHour } = useMemo(() => {
+    if (weekBookings.length === 0) return { startHour: 12, endHour: 22 } // noon–10pm default
+
+    let earliest = 24
+    let latest = 0
+    for (const { booking: b } of weekBookings) {
+      const dt = new Date(b.dateTime)
+      const h = dt.getHours() + dt.getMinutes() / 60
+      const endH = h + (b.duration || 60) / 60
+      if (h < earliest) earliest = h
+      if (endH > latest) latest = endH
+    }
+    return {
+      startHour: Math.max(6, Math.floor(earliest) - 1),
+      endHour: Math.min(26, Math.ceil(latest) + 1), // 26 = 2am next day
+    }
+  }, [weekBookings])
+
+  const totalHours = endHour - startHour
+  const gridHeight = totalHours * HOUR_HEIGHT
+  const hours = Array.from({ length: totalHours }, (_, i) => startHour + i)
+
+  // Format hour label: 12p, 1p, 2a etc
+  function fmtHour(h: number): string {
+    const norm = h % 24
+    if (norm === 0) return '12a'
+    if (norm < 12) return `${norm}a`
+    if (norm === 12) return '12p'
+    return `${norm - 12}p`
+  }
+
+  const weekRangeLabel = `${format(weekDays[0], 'MMM d')} – ${format(weekDays[6], 'MMM d, yyyy')}`
+
+  // Now indicator
+  const nowRef = useRef<HTMLDivElement>(null)
+  const [, forceUpdate] = useState(0)
+  useEffect(() => {
+    // Scroll to now indicator on mount
+    setTimeout(() => nowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 100)
+    // Update every minute
+    const interval = setInterval(() => forceUpdate(n => n + 1), 60_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const now = new Date()
+  const nowHour = now.getHours() + now.getMinutes() / 60
+  const showNowLine = isViewingCurrentWeek && nowHour >= startHour && nowHour < endHour
+
+  return (
+    <div className="px-2 py-3">
+      {/* Week navigation */}
+      <div className="flex items-center justify-between mb-3 px-2">
+        <button
+          onClick={() => setCurrentMonth(subWeeks(currentMonth, 1))}
+          className="text-sm font-medium px-3 py-1 rounded-lg"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          ‹ Prev
+        </button>
+        <div className="flex items-center gap-2">
+          <h2 className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+            {weekRangeLabel}
+          </h2>
+          {!isViewingCurrentWeek && (
+            <button
+              onClick={() => setCurrentMonth(new Date())}
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}
+            >
+              Today
+            </button>
+          )}
+        </div>
+        <button
+          onClick={() => setCurrentMonth(addWeeks(currentMonth, 1))}
+          className="text-sm font-medium px-3 py-1 rounded-lg"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          Next ›
+        </button>
+      </div>
+
+      {/* Day headers */}
+      <div className="flex" style={{ paddingLeft: '36px' }}>
+        {weekDays.map((day, i) => {
+          const today = isToday(day)
+          const avail = availColor(day)
+          return (
+            <button
+              key={i}
+              onClick={() => onDayClick(day)}
+              className="flex-1 flex flex-col items-center py-1.5 rounded-lg"
+              style={{ backgroundColor: today ? 'rgba(168,85,247,0.1)' : undefined }}
+            >
+              <span className="text-[10px] font-medium" style={{ color: today ? '#a855f7' : 'var(--text-secondary)' }}>
+                {WEEK_DAY_LABELS[i]}
+              </span>
+              <span className="text-sm font-bold" style={{ color: today ? '#a855f7' : 'var(--text-primary)' }}>
+                {day.getDate()}
+              </span>
+              {avail && <div className="w-1.5 h-1.5 rounded-full mt-0.5" style={{ backgroundColor: avail }} />}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Time grid */}
+      <div className="overflow-y-auto mt-1" style={{ maxHeight: 'calc(100vh - 240px)' }}>
+        <div className="relative flex" style={{ height: `${gridHeight}px` }}>
+          {/* Hour labels */}
+          <div className="shrink-0" style={{ width: '36px' }}>
+            {hours.map(h => (
+              <div
+                key={h}
+                className="absolute text-[10px] font-medium"
+                style={{
+                  top: `${(h - startHour) * HOUR_HEIGHT}px`,
+                  left: 0,
+                  width: '32px',
+                  textAlign: 'right',
+                  color: 'var(--text-secondary)',
+                  transform: 'translateY(-6px)',
+                }}
+              >
+                {fmtHour(h)}
+              </div>
+            ))}
+          </div>
+
+          {/* Grid area */}
+          <div className="flex-1 relative">
+            {/* Horizontal gridlines */}
+            {hours.map(h => (
+              <div
+                key={h}
+                className="absolute w-full"
+                style={{
+                  top: `${(h - startHour) * HOUR_HEIGHT}px`,
+                  height: '1px',
+                  backgroundColor: 'var(--border)',
+                  opacity: 0.5,
+                }}
+              />
+            ))}
+
+            {/* Now indicator line */}
+            {showNowLine && (
+              <div
+                ref={nowRef}
+                className="absolute w-full z-10"
+                style={{
+                  top: `${(nowHour - startHour) * HOUR_HEIGHT}px`,
+                  height: '2px',
+                  backgroundColor: '#ef4444',
+                }}
+              >
+                <div className="absolute -left-1 -top-[3px] w-2 h-2 rounded-full" style={{ backgroundColor: '#ef4444' }} />
+              </div>
+            )}
+
+            {/* Day columns */}
+            <div className="flex h-full">
+              {weekDays.map((day, dayIdx) => {
+                const dayBkgs = bookingsForDay(day)
+                  .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+                return (
+                  <div
+                    key={dayIdx}
+                    className="flex-1 relative"
+                    style={{ borderLeft: dayIdx > 0 ? '1px solid var(--border)' : undefined, opacity: isToday(day) ? 1 : 0.85 }}
+                    onClick={() => onDayClick(day)}
+                  >
+                    {dayBkgs.map(b => {
+                      const dt = new Date(b.dateTime)
+                      const bHour = dt.getHours() + dt.getMinutes() / 60
+                      const bDuration = (b.duration || 60) / 60
+                      const top = (bHour - startHour) * HOUR_HEIGHT
+                      const height = Math.max(24, bDuration * HOUR_HEIGHT)
+                      const color = statusHex[bookingStatusColors[b.status]] ?? '#6b7280'
+                      const client = clientFor(b.clientId)
+                      const timeStr = format(dt, 'h:mm')
+
+                      return (
+                        <div
+                          key={b.id}
+                          className="absolute left-0.5 right-0.5 rounded-md px-1 overflow-hidden cursor-pointer"
+                          style={{
+                            top: `${top}px`,
+                            height: `${height}px`,
+                            backgroundColor: color + '20',
+                            borderLeft: `3px solid ${color}`,
+                            zIndex: 5,
+                          }}
+                          onClick={e => { e.stopPropagation(); onOpenBooking(b.id) }}
+                        >
+                          <p className="text-[9px] font-bold truncate leading-tight mt-0.5" style={{ color }}>
+                            {timeStr}
+                          </p>
+                          {height >= 36 && client && (
+                            <p className="text-[9px] truncate leading-tight" style={{ color: 'var(--text-secondary)' }}>
+                              {client.alias}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
