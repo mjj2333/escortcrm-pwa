@@ -263,7 +263,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
                   type="text"
                   inputMode="decimal"
                   value={feeAmount}
-                  onChange={e => setFeeAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                  onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ''); if ((v.match(/\./g) || []).length <= 1) setFeeAmount(v) }}
                   placeholder="0"
                   className="flex-1 bg-transparent text-sm font-bold outline-none"
                   style={{ color: 'var(--text-primary)', fontSize: '16px' }}

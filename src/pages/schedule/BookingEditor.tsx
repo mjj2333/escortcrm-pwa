@@ -38,6 +38,7 @@ interface BookingEditorProps {
 export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, preselectedDate, rebookFrom }: BookingEditorProps) {
   const isEditing = !!booking
   const clients = useLiveQuery(() => db.clients.filter(c => !c.isBlocked).sortBy('alias')) ?? []
+  const safetyContacts = useLiveQuery(() => db.safetyContacts.filter(c => c.isActive).toArray()) ?? []
   const serviceRates = useLiveQuery(() => db.serviceRates.filter(r => r.isActive).sortBy('sortOrder')) ?? []
   const [defaultDepositPct] = useLocalStorage('defaultDepositPercentage', 25)
   const [defaultDepositType] = useLocalStorage<'percent' | 'flat'>('defaultDepositType', 'percent')
@@ -62,6 +63,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
   const [depositReceived, setDepositReceived] = useState(booking?.depositReceived ?? false)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>(booking?.paymentMethod ?? rebookFrom?.paymentMethod ?? '')
   const [requiresSafetyCheck, setRequiresSafetyCheck] = useState(booking?.requiresSafetyCheck ?? rebookFrom?.requiresSafetyCheck ?? true)
+  const [safetyContactId, setSafetyContactId] = useState(booking?.safetyContactId ?? '')
   const [recurrence, setRecurrence] = useState<RecurrencePattern>(booking?.recurrence ?? rebookFrom?.recurrence ?? 'none')
   const [notes, setNotes] = useState(booking?.notes ?? '')
 
@@ -125,6 +127,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
       setDepositReceived(booking?.depositReceived ?? false)
       setPaymentMethod(booking?.paymentMethod ?? rebookFrom?.paymentMethod ?? '')
       setRequiresSafetyCheck(booking?.requiresSafetyCheck ?? rebookFrom?.requiresSafetyCheck ?? true)
+      setSafetyContactId(booking?.safetyContactId ?? '')
       setRecurrence(booking?.recurrence ?? rebookFrom?.recurrence ?? 'none')
       setNotes(booking?.notes ?? '')
       setShowClientPicker(false)
@@ -262,6 +265,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
         depositAmount,
         paymentMethod: paymentMethod || undefined,
         requiresSafetyCheck,
+        safetyContactId: requiresSafetyCheck && safetyContactId ? safetyContactId : undefined,
         recurrence,
         notes: notes.trim() || '',
         // Set timestamps when status changes
@@ -319,6 +323,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
         depositAmount,
         paymentMethod: paymentMethod || undefined,
         requiresSafetyCheck,
+        safetyContactId: requiresSafetyCheck && safetyContactId ? safetyContactId : undefined,
         recurrence,
         notes: notes.trim() || undefined,
         // Set timestamps when creating with an advanced status
@@ -358,7 +363,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
     showToast(isEditing ? 'Booking updated' : 'Booking created')
     onClose()
     } catch (err) {
-      showToast(`Save failed: ${(err as Error).message}`)
+      showToast(`Save failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setSaving(false)
     }
@@ -752,6 +757,18 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
             hint={selectedClient && (selectedClient.riskLevel === 'High Risk' || selectedClient.riskLevel === 'Unknown')
               ? 'Required for unknown or high-risk clients.'
               : 'Get a reminder to check in with your safety contact.'} />
+
+          {requiresSafetyCheck && safetyContacts.length > 0 && (
+            <FieldSelect label="Safety Contact" value={safetyContactId}
+              options={['', ...safetyContacts.map(c => c.id)]}
+              onChange={setSafetyContactId}
+              displayFn={(v: string) => {
+                if (!v) return 'Auto (primary contact)'
+                const c = safetyContacts.find(sc => sc.id === v)
+                return c ? c.name : 'Unknown'
+              }}
+              hint="Who to notify for the safety check-in." />
+          )}
 
           <FieldSelect label="Recurrence" value={recurrence} options={recurrenceOptions} onChange={setRecurrence}
             displayFn={(v: string) => v === 'none' ? 'None' : v === 'weekly' ? 'Weekly' : v === 'biweekly' ? 'Every 2 Weeks' : 'Monthly'}

@@ -157,7 +157,7 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
       await recordBookingPayment({
         bookingId: booking.id,
         amount: depositRemaining,
-        method: booking.depositMethod ?? booking.paymentMethod,
+        method: booking.depositMethod ?? booking.paymentMethod ?? 'Cash',
         label: 'Deposit',
         clientAlias: client?.alias,
       })

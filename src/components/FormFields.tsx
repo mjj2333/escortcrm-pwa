@@ -132,7 +132,7 @@ export function FieldCurrency({ label, value, onChange, hint }:
             if (rawText === '' || isNaN(v)) {
               onChange(0)
             } else {
-              onChange(Math.max(0, v))
+              onChange(Math.min(999999, Math.max(0, v)))
             }
           }}
           onChange={e => {
@@ -141,8 +141,8 @@ export function FieldCurrency({ label, value, onChange, hint }:
             setRawText(raw)
             if (raw === '' || raw === '.') return
             const v = parseFloat(raw)
-            // Clamp to 0 — negative rates/fees/deposits corrupt payment totals
-            if (!isNaN(v)) onChange(Math.max(0, v))
+            // Clamp to 0–999999 — negative or extreme values corrupt payment totals
+            if (!isNaN(v)) onChange(Math.min(999999, Math.max(0, v)))
           }}
           placeholder="0"
           className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent"

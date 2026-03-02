@@ -41,37 +41,38 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
     setSaving(true)
 
     try {
-      if (isEditing && contact) {
-        if (isPrimary && !contact.isPrimary) {
-          const existing = await db.safetyContacts.filter(c => c.isPrimary).toArray()
-          for (const c of existing) {
-            await db.safetyContacts.update(c.id, { isPrimary: false })
+      await db.transaction('rw', db.safetyContacts, async () => {
+        if (isEditing && contact) {
+          if (isPrimary && !contact.isPrimary) {
+            const existing = await db.safetyContacts.filter(c => c.isPrimary).toArray()
+            for (const c of existing) {
+              await db.safetyContacts.update(c.id, { isPrimary: false })
+            }
           }
-        }
-        await db.safetyContacts.update(contact.id, {
-          name: name.trim(),
-          phone: phone.trim(),
-          relationship: relationship.trim(),
-          isPrimary,
-        })
-        showToast('Contact updated')
-      } else {
-        if (isPrimary) {
-          const existing = await db.safetyContacts.filter(c => c.isPrimary).toArray()
-          for (const c of existing) {
-            await db.safetyContacts.update(c.id, { isPrimary: false })
+          await db.safetyContacts.update(contact.id, {
+            name: name.trim(),
+            phone: phone.trim(),
+            relationship: relationship.trim(),
+            isPrimary,
+          })
+        } else {
+          if (isPrimary) {
+            const existing = await db.safetyContacts.filter(c => c.isPrimary).toArray()
+            for (const c of existing) {
+              await db.safetyContacts.update(c.id, { isPrimary: false })
+            }
           }
+          await db.safetyContacts.add({
+            id: newId(),
+            name: name.trim(),
+            phone: phone.trim(),
+            relationship: relationship.trim(),
+            isPrimary,
+            isActive: true,
+          })
         }
-        await db.safetyContacts.add({
-          id: newId(),
-          name: name.trim(),
-          phone: phone.trim(),
-          relationship: relationship.trim(),
-          isPrimary,
-          isActive: true,
-        })
-        showToast('Contact added')
-      }
+      })
+      showToast(isEditing ? 'Contact updated' : 'Contact added')
       onClose()
     } catch (err) {
       showToast(`Save failed: ${(err as Error).message}`)

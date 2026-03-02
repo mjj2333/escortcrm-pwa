@@ -643,6 +643,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           </button>
           <div style={{ borderTop: '1px solid var(--border)' }} />
           <button onClick={() => setShowDeleteConfirm(true)}
+            aria-label="Delete client"
             className="w-full py-2 text-sm font-medium text-center flex items-center justify-center gap-2"
             style={{ color: '#ef4444' }}>
             <Trash2 size={14} /> Delete Client

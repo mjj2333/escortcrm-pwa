@@ -107,12 +107,12 @@ export function decryptFieldSync(value: string | undefined | null): string | und
     const opened = nacl.secretbox.open(sealed, nonce, _key)
     if (!opened) {
       console.warn('[fieldCrypto] Authentication failed — wrong key or tampered data')
-      return value
+      return '[encrypted]'
     }
     return decoder.decode(opened)
   } catch {
-    console.warn('[fieldCrypto] Decryption error, returning as-is')
-    return value
+    console.warn('[fieldCrypto] Decryption error, returning placeholder')
+    return '[encrypted]'
   }
 }
 

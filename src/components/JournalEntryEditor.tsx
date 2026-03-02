@@ -40,8 +40,11 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientAlias, exis
     setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
   }
 
+  const hasContent = notes.trim().length > 0 || tags.length > 0 || actualDuration !== '' || timingNotes.trim().length > 0
+
   async function handleSave() {
     if (saving) return
+    if (!existingEntry && !hasContent) { onClose(); return }
     setSaving(true)
     const now = new Date()
     try {

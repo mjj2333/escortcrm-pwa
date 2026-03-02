@@ -31,15 +31,12 @@ function fmtDate(d?: Date | null): string {
 }
 
 function dedupeTags(a: ClientTag[], b: ClientTag[]): ClientTag[] {
-  const seen = new Set(a.map(t => t.name.toLowerCase()))
-  const merged = [...a]
+  const seen = new Map<string, ClientTag>()
+  for (const t of a) seen.set(t.name.toLowerCase(), t)
   for (const t of b) {
-    if (!seen.has(t.name.toLowerCase())) {
-      seen.add(t.name.toLowerCase())
-      merged.push(t)
-    }
+    if (!seen.has(t.name.toLowerCase())) seen.set(t.name.toLowerCase(), t)
   }
-  return merged
+  return Array.from(seen.values())
 }
 
 type FieldChoice = 'source' | 'target'
@@ -238,7 +235,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
       showToast(`Merged into ${targetClient.alias}`)
       onMergeComplete()
     } catch (err) {
-      showToast(`Merge failed: ${(err as Error).message}`, 'error')
+      showToast(`Merge failed: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error')
       setWorking(false)
     }
   }

@@ -194,8 +194,13 @@ export default function App() {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
         <PinLock correctPin={pinCode} onUnlock={async (plaintextPin) => {
-          await initFieldEncryption(plaintextPin)
-          setIsLocked(false)
+          try {
+            await initFieldEncryption(plaintextPin)
+            setIsLocked(false)
+          } catch (err) {
+            console.error('Encryption init failed:', err)
+            setIsLocked(false) // unlock anyway so user isn't stuck
+          }
         }} />
       </div>
     )
