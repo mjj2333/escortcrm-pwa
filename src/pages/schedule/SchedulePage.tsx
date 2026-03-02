@@ -121,7 +121,12 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
 
   const bookingsForDay = (day: Date) =>
     bookings.filter(b => {
-      if (!isSameDay(new Date(b.dateTime), day)) return false
+      const start = new Date(b.dateTime)
+      const endMs = start.getTime() + b.duration * 60_000
+      const dayStart = startOfDay(day)
+      const dayEnd = endOfDay(day)
+      // Show booking if it overlaps this day (handles overnight bookings)
+      if (!(start <= dayEnd && endMs > dayStart.getTime())) return false
       const hiddenByDefault = b.status === 'Cancelled' || b.status === 'No Show'
       if (hiddenByDefault && !activeStatuses.has(b.status)) return false
       if (!matchesFilters(b)) return false
