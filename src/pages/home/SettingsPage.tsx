@@ -157,7 +157,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
           shared = true
         } catch (err) {
           // User cancelled share — fall through to download+mailto
-          if ((err as Error).name === 'AbortError') {
+          if (err instanceof Error && err.name === 'AbortError') {
             setResetting(false)
             showToast('Reset cancelled')
             return
@@ -219,7 +219,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
       window.location.replace(window.location.origin + '/')
     } catch (err) {
       setResetting(false)
-      showToast(`Reset failed: ${(err as Error).message}`)
+      showToast(`Reset failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
   }
 
@@ -232,7 +232,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
       setShowSampleConfirm(false)
       showToast('Sample data restored')
     } catch (err) {
-      showToast(`Restore failed: ${(err as Error).message}`)
+      showToast(`Restore failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
   }
 

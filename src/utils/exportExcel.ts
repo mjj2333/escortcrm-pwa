@@ -2,7 +2,7 @@
 // Exports all app data as a styled multi-sheet Excel workbook.
 
 import type ExcelJS from 'exceljs'
-import { db, bookingTotal } from '../db'
+import { db, bookingTotal, bookingDurationFormatted } from '../db'
 
 // Lazy-load ExcelJS (937KB) — only fetched when user triggers Excel export
 let _ExcelJS: typeof ExcelJS | null = null
@@ -26,14 +26,6 @@ function fmtDateTime(d: Date | string | undefined | null): string {
   const dt = typeof d === 'string' ? new Date(d) : d
   if (isNaN(dt.getTime())) return ''
   return `${dt.toLocaleDateString('en-CA')} ${dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
-}
-
-function durationLabel(mins: number): string {
-  const h = Math.floor(mins / 60)
-  const m = mins % 60
-  if (h > 0 && m > 0) return `${h}h ${m}m`
-  if (h > 0) return `${h}h`
-  return `${m}m`
 }
 
 // ── Styling ──────────────────────────────────────────────────────────────
@@ -170,7 +162,7 @@ function buildBookingsSheet(
     const row = ws.addRow({
       dateTime: fmtDateTime(b.dateTime),
       client: (b.clientId && clientMap.get(b.clientId)) || '',
-      duration: durationLabel(b.duration),
+      duration: bookingDurationFormatted(b.duration),
       status: b.status,
       location: b.locationType,
       address: b.locationAddress ?? '',

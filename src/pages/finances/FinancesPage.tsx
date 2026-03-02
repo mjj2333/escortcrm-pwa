@@ -1619,7 +1619,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
         }
       })
     } catch (err) {
-      showToast(`Delete failed: ${(err as Error).message}`)
+      showToast(`Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setDeletingId(null)
     }

@@ -181,7 +181,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
         onClose(newClient.id)
       }
     } catch (err) {
-      showToast(`Save failed: ${(err as Error).message}`)
+      showToast(`Save failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setSaving(false)
     }

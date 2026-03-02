@@ -66,7 +66,8 @@ export function BookingChecklist({ bookingId }: BookingChecklistProps) {
     const text = newText.trim()
     if (!text) return
     try {
-      const maxOrder = items!.reduce((max, it) => Math.max(max, it.sortOrder), -1)
+      if (!items) return
+      const maxOrder = items.reduce((max, it) => Math.max(max, it.sortOrder), -1)
       await db.bookingChecklist.add({
         id: newId(),
         bookingId,

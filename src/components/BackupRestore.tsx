@@ -396,7 +396,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
         setStatus({ type: 'success', msg: `Backup saved — ${totalRecords} records` })
       }
     } catch (err) {
-      setStatus({ type: 'error', msg: `Backup failed: ${(err as Error).message}` })
+      setStatus({ type: 'error', msg: `Backup failed: ${err instanceof Error ? err.message : 'Unknown error'}` })
     }
     setWorking(false)
   }
@@ -458,7 +458,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
       await db.meta.delete('paymentsLedgerMigrated')
       setStatus({ type: 'success', msg: `Restored ${result.total} records from backup` })
     } catch (err) {
-      setStatus({ type: 'error', msg: `Restore failed: ${(err as Error).message}` })
+      setStatus({ type: 'error', msg: `Restore failed: ${err instanceof Error ? err.message : 'Unknown error'}` })
     }
 
     setWorking(false)
@@ -564,7 +564,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
                   await exportAllToExcel()
                   setStatus({ type: 'success', msg: 'Excel workbook exported' })
                 } catch (err) {
-                  setStatus({ type: 'error', msg: `Export failed: ${(err as Error).message}` })
+                  setStatus({ type: 'error', msg: `Export failed: ${err instanceof Error ? err.message : 'Unknown error'}` })
                 }
                 setExporting(false)
               }}

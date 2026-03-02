@@ -25,7 +25,7 @@ import { BookingChecklist, useChecklistCount } from '../../components/BookingChe
 import { CancellationSheet } from '../../components/CancellationSheet'
 import { SendMessageSheet } from '../../components/SendMessageSheet'
 import { bookingStatusColors, journalTagColors } from '../../types'
-import type { Booking, BookingStatus, PaymentMethod, PaymentLabel } from '../../types'
+import type { Booking, BookingStatus, PaymentMethod, PaymentLabel, ScreeningStatus } from '../../types'
 
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const paymentLabels: PaymentLabel[] = ['Deposit', 'Payment', 'Tip', 'Adjustment']
@@ -168,7 +168,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         setTimeout(() => setShowJournal(true), 400)
       }
     } catch (err) {
-      showToast(`Status update failed: ${(err as Error).message}`)
+      showToast(`Status update failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
   }
 
@@ -217,7 +217,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         })
       })
     } catch (err) {
-      showToast(`Delete failed: ${(err as Error).message}`)
+      showToast(`Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
   }
 
@@ -244,7 +244,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       setShowPaymentForm(false)
       showToast(`${payLabel} of ${formatCurrency(amount)} recorded`)
     } catch (err) {
-      showToast(`Payment failed: ${(err as Error).message}`)
+      showToast(`Payment failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
   }
 
@@ -255,7 +255,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       setDeletePaymentId(null)
       showToast('Payment removed')
     } catch (err) {
-      showToast(`Delete failed: ${(err as Error).message}`)
+      showToast(`Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
   }
 
@@ -535,7 +535,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <select
                 value={client.screeningStatus}
                 onChange={async (e) => {
-                  const newStatus = e.target.value as any
+                  const newStatus = e.target.value as ScreeningStatus
                   const cid = client.id
                   const oldStatus = client.screeningStatus
                   await db.clients.update(cid, { screeningStatus: newStatus })

@@ -12,7 +12,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
 import { VerifiedBadge } from '../../components/VerifiedBadge'
 import { Card } from '../../components/Card'
-import { CollapsibleCard } from '../../components/CollapsibleCard'
+import { CollapsibleCard, useAccordion } from '../../components/CollapsibleCard'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { showToast, showUndoToast } from '../../components/Toast'
 import { ClientEditor } from './ClientEditor'
@@ -53,14 +53,9 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [showMerge, setShowMerge] = useState(false)
   const [showMessageSheet, setShowMessageSheet] = useState(false)
   const [historyLimit, setHistoryLimit] = useState(10)
-  const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: any; booking: any } | null>(null)
+  const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: JournalEntry; booking: Booking } | null>(null)
   const [showUnblockConfirm, setShowUnblockConfirm] = useState(false)
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const toggle = (key: string) => setExpanded(prev => {
-    const next = new Set(prev)
-    next.has(key) ? next.delete(key) : next.add(key)
-    return next
-  })
+  const { expanded, toggle } = useAccordion()
 
   // Allow Dexie time to resolve before showing "not found"
   const [settled, setSettled] = useState(false)
@@ -200,7 +195,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         })
       })
     } catch (err) {
-      showToast(`Delete failed: ${(err as Error).message}`)
+      showToast(`Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
       setDeleting(false)
     }
   }
@@ -334,7 +329,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
               <select
                 value={client.screeningStatus}
                 onChange={(e) => {
-                  const newStatus = e.target.value as any
+                  const newStatus = e.target.value as ScreeningStatus
                   const cid = client.id
                   const oldStatus = client.screeningStatus
 
@@ -738,7 +733,7 @@ function CopyRow({ icon, text, field, copiedField, onCopy }: {
 // Contact Action Bar
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-import type { Client } from '../../types'
+import type { Client, ScreeningStatus, Booking, JournalEntry } from '../../types'
 
 function cleanPhone(phone: string): string {
   return phone.replace(/[^\d+]/g, '')

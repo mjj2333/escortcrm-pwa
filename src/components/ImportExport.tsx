@@ -549,7 +549,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
       else if (dataType === 'venues')         await exportVenues(format)
       setStatus({ type: 'success', msg: `Exported ${dataType.replace('_', ' ')} as ${format.toUpperCase()}` })
     } catch (err) {
-      setStatus({ type: 'error', msg: `Export failed: ${(err as Error).message}` })
+      setStatus({ type: 'error', msg: `Export failed: ${err instanceof Error ? err.message : 'Unknown error'}` })
     }
   }
 
@@ -588,7 +588,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
 
       setStatus({ type: 'success', msg: `Imported ${count} ${dataType.replace('_', ' ')} from ${file.name}${skippedMsg}` })
     } catch (err) {
-      setStatus({ type: 'error', msg: `Import failed: ${(err as Error).message}` })
+      setStatus({ type: 'error', msg: `Import failed: ${err instanceof Error ? err.message : 'Unknown error'}` })
     }
 
     setImporting(false)

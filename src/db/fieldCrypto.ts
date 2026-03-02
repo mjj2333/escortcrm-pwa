@@ -118,21 +118,6 @@ export function decryptFieldSync(value: string | undefined | null): string | und
 
 // ── Record-level helpers (for Dexie hooks) ─────────────────────────────
 
-/** Encrypt sensitive fields in a record (synchronous, for creating/updating hooks). */
-export function encryptRecordSync<T extends Record<string, unknown>>(
-  tableName: string, record: T,
-): T {
-  const fields = SENSITIVE_FIELDS[tableName]
-  if (!fields || !_key) return record
-  const clone = { ...record }
-  for (const f of fields) {
-    if (f in clone && typeof clone[f] === 'string') {
-      (clone as any)[f] = encryptFieldSync(clone[f] as string)
-    }
-  }
-  return clone
-}
-
 /** Decrypt sensitive fields in a record (synchronous, for reading hook). */
 export function decryptRecordSync<T extends Record<string, unknown>>(
   tableName: string, record: T,

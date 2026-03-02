@@ -75,7 +75,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
       showToast(isEditing ? 'Contact updated' : 'Contact added')
       onClose()
     } catch (err) {
-      showToast(`Save failed: ${(err as Error).message}`)
+      showToast(`Save failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
       setSaving(false)
     }
   }

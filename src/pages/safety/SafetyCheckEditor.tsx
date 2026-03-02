@@ -52,7 +52,7 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
       })
       onClose()
     } catch (err) {
-      showToast(`Save failed: ${(err as Error).message}`)
+      showToast(`Save failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
       setSaving(false)
     }
   }

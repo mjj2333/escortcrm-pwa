@@ -106,7 +106,8 @@ export function SafetyPage() {
   }
 
   function openAlertSms(checkId: string) {
-    const check = safetyChecks!.find(c => c.id === checkId)
+    if (!safetyChecks) return
+    const check = safetyChecks.find(c => c.id === checkId)
     if (!check) return
 
     // Use the contact assigned to this specific check, fall back to primary
@@ -138,10 +139,12 @@ export function SafetyPage() {
     for (const check of overdueChecks) {
       const contact = contactFor(check.safetyContactId) ?? primaryContact
       if (!contact) continue
-      if (!contactsToNotify.has(contact.id)) {
-        contactsToNotify.set(contact.id, { phone: contact.phone, name: contact.name, checks: [] })
+      let entry = contactsToNotify.get(contact.id)
+      if (!entry) {
+        entry = { phone: contact.phone, name: contact.name, checks: [] }
+        contactsToNotify.set(contact.id, entry)
       }
-      contactsToNotify.get(contact.id)!.checks.push(check)
+      entry.checks.push(check)
     }
 
     if (contactsToNotify.size === 0) {

@@ -66,7 +66,7 @@ export function IncidentEditor({ isOpen, onClose, incident }: IncidentEditorProp
       }
       onClose()
     } catch (err) {
-      showToast(`Save failed: ${(err as Error).message}`)
+      showToast(`Save failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
       setSaving(false)
     }
   }

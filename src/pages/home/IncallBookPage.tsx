@@ -973,7 +973,7 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
         onSave(id)
       }
     } catch (err) {
-      showToast(`Save failed: ${(err as Error).message}`)
+      showToast(`Save failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
       setSaving(false)
     }
   }
