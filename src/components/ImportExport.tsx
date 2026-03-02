@@ -490,7 +490,12 @@ function parseCSV(text: string): Record<string, unknown>[] {
   const headers = lines[0]
   return lines.slice(1).map(row => {
     const obj: Record<string, unknown> = {}
-    headers.forEach((h, i) => { obj[h.trim()] = row[i]?.trim() ?? '' })
+    headers.forEach((h, i) => {
+      let v = row[i]?.trim() ?? ''
+      // Strip CSV formula injection characters (same protection as export)
+      if (v.length > 0 && '=+-@\t\r'.includes(v[0])) v = v.slice(1)
+      obj[h.trim()] = v
+    })
     return obj
   })
 }
@@ -556,6 +561,11 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    // Reject files over 10MB to prevent browser freeze
+    if (file.size > 10 * 1024 * 1024) {
+      setStatus({ type: 'error', msg: 'File too large (max 10MB)' })
+      return
+    }
     setImporting(true)
     setStatus(null)
 

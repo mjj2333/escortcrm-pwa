@@ -6,13 +6,13 @@ import { isPro, canAddBooking } from '../components/planLimits'
 function sendCompletionNotification(clientAlias: string, durationMin: number) {
   if (!('Notification' in window)) return
   if (Notification.permission === 'granted') {
-    new Notification('Session completed', {
+    try { new Notification('Session completed', {
       body: isPro()
         ? `${clientAlias} · ${durationMin} min — tap to add session notes`
         : `${clientAlias} · ${durationMin} min`,
       icon: '/icon-192.png',
       tag: 'session-complete',
-    })
+    }) } catch { /* Notification API unavailable */ }
   } else if (Notification.permission !== 'denied') {
     Notification.requestPermission()
   }
@@ -47,11 +47,12 @@ export function useAutoStatusTransitions() {
           'Pending Deposit', 'Confirmed', 'In Progress', 'Completed'
         ]).toArray()
 
-      // Pre-build set of booking IDs that already have recurring children (avoids N full-table scans)
-      const parentIdsWithChildren = new Set<string>()
-      await db.bookings.each(child => {
-        if (child.parentBookingId) parentIdsWithChildren.add(child.parentBookingId)
-      })
+      // Pre-build set of booking IDs that already have recurring children
+      // Query only bookings with recurrenceRootId (indexed) to avoid full-table scan
+      const recurringBookings = await db.bookings.where('recurrenceRootId').notEqual('').toArray()
+      const parentIdsWithChildren = new Set<string>(
+        recurringBookings.map(c => c.parentBookingId).filter((id): id is string => !!id)
+      )
 
       for (const b of bookings) {
         const startTime = new Date(b.dateTime).getTime()
@@ -170,13 +171,13 @@ export function useAutoStatusTransitions() {
           if ('Notification' in window && Notification.permission === 'granted') {
             const booking = await db.bookings.get(check.bookingId)
             const client = booking?.clientId ? await db.clients.get(booking.clientId) : undefined
-            new Notification('⏰ Safety check-in due soon', {
+            try { new Notification('⏰ Safety check-in due soon', {
               body: client?.alias
                 ? `${client.alias} — Check in now to confirm you're safe.`
                 : 'Your safety check-in is due. Open the app to check in.',
               icon: '/icon-192.png',
               tag: `safety-remind-${check.id}`,
-            })
+            }) } catch { /* Notification API unavailable */ }
           }
         }
 
@@ -187,14 +188,14 @@ export function useAutoStatusTransitions() {
             overdueNotified.add(check.id)
             const booking = await db.bookings.get(check.bookingId)
             const client = booking?.clientId ? await db.clients.get(booking.clientId) : undefined
-            new Notification('🚨 Safety check-in OVERDUE', {
+            try { new Notification('🚨 Safety check-in OVERDUE', {
               body: client?.alias
                 ? `${client.alias} — You missed your check-in. Open the app to check in or send an alert.`
                 : 'You missed your safety check-in. Open the app to check in or send an alert.',
               icon: '/icon-192.png',
               tag: `safety-overdue-${check.id}`,
               requireInteraction: true,
-            })
+            }) } catch { /* Notification API unavailable */ }
           }
         }
       }

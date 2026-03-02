@@ -60,8 +60,8 @@ export function FieldTextInput({ label, value, onChange, placeholder, hint, requ
   )
 }
 
-export function FieldTextArea({ label, value, onChange, placeholder, hint, icon }:
-  { label: string; value: string; onChange: (v: string) => void; placeholder?: string; hint?: string; icon?: React.ReactNode }
+export function FieldTextArea({ label, value, onChange, placeholder, hint, icon, maxLength = 5000 }:
+  { label: string; value: string; onChange: (v: string) => void; placeholder?: string; hint?: string; icon?: React.ReactNode; maxLength?: number }
 ) {
   const id = useId()
   return (
@@ -75,6 +75,7 @@ export function FieldTextArea({ label, value, onChange, placeholder, hint, icon 
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
+        maxLength={maxLength}
         rows={2}
         className="w-full px-3 py-2.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500/40 resize-none"
         style={fieldInputStyle}
@@ -209,8 +210,8 @@ export function FieldToggle({ label, value, onChange, hint, disabled }:
   )
 }
 
-export function FieldDate({ label, value, onChange, hint, icon }:
-  { label: string; value: string; onChange: (v: string) => void; hint?: string; icon?: React.ReactNode }
+export function FieldDate({ label, value, onChange, hint, icon, max }:
+  { label: string; value: string; onChange: (v: string) => void; hint?: string; icon?: React.ReactNode; max?: string }
 ) {
   const id = useId()
   return (
@@ -223,6 +224,7 @@ export function FieldDate({ label, value, onChange, hint, icon }:
         id={id}
         type="date"
         value={value}
+        max={max}
         onChange={e => onChange(e.target.value)}
         className="w-full px-3 py-2.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500/40"
         style={fieldInputStyle}

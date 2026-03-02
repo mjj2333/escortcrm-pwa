@@ -98,7 +98,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
     }
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
-  }, [themeMode, oledBlack]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [themeMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleOledBlackChange(value: boolean) {
     setOledBlack(value)

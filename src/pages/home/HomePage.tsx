@@ -4,7 +4,7 @@ import {
   ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X, CircleUser, Building2
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, isSameDay } from 'date-fns'
-import { useState, useRef, useEffect, useCallback, lazy, Suspense, useReducer } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense, useReducer } from 'react'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import { db, formatCurrency, isUpcoming, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
@@ -83,39 +83,39 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 
   const showNotificationPrompt = !remindersEnabled && 'Notification' in window && Notification.permission === 'default'
 
-  const todaysBookings = allBookings.filter(b => {
+  const todaysBookings = useMemo(() => allBookings.filter(b => {
     if (b.status === 'Cancelled' || b.status === 'No Show') return false
     const start = new Date(b.dateTime)
     if (isToday(start)) return true
     // Include overnight sessions that started yesterday but end today
     const endMs = start.getTime() + b.duration * 60_000
     return start < todayStart && endMs > todayStart.getTime()
-  })
+  }), [allBookings, todayStart])
 
-  const upcoming = allBookings
+  const upcoming = useMemo(() => allBookings
     .filter(b => isUpcoming(b, now))
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
-    .slice(0, 5)
+    .slice(0, 5), [allBookings, now])
 
   // All bookings not yet completed (for "See All" modal)
-  const allActiveBookings = allBookings
+  const allActiveBookings = useMemo(() => allBookings
     .filter(b => !['Completed', 'Cancelled', 'No Show'].includes(b.status))
-    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()), [allBookings])
 
-  const weekIncome = transactions
+  const weekIncome = useMemo(() => transactions
     .filter(t => t.type === 'income' && new Date(t.date) >= weekStart)
-    .reduce((sum, t) => sum + t.amount, 0)
+    .reduce((sum, t) => sum + t.amount, 0), [transactions, weekStart])
 
-  const monthIncome = transactions
+  const monthIncome = useMemo(() => transactions
     .filter(t => t.type === 'income' && new Date(t.date) >= monthStart)
-    .reduce((sum, t) => sum + t.amount, 0)
+    .reduce((sum, t) => sum + t.amount, 0), [transactions, monthStart])
 
-  const pendingScreenings = clients.filter(
+  const pendingScreenings = useMemo(() => clients.filter(
     c => c.screeningStatus === 'Unscreened' || c.screeningStatus === 'In Progress'
-  ).length
+  ).length, [clients])
 
   // Upcoming birthdays (next 30 days)
-  const upcomingBirthdays = clients
+  const upcomingBirthdays = useMemo(() => clients
     .filter(c => c.birthday && !c.isBlocked)
     .map(c => {
       const bday = new Date(c.birthday!)
@@ -135,24 +135,35 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
       return { client: c, daysUntil, nextBirthday: next }
     })
     .filter(b => b.daysUntil <= 30)
-    .sort((a, b) => a.daysUntil - b.daysUntil)
+    .sort((a, b) => a.daysUntil - b.daysUntil), [clients, now, todayStart])
 
+  const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients])
   const clientForBooking = (clientId?: string) =>
-    clients.find(c => c.id === clientId)
+    clientId ? clientMap.get(clientId) : undefined
+
+  // Pre-build payment lookup to avoid O(n*m) nested filters
+  const paymentsByBookingId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const p of allPayments) {
+      if (p.label === 'Tip') continue
+      map.set(p.bookingId, (map.get(p.bookingId) ?? 0) + p.amount)
+    }
+    return map
+  }, [allPayments])
 
   // Outstanding balances — bookings with unpaid amounts (only Pending Deposit+ stages)
-  const bookingsWithBalance = allBookings
+  const bookingsWithBalance = useMemo(() => allBookings
     .filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed')
     .map(b => {
       const total = bookingTotal(b)
-      const paid = allPayments.filter(p => p.bookingId === b.id && p.label !== 'Tip').reduce((s, p) => s + p.amount, 0)
+      const paid = paymentsByBookingId.get(b.id) ?? 0
       const owing = total - paid
       return { booking: b, owing, client: clientForBooking(b.clientId) }
     })
     .filter(x => x.owing > 0)
-    .sort((a, b) => b.owing - a.owing)
+    .sort((a, b) => b.owing - a.owing), [allBookings, paymentsByBookingId, clientMap])
 
-  const totalOutstanding = bookingsWithBalance.reduce((sum, x) => sum + x.owing, 0)
+  const totalOutstanding = useMemo(() => bookingsWithBalance.reduce((sum, x) => sum + x.owing, 0), [bookingsWithBalance])
 
   return (
     <div className="pb-20">

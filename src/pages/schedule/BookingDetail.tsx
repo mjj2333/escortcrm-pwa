@@ -59,6 +59,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const [showRebook, setShowRebook] = useState(false)
   const [confirmAction, setConfirmAction] = useState<'noshow' | 'cancel' | 'delete' | null>(null)
   const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [submittingPayment, setSubmittingPayment] = useState(false)
+  const [updatingScreening, setUpdatingScreening] = useState(false)
   useScrollLock(showPaymentForm)
   const [showJournal, setShowJournal] = useState(false)
   const [showMessageSheet, setShowMessageSheet] = useState(false)
@@ -231,7 +233,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
 
   async function submitPayment() {
     const amount = parseFloat(payAmount)
-    if (!amount || amount <= 0) return
+    if (!amount || amount <= 0 || submittingPayment) return
+    setSubmittingPayment(true)
     try {
       await recordBookingPayment({
         bookingId,
@@ -245,6 +248,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       showToast(`${payLabel} of ${formatCurrency(amount)} recorded`)
     } catch (err) {
       showToast(`Payment failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      setSubmittingPayment(false)
     }
   }
 
@@ -534,13 +539,17 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Client Screening</span>
               <select
                 value={client.screeningStatus}
-                onChange={async (e) => {
+                disabled={updatingScreening}
+                onChange={(e) => {
                   const newStatus = e.target.value as ScreeningStatus
                   const cid = client.id
                   const oldStatus = client.screeningStatus
-                  await db.clients.update(cid, { screeningStatus: newStatus })
-                  await advanceBookingsOnScreen(cid, oldStatus, newStatus)
-                  await downgradeBookingsOnUnscreen(cid, oldStatus, newStatus)
+                  setUpdatingScreening(true)
+                  ;(async () => {
+                    await db.clients.update(cid, { screeningStatus: newStatus })
+                    await advanceBookingsOnScreen(cid, oldStatus, newStatus)
+                    await downgradeBookingsOnUnscreen(cid, oldStatus, newStatus)
+                  })().catch(() => showToast('Failed to update screening status')).finally(() => setUpdatingScreening(false))
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
                 style={{
@@ -910,11 +919,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             )}
             <button
               onClick={submitPayment}
-              disabled={!payAmount || parseFloat(payAmount) <= 0}
+              disabled={!payAmount || parseFloat(payAmount) <= 0 || submittingPayment}
               className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
               style={{ backgroundColor: '#a855f7' }}
             >
-              Record {payLabel} {payAmount && !isNaN(parseFloat(payAmount)) ? `(${formatCurrency(parseFloat(payAmount))})` : ''}
+              {submittingPayment ? 'Recording...' : `Record ${payLabel} ${payAmount && !isNaN(parseFloat(payAmount)) ? `(${formatCurrency(parseFloat(payAmount))})` : ''}`}
             </button>
           </div>
         </div>

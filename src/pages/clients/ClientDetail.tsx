@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Phone, MessageSquare, Mail, Copy, Check,
@@ -35,14 +35,14 @@ interface ClientDetailProps {
 
 export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }: ClientDetailProps) {
   const client = useLiveQuery(() => db.clients.get(clientId), [clientId])
-  const bookings = useLiveQuery(() =>
-    db.bookings.where('clientId').equals(clientId).toArray()
-  , [clientId]) ?? []
-  const allPayments = useLiveQuery(async () => {
-    const bIds = (await db.bookings.where('clientId').equals(clientId).toArray()).map(b => b.id)
-    if (bIds.length === 0) return []
-    return db.payments.where('bookingId').anyOf(bIds).toArray()
-  }, [clientId]) ?? []
+  const { bookings, allPayments } = useLiveQuery(async () => {
+    const bks = await db.bookings.where('clientId').equals(clientId).toArray()
+    const bIds = bks.map(b => b.id)
+    const pays = bIds.length > 0
+      ? await db.payments.where('bookingId').anyOf(bIds).toArray()
+      : []
+    return { bookings: bks, allPayments: pays }
+  }, [clientId]) ?? { bookings: [], allPayments: [] }
   const [showEditor, setShowEditor] = useState(false)
   const [showBookingEditor, setShowBookingEditor] = useState(false)
   const [showRebook, setShowRebook] = useState(false)
@@ -80,36 +80,46 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     )
   }
 
-  const completedBookings = bookings
+  const completedBookings = useMemo(() => bookings
     .filter(b => b.status === 'Completed')
-    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()), [bookings])
 
   const lastCompletedBooking = completedBookings[0] ?? undefined
 
   // All terminal bookings for history display (Completed + Cancelled + No Show)
-  const pastBookings = bookings
+  const pastBookings = useMemo(() => bookings
     .filter(b => b.status === 'Completed' || b.status === 'Cancelled' || b.status === 'No Show')
-    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()), [bookings])
 
   const detailNow = new Date()
-  const upcomingBookings = bookings
+  const upcomingBookings = useMemo(() => bookings
     .filter(b => new Date(b.dateTime) > detailNow && b.status !== 'Cancelled' && b.status !== 'Completed' && b.status !== 'No Show')
-    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()), [bookings])
 
-  const noShowCount = bookings.filter(b => b.status === 'No Show').length
-  const completedIds = new Set(completedBookings.map(b => b.id))
-  const totalRevenue = allPayments
+  // Pre-build payment lookup to avoid O(n*m) nested filters
+  const paymentsByBookingId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const p of allPayments) {
+      if (p.label === 'Tip') continue
+      map.set(p.bookingId, (map.get(p.bookingId) ?? 0) + p.amount)
+    }
+    return map
+  }, [allPayments])
+
+  const noShowCount = useMemo(() => bookings.filter(b => b.status === 'No Show').length, [bookings])
+  const completedIds = useMemo(() => new Set(completedBookings.map(b => b.id)), [completedBookings])
+  const totalRevenue = useMemo(() => allPayments
     .filter(p => completedIds.has(p.bookingId))
-    .reduce((sum, p) => sum + p.amount, 0)
+    .reduce((sum, p) => sum + p.amount, 0), [allPayments, completedIds])
 
   // Outstanding balance: sum of (total - paid) for Pending Deposit+ bookings
-  const activeBookings = bookings.filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed')
-  const outstandingBalance = activeBookings.reduce((sum, b) => {
+  const activeBookings = useMemo(() => bookings.filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed'), [bookings])
+  const outstandingBalance = useMemo(() => activeBookings.reduce((sum, b) => {
     const bTotal = bookingTotal(b)
-    const bPaid = allPayments.filter(p => p.bookingId === b.id && p.label !== 'Tip').reduce((s, p) => s + p.amount, 0)
+    const bPaid = paymentsByBookingId.get(b.id) ?? 0
     const owing = bTotal - bPaid
     return sum + (owing > 0 ? owing : 0)
-  }, 0)
+  }, 0), [activeBookings, paymentsByBookingId])
 
   function copyToClipboard(text: string, field: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -305,11 +315,10 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 <p className="text-lg font-bold text-orange-500 mt-0.5">{formatCurrency(outstandingBalance)}</p>
               </div>
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-500">
-                {activeBookings.filter(b => {
-                  const bTotal = bookingTotal(b)
-                  const bPaid = allPayments.filter(p => p.bookingId === b.id && p.label !== 'Tip').reduce((s, p) => s + p.amount, 0)
-                  return bTotal - bPaid > 0
-                }).length} booking{activeBookings.filter(b => bookingTotal(b) - allPayments.filter(p => p.bookingId === b.id && p.label !== 'Tip').reduce((s, p) => s + p.amount, 0) > 0).length !== 1 ? 's' : ''}
+                {(() => {
+                  const count = activeBookings.filter(b => bookingTotal(b) - (paymentsByBookingId.get(b.id) ?? 0) > 0).length
+                  return `${count} booking${count !== 1 ? 's' : ''}`
+                })()}
               </span>
             </div>
           </Card>
@@ -381,9 +390,13 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                     role="switch"
                     aria-checked={client.requiresSafetyCheck || forcedOn}
                     aria-label="Safety check-in"
-                    onClick={() => {
+                    onClick={async () => {
                       if (forcedOn) return
-                      db.clients.update(clientId, { requiresSafetyCheck: !client.requiresSafetyCheck })
+                      try {
+                        await db.clients.update(clientId, { requiresSafetyCheck: !client.requiresSafetyCheck })
+                      } catch {
+                        showToast('Failed to update safety check setting')
+                      }
                     }}
                     className={`w-10 h-6 rounded-full relative transition-colors ${
                       (client.requiresSafetyCheck || forcedOn) ? 'bg-green-500' : 'bg-zinc-600'

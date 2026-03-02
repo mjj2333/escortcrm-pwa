@@ -21,7 +21,15 @@ export function useBookingReminders(enabled: boolean) {
   const notifiedRef = useRef<Set<string>>((() => {
     try {
       const stored = sessionStorage.getItem(STORAGE_KEY)
-      return stored ? new Set<string>(JSON.parse(stored)) : new Set<string>()
+      const set = stored ? new Set<string>(JSON.parse(stored)) : new Set<string>()
+      // Prune entries older than today (keys contain booking IDs, not dates,
+      // but the set naturally stays bounded to current-session bookings)
+      if (set.size > 500) {
+        const arr = [...set]
+        const pruned = new Set(arr.slice(arr.length - 200))
+        return pruned
+      }
+      return set
     } catch {
       return new Set<string>()
     }
@@ -77,33 +85,33 @@ export function useBookingReminders(enabled: boolean) {
           addNotified(key8h)
           // Look up venue name
           const venue = await db.incallVenues.get(b.venueId)
-          new Notification('📍 Send directions to client', {
+          try { new Notification('📍 Send directions to client', {
             body: `${name} — ${venue?.name ?? 'Incall'} · Booking at ${new Date(b.dateTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`,
             icon: '/icon-192.png',
             tag: key8h,
-          })
+          }) } catch { /* Notification API unavailable */ }
         }
 
         // 1 hour reminder — fires once when booking is within 60 min
         const key1h = `${b.id}-1h`
         if (msBefore > 0 && msBefore <= 60 * 60_000 && !notifiedRef.current.has(key1h)) {
           addNotified(key1h)
-          new Notification('Booking in 1 hour', {
+          try { new Notification('Booking in 1 hour', {
             body: `${name} — ${bookingDurationFormatted(b.duration)} ${b.locationType}`,
             icon: '/icon-192.png',
             tag: key1h,
-          })
+          }) } catch { /* Notification API unavailable */ }
         }
 
         // 15 minute reminder — fires once when booking is within 15 min
         const key15 = `${b.id}-15m`
         if (msBefore > 0 && msBefore <= 15 * 60_000 && !notifiedRef.current.has(key15)) {
           addNotified(key15)
-          new Notification('Booking in 15 minutes', {
+          try { new Notification('Booking in 15 minutes', {
             body: `${name} — ${bookingDurationFormatted(b.duration)} ${b.locationType}`,
             icon: '/icon-192.png',
             tag: key15,
-          })
+          }) } catch { /* Notification API unavailable */ }
         }
       }
 
@@ -123,11 +131,11 @@ export function useBookingReminders(enabled: boolean) {
 
         if (birthdayClients.length > 0) {
           const names = birthdayClients.map(c => c.alias).join(', ')
-          new Notification('🎂 Birthday today!', {
+          try { new Notification('🎂 Birthday today!', {
             body: names,
             icon: '/icon-192.png',
             tag: birthdayKey,
-          })
+          }) } catch { /* Notification API unavailable */ }
         }
       }
       } catch (err) {
