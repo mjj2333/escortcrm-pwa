@@ -136,26 +136,28 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       if (status === 'Completed') updates.completedAt = new Date()
       // Write status to DB first so subsequent queries see the latest state
       await db.bookings.update(bookingId, updates)
+      // Re-fetch from DB to avoid stale closure references
+      const fresh = await db.bookings.get(bookingId)
+      if (!fresh) return
       if (status === 'Completed') {
         // Record remaining payment via ledger (after status is persisted)
-        const updatedBooking = await db.bookings.get(bookingId)
-        const c = await db.clients.get(booking!.clientId ?? '')
-        if (updatedBooking) await completeBookingPayment(updatedBooking, c?.alias)
+        const c = fresh.clientId ? await db.clients.get(fresh.clientId) : undefined
+        await completeBookingPayment(fresh, c?.alias)
         // Update client lastSeen
-        if (booking!.clientId) {
-          await db.clients.update(booking!.clientId, { lastSeen: new Date() })
+        if (fresh.clientId) {
+          await db.clients.update(fresh.clientId, { lastSeen: new Date() })
         }
       }
       // Create safety check when manually advancing to In Progress
-      if (status === 'In Progress' && booking!.requiresSafetyCheck) {
+      if (status === 'In Progress' && fresh.requiresSafetyCheck) {
         const existing = await db.safetyChecks.where('bookingId').equals(bookingId).first()
         if (!existing) {
-          const sessionStart = Math.max(new Date(booking!.dateTime).getTime(), Date.now())
-          const checkTime = addMinutes(new Date(sessionStart), booking!.safetyCheckMinutesAfter || 15)
+          const sessionStart = Math.max(new Date(fresh.dateTime).getTime(), Date.now())
+          const checkTime = addMinutes(new Date(sessionStart), fresh.safetyCheckMinutesAfter || 15)
           await db.safetyChecks.add({
             id: newId(),
             bookingId,
-            safetyContactId: booking!.safetyContactId,
+            safetyContactId: fresh.safetyContactId,
             scheduledTime: checkTime,
             bufferMinutes: 15,
             status: 'pending',
@@ -222,7 +224,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   function openPaymentForm(defaultLabel?: PaymentLabel, defaultAmount?: number) {
     setPayLabel(defaultLabel ?? 'Payment')
     setPayAmount(defaultAmount != null ? String(defaultAmount) : '')
-    setPayMethod(booking!.paymentMethod ?? '')
+    setPayMethod(booking?.paymentMethod ?? '')
     setPayNotes('')
     setShowPaymentForm(true)
   }
@@ -534,10 +536,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                 value={client.screeningStatus}
                 onChange={async (e) => {
                   const newStatus = e.target.value as any
+                  const cid = client.id
                   const oldStatus = client.screeningStatus
-                  await db.clients.update(client.id, { screeningStatus: newStatus })
-                  await advanceBookingsOnScreen(client.id, oldStatus, newStatus)
-                  await downgradeBookingsOnUnscreen(client.id, oldStatus, newStatus)
+                  await db.clients.update(cid, { screeningStatus: newStatus })
+                  await advanceBookingsOnScreen(cid, oldStatus, newStatus)
+                  await downgradeBookingsOnUnscreen(cid, oldStatus, newStatus)
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
                 style={{

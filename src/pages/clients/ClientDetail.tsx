@@ -366,7 +366,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
               value={client.riskLevel}
               onChange={async (level) => {
                 const shouldRequireSafety = level === 'High Risk' || level === 'Unknown'
-                await db.clients.update(client.id, { riskLevel: level, requiresSafetyCheck: shouldRequireSafety })
+                await db.clients.update(clientId, { riskLevel: level, requiresSafetyCheck: shouldRequireSafety })
               }}
             />
           </div>
@@ -388,7 +388,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                     aria-label="Safety check-in"
                     onClick={() => {
                       if (forcedOn) return
-                      db.clients.update(client.id, { requiresSafetyCheck: !client.requiresSafetyCheck })
+                      db.clients.update(clientId, { requiresSafetyCheck: !client.requiresSafetyCheck })
                     }}
                     className={`w-10 h-6 rounded-full relative transition-colors ${
                       (client.requiresSafetyCheck || forcedOn) ? 'bg-green-500' : 'bg-zinc-600'
