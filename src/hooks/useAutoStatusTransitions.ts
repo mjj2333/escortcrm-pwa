@@ -47,6 +47,12 @@ export function useAutoStatusTransitions() {
           'Pending Deposit', 'Confirmed', 'In Progress', 'Completed'
         ]).toArray()
 
+      // Pre-build set of booking IDs that already have recurring children (avoids N full-table scans)
+      const parentIdsWithChildren = new Set<string>()
+      await db.bookings.each(child => {
+        if (child.parentBookingId) parentIdsWithChildren.add(child.parentBookingId)
+      })
+
       for (const b of bookings) {
         const startTime = new Date(b.dateTime).getTime()
         const endTime = startTime + b.duration * 60_000
@@ -59,48 +65,53 @@ export function useAutoStatusTransitions() {
         }
 
         if (b.status === 'Confirmed' && now >= startTime) {
-          await db.bookings.update(b.id, { status: 'In Progress' })
+          await db.transaction('rw', [db.bookings, db.safetyChecks], async () => {
+            await db.bookings.update(b.id, { status: 'In Progress' })
 
-          // Create safety check if required
-          if (b.requiresSafetyCheck) {
-            const existing = await db.safetyChecks.where('bookingId').equals(b.id).first()
-            if (!existing) {
-              const sessionStart = Math.max(new Date(b.dateTime).getTime(), Date.now())
-              const checkTime = addMinutes(new Date(sessionStart), b.safetyCheckMinutesAfter || 15)
-              await db.safetyChecks.add({
-                id: newId(),
-                bookingId: b.id,
-                safetyContactId: b.safetyContactId,
-                scheduledTime: checkTime,
-                bufferMinutes: 15,
-                status: 'pending',
-              })
+            // Create safety check if required
+            if (b.requiresSafetyCheck) {
+              const existing = await db.safetyChecks.where('bookingId').equals(b.id).first()
+              if (!existing) {
+                const sessionStart = Math.max(new Date(b.dateTime).getTime(), Date.now())
+                const checkTime = addMinutes(new Date(sessionStart), b.safetyCheckMinutesAfter || 15)
+                await db.safetyChecks.add({
+                  id: newId(),
+                  bookingId: b.id,
+                  safetyContactId: b.safetyContactId,
+                  scheduledTime: checkTime,
+                  bufferMinutes: 15,
+                  status: 'pending',
+                })
+              }
             }
-          }
-        } else if (b.status === 'In Progress' && now >= fiveAfterEnd) {
-          // Re-check status to avoid race with manual completion
-          const current = await db.bookings.get(b.id)
-          if (!current || current.status !== 'In Progress') continue
-          await db.bookings.update(b.id, {
-            status: 'Completed',
-            completedAt: new Date(),
           })
-          // Record remaining payment via ledger
-          const client = b.clientId ? await db.clients.get(b.clientId) : undefined
-          await completeBookingPayment(current, client?.alias)
-          // Update lastSeen
-          if (b.clientId) {
-            await db.clients.update(b.clientId, { lastSeen: new Date() })
-          }
+        } else if (b.status === 'In Progress' && now >= fiveAfterEnd) {
+          let clientAlias = 'Client'
+          await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
+            // Re-check status to avoid race with manual completion
+            const current = await db.bookings.get(b.id)
+            if (!current || current.status !== 'In Progress') return
+            await db.bookings.update(b.id, {
+              status: 'Completed',
+              completedAt: new Date(),
+            })
+            // Record remaining payment via ledger
+            const client = b.clientId ? await db.clients.get(b.clientId) : undefined
+            clientAlias = client?.alias ?? 'Client'
+            await completeBookingPayment(current, client?.alias)
+            // Update lastSeen
+            if (b.clientId) {
+              await db.clients.update(b.clientId, { lastSeen: new Date() })
+            }
+          })
           // Nudge to write session notes
-          sendCompletionNotification(client?.alias ?? 'Client', b.duration)
+          sendCompletionNotification(clientAlias, b.duration)
         }
 
         // Spawn next recurring booking if this one completed
         const effectiveStatus = (await db.bookings.get(b.id))?.status ?? b.status
         if (effectiveStatus === 'Completed' && b.recurrence && b.recurrence !== 'none') {
-          const existingChild = await db.bookings.filter(child => child.parentBookingId === b.id).first()
-          if (!existingChild) {
+          if (!parentIdsWithChildren.has(b.id)) {
             // Only auto-create if client still exists and is screened
             const recurClient = b.clientId ? await db.clients.get(b.clientId) : null
             if (!recurClient) continue // client was deleted

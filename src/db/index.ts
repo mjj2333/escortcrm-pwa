@@ -532,9 +532,9 @@ export async function recordBookingPayment(opts: {
 
 /** Remove a payment record and its corresponding income transaction. */
 export async function removeBookingPayment(paymentId: string): Promise<void> {
-  const payment = await db.payments.get(paymentId)
-  if (!payment) return
   await db.transaction('rw', [db.payments, db.transactions, db.bookings], async () => {
+    const payment = await db.payments.get(paymentId)
+    if (!payment) return
     await db.payments.delete(paymentId)
     // Find and remove the matching income transaction — prefer direct paymentId link, fall back to amount match for legacy data
     const txns = await db.transactions.where('bookingId').equals(payment.bookingId).toArray()
@@ -571,7 +571,8 @@ export async function removeBookingPayment(paymentId: string): Promise<void> {
 /** Get total paid for a booking from the payment ledger. */
 export async function getBookingTotalPaid(bookingId: string): Promise<number> {
   const payments = await db.payments.where('bookingId').equals(bookingId).toArray()
-  return payments.reduce((sum, p) => sum + p.amount, 0)
+  // Exclude Tips — they are gratuities above the booking total, not payments toward the balance
+  return payments.filter(p => p.label !== 'Tip').reduce((sum, p) => sum + p.amount, 0)
 }
 
 /** Complete a booking's payment: record a payment for any remaining balance. */
@@ -602,36 +603,38 @@ export async function completeBookingPayment(booking: Booking, clientAlias?: str
 export async function migrateToPaymentLedger(): Promise<void> {
   const migrated = await db.meta.get('paymentsLedgerMigrated')
   if (migrated) return
-  const bookings = await db.bookings.toArray()
-  for (const b of bookings) {
-    const existing = await db.payments.where('bookingId').equals(b.id).count()
-    if (existing > 0) continue
-    // Deposit received → create deposit payment (no transaction — old system already has it)
-    if (b.depositReceived && b.depositAmount > 0) {
-      await db.payments.add({
-        id: newId(),
-        bookingId: b.id,
-        amount: b.depositAmount,
-        method: b.depositMethod,
-        label: 'Deposit',
-        date: b.confirmedAt ?? b.createdAt,
-      })
-    }
-    // Payment received → create balance payment for the remainder
-    if (b.paymentReceived && (b.status === 'Completed' || b.status === 'In Progress')) {
-      const depositPaid = b.depositReceived ? b.depositAmount : 0
-      const remaining = bookingTotal(b) - depositPaid
-      if (remaining > 0) {
+  await db.transaction('rw', [db.bookings, db.payments, db.meta], async () => {
+    const bookings = await db.bookings.toArray()
+    for (const b of bookings) {
+      const existing = await db.payments.where('bookingId').equals(b.id).count()
+      if (existing > 0) continue
+      // Deposit received → create deposit payment (no transaction — old system already has it)
+      if (b.depositReceived && b.depositAmount > 0) {
         await db.payments.add({
           id: newId(),
           bookingId: b.id,
-          amount: remaining,
-          method: b.paymentMethod,
-          label: 'Payment',
-          date: b.completedAt ?? new Date(),
+          amount: b.depositAmount,
+          method: b.depositMethod,
+          label: 'Deposit',
+          date: b.confirmedAt ?? b.createdAt,
         })
       }
+      // Payment received → create balance payment for the remainder
+      if (b.paymentReceived && (b.status === 'Completed' || b.status === 'In Progress')) {
+        const depositPaid = b.depositReceived ? b.depositAmount : 0
+        const remaining = bookingTotal(b) - depositPaid
+        if (remaining > 0) {
+          await db.payments.add({
+            id: newId(),
+            bookingId: b.id,
+            amount: remaining,
+            method: b.paymentMethod,
+            label: 'Payment',
+            date: b.completedAt ?? new Date(),
+          })
+        }
+      }
     }
-  }
-  await db.meta.put({ key: 'paymentsLedgerMigrated', value: '1' })
+    await db.meta.put({ key: 'paymentsLedgerMigrated', value: '1' })
+  })
 }

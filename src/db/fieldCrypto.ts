@@ -37,7 +37,7 @@ export const SENSITIVE_FIELDS: Record<string, string[]> = {
   journalEntries: ['notes', 'timingNotes'],
   incallVenues: [
     'address', 'directions', 'contactName', 'contactPhone', 'contactEmail',
-    'accessNotes', 'bookingNotes', 'notes',
+    'accessNotes', 'bookingNotes', 'costNotes', 'notes',
   ],
 }
 
@@ -234,7 +234,7 @@ export async function initFieldEncryption(pin: string): Promise<void> {
   }
   // Versioned re-encrypt: pick up newly added sensitive fields for existing users
   // Bump this number whenever SENSITIVE_FIELDS is expanded.
-  const ENCRYPT_SCHEMA_VERSION = 2
+  const ENCRYPT_SCHEMA_VERSION = 3
   const currentVersion = await db.meta.get('encrypt_schema_version')
   if (!currentVersion || (currentVersion.value as number) < ENCRYPT_SCHEMA_VERSION) {
     await migrateAllToEncrypted()
@@ -260,6 +260,7 @@ export async function disableFieldEncryption(): Promise<void> {
   }
   const { db } = await import('./index')
   await db.meta.delete('field_encryption_key')
+  await db.meta.delete('encrypt_schema_version')
   clearFieldEncryption()
 }
 
@@ -322,8 +323,7 @@ async function migrateAllToPlaintext(): Promise<void> {
             if (typeof v === 'string' && v.startsWith(ENC_PREFIX)) {
               const decrypted = decryptFieldSync(v) as string
               if (decrypted === '[encrypted]') {
-                console.warn(`[fieldCrypto] Skipping corrupted field "${f}" on record ${record.id} — cannot decrypt`)
-                continue
+                throw new Error(`Cannot decrypt field "${f}" on ${tableName} record ${record.id} — aborting to preserve data`)
               }
               updates[f] = decrypted
               changed = true
