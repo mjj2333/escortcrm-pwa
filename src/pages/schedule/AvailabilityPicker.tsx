@@ -62,8 +62,8 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
 
   async function handleSave() {
     if (!selectedStatus || saving) return
-    if (selectedStatus === 'Available' && startTime >= endTime) {
-      showToast('Start time must be before end time', 'error')
+    if (selectedStatus === 'Available' && startTime === endTime) {
+      showToast('Start and end time cannot be the same', 'error')
       return
     }
     setSaving(true)
@@ -233,6 +233,11 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
                   />
                 </div>
               </div>
+              {startTime >= endTime && (
+                <p className="text-[10px] mt-2" style={{ color: '#22c55e' }}>
+                  Overnight window — crosses midnight
+                </p>
+              )}
             </div>
           )}
 
@@ -296,7 +301,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
               style={{ backgroundColor: '#a855f7' }}
             >
               {selectedStatus === 'Available'
-                ? `Save — ${formatTime12(startTime)} to ${formatTime12(endTime)}`
+                ? `Save — ${formatTime12(startTime)} to ${formatTime12(endTime)}${startTime >= endTime ? ' (overnight)' : ''}`
                 : selectedStatus === 'Limited'
                 ? 'Save as Limited'
                 : selectedStatus === 'Off'

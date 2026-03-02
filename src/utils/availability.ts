@@ -118,12 +118,19 @@ export async function checkBookingConflict(
 
     case 'Limited': {
       // Check if booking falls within any open slot
-      // If booking crosses midnight (bEndMins > 1440), only check the same-day portion
       const effectiveEndMins = Math.min(bEndMins, 1440)
       const openSlots = avail.openSlots ?? []
       const inOpenSlot = openSlots.some(slot => {
         const slotStart = timeToMinutes(slot.start)
         const slotEnd = timeToMinutes(slot.end)
+        const overnight = slotEnd <= slotStart
+        if (overnight) {
+          // Slot wraps midnight: [slotStart..1440) ∪ [0..slotEnd)
+          // Gap is [slotEnd..slotStart) — conflict if booking touches the gap
+          const startsInGap = bStartMins >= slotEnd && bStartMins < slotStart
+          const endsInGap = effectiveEndMins > slotEnd && effectiveEndMins <= slotStart
+          return !startsInGap && !endsInGap
+        }
         return bStartMins >= slotStart && effectiveEndMins <= slotEnd
       })
       if (!inOpenSlot) {
@@ -139,12 +146,24 @@ export async function checkBookingConflict(
 
     case 'Available': {
       // Check if booking falls within working hours
-      // If booking crosses midnight (bEndMins > 1440), only check the same-day portion
       if (avail.startTime && avail.endTime) {
         const availStart = timeToMinutes(avail.startTime)
         const availEnd = timeToMinutes(avail.endTime)
+        const overnight = availEnd <= availStart
         const effectiveEndMins = Math.min(bEndMins, 1440)
-        if (bStartMins < availStart || effectiveEndMins > availEnd) {
+
+        let outsideHours: boolean
+        if (overnight) {
+          // Window wraps midnight: [availStart..1440) ∪ [0..availEnd)
+          // Gap is [availEnd..availStart) — conflict if booking touches the gap
+          const startsInGap = bStartMins >= availEnd && bStartMins < availStart
+          const endsInGap = effectiveEndMins > availEnd && effectiveEndMins <= availStart
+          outsideHours = startsInGap || endsInGap
+        } else {
+          outsideHours = bStartMins < availStart || effectiveEndMins > availEnd
+        }
+
+        if (outsideHours) {
           return {
             hasConflict: true,
             reason: `This booking falls outside your available hours (${formatTime12(avail.startTime)} – ${formatTime12(avail.endTime)}).`,
