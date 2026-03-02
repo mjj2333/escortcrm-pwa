@@ -681,7 +681,7 @@ export function SafetyPage() {
         }}
         onCancel={() => setBlacklistConfirm(null)}
       />
-      {/* Item 60: Confirm dialog before deleting safety contacts */}
+      {/* Confirm dialog before deleting safety contacts */}
       <ConfirmDialog
         isOpen={!!deleteContactConfirm}
         title="Remove Contact"
@@ -699,7 +699,7 @@ export function SafetyPage() {
         }}
         onCancel={() => setDeleteContactConfirm(null)}
       />
-      {/* Item 52/59: Confirm alert was sent for individual check */}
+      {/* Confirm alert was sent for individual check */}
       <ConfirmDialog
         isOpen={!!alertConfirm}
         title="Confirm Alert Sent"
@@ -709,7 +709,7 @@ export function SafetyPage() {
         onConfirm={() => { if (alertConfirm) confirmAlert(alertConfirm) }}
         onCancel={() => setAlertConfirm(null)}
       />
-      {/* Item 59: Confirm alert was sent for all overdue checks */}
+      {/* Confirm alert was sent for all overdue checks */}
       <ConfirmDialog
         isOpen={alertAllConfirm}
         title="Confirm Alerts Sent"

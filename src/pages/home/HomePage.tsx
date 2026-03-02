@@ -4,7 +4,7 @@ import {
   ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X, CircleUser, Building2
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
-import { useState, useRef, useEffect, lazy, Suspense, useReducer } from 'react'
+import { useState, useRef, useEffect, useCallback, lazy, Suspense, useReducer } from 'react'
 import { db, formatCurrency, isUpcoming, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card, CardHeader } from '../../components/Card'
@@ -43,7 +43,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
     const msUntilMidnight = endOfDay(new Date()).getTime() - Date.now() + 1000
     const timer = setTimeout(forceRefresh, msUntilMidnight)
     return () => clearTimeout(timer)
-  })
+  }, [])
 
   const now = new Date()
   const todayStart = startOfDay(now)
@@ -412,7 +412,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           </Card>
         )}
 
-        {/* Notification Prompt — Item 17 */}
+        {/* Notification Prompt */}
         {showNotificationPrompt && (
           <div
             className="rounded-xl p-4 flex items-start gap-3"
@@ -474,14 +474,13 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                       {daysUntil === 0 ? '🎂 Today!' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil} days`}
                     </span>
                     {c.screeningStatus === 'Screened' && (
-                      <span
-                        role="button"
+                      <button
                         onClick={(e) => { e.stopPropagation(); setBookClientId(c.id) }}
                         className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                         style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
                       >
                         Book
-                      </span>
+                      </button>
                     )}
                   </div>
                 </button>
@@ -558,16 +557,16 @@ function AllActiveBookingsModal({
     requestAnimationFrame(() => setVisible(true))
   }, [])
 
+  const handleClose = useCallback(() => {
+    setVisible(false)
+    setTimeout(onClose, 200)
+  }, [onClose])
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') handleClose() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [])
-
-  function handleClose() {
-    setVisible(false)
-    setTimeout(onClose, 200)
-  }
+  }, [handleClose])
 
   return (
     <div

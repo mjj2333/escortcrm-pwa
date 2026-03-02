@@ -1493,7 +1493,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [confirmDeleteTxn, setConfirmDeleteTxn] = useState<Transaction | null>(null)
   const [editingTxn, setEditingTxn] = useState<Transaction | undefined>(undefined)
   const [showEditModal, setShowEditModal] = useState(false)
-  // Windowed rendering: render in batches with "Show more" (Item 48)
+  // Windowed rendering: render in batches with "Show more"
   const [renderLimit, setRenderLimit] = useState(30)
 
   // Reset render limit when filters change
@@ -1501,7 +1501,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   const [prevSearchKey, setPrevSearchKey] = useState(searchKey)
   if (searchKey !== prevSearchKey) { setRenderLimit(30); setPrevSearchKey(searchKey) }
 
-  // Extended search: match category, notes, amount (formatted), date, payment method (Item 49)
+  // Extended search: match category, notes, amount (formatted), date, payment method
   const filtered = allTransactions
     .filter(t => filterType === 'all' || t.type === filterType)
     .filter(t => {
@@ -1685,7 +1685,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
         <div className="h-8" />
       </div>
     </Modal>
-    {/* Confirm dialog for transaction deletion (Item 37) */}
+    {/* Confirm dialog for transaction deletion */}
     <ConfirmDialog
       isOpen={!!confirmDeleteTxn}
       title="Delete Transaction"
