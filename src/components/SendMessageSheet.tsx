@@ -222,14 +222,24 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
     setMessage(resolveTemplatePlaceholders(template, client, booking, venue, totalPaid, serviceRates))
   }, [isOpen, selectedType, client.id, booking?.id, totalPaid, serviceRates.length])
 
-  // Escape key to close — must be before early return to satisfy Rules of Hooks
+  // Focus management + Escape key — must be before early return to satisfy Rules of Hooks
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
     if (!isOpen) return
+    previousFocusRef.current = document.activeElement as HTMLElement | null
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    requestAnimationFrame(() => {
+      const first = sheetRef.current?.querySelector<HTMLElement>('button, textarea, input')
+      first?.focus()
+    })
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      previousFocusRef.current?.focus()
+    }
   }, [isOpen, onClose])
 
   if (!isOpen) return null
@@ -243,8 +253,9 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
     if (!message) return
 
     if (!contactVal) {
-      navigator.clipboard.writeText(message).catch(() => {})
-      showToast('No contact info for this method — message copied to clipboard')
+      navigator.clipboard.writeText(message)
+        .then(() => showToast('No contact info for this method — message copied to clipboard'))
+        .catch(() => showToast('No contact info — could not copy to clipboard'))
       setSent(true)
       return
     }
@@ -263,6 +274,7 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
       aria-label="Message Client">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
       <div
+        ref={sheetRef}
         className="relative w-full max-w-lg rounded-t-2xl safe-bottom flex flex-col"
         style={{ backgroundColor: 'var(--bg-card)', maxHeight: '85vh' }}
       >
@@ -355,8 +367,9 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
             <div className="flex gap-3">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(message).catch(() => {})
-                  showToast('Message copied')
+                  navigator.clipboard.writeText(message)
+                    .then(() => showToast('Message copied'))
+                    .catch(() => showToast('Could not copy to clipboard'))
                 }}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
                 style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}

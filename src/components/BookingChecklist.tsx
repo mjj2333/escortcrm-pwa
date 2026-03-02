@@ -48,7 +48,7 @@ export function BookingChecklist({ bookingId }: BookingChecklistProps) {
             sortOrder: i,
           })
         )
-      ).catch(() => {})
+      ).catch(err => console.warn('Checklist auto-populate failed:', err))
     }
   }, [items, bookingId, defaultItems])
 

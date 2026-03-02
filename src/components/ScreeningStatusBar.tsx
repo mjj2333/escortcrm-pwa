@@ -100,6 +100,7 @@ export function ScreeningStatusBar({ value, onChange, disabled, compact }: Scree
             <button
               key={s.status}
               onClick={() => !disabled && onChange(s.status)}
+              aria-label={`Set screening to ${s.label}`}
               className="flex-1 flex items-center justify-center relative z-10"
               disabled={disabled}
             >

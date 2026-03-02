@@ -346,9 +346,10 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
   )
 
   function copyText(text: string, field: string) {
-    navigator.clipboard.writeText(text).catch(() => {})
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('Copied to clipboard'))
+      .catch(() => showToast('Could not copy to clipboard'))
     setCopiedField(field)
-    showToast('Copied to clipboard')
     setTimeout(() => setCopiedField(null), 2000)
   }
 
@@ -687,8 +688,9 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
 
     if (!contactVal) {
       // Fallback: copy message
-      navigator.clipboard.writeText(message).catch(() => {})
-      showToast('No contact info for this method — message copied to clipboard')
+      navigator.clipboard.writeText(message)
+        .then(() => showToast('No contact info for this method — message copied to clipboard'))
+        .catch(() => showToast('No contact info — could not copy to clipboard'))
       setSent(true)
       return
     }
@@ -848,8 +850,9 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
                 <div className="flex gap-3">
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(message).catch(() => {})
-                      showToast('Message copied')
+                      navigator.clipboard.writeText(message)
+                        .then(() => showToast('Message copied'))
+                        .catch(() => showToast('Could not copy to clipboard'))
                     }}
                     className="flex-1 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
                     style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}

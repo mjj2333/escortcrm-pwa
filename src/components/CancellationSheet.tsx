@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, formatCurrency, recordBookingPayment, newId } from '../db'
 import { showToast } from './Toast'
@@ -42,14 +42,26 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
     }
   }, [booking?.id, mode])
 
+  // Focus management: save previous focus, restore on close
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+
   // Escape key to close
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose()
   }, [onClose])
   useEffect(() => {
     if (booking) {
+      previousFocusRef.current = document.activeElement as HTMLElement | null
       document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
+      requestAnimationFrame(() => {
+        const first = sheetRef.current?.querySelector<HTMLElement>('button, input, select')
+        first?.focus()
+      })
+      return () => {
+        document.removeEventListener('keydown', handleEscape)
+        previousFocusRef.current?.focus()
+      }
     }
   }, [booking, handleEscape])
 
@@ -150,6 +162,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
       aria-label={mode === 'noshow' ? 'Mark as No-Show' : 'Cancel Booking'}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
       <div
+        ref={sheetRef}
         className="relative w-full max-w-lg rounded-t-2xl p-5 safe-bottom"
         style={{ backgroundColor: 'var(--bg-card)', maxHeight: '85vh', overflowY: 'auto' }}
       >

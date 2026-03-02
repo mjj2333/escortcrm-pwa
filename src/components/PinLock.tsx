@@ -168,7 +168,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
         if (duressHash && hash === duressHash) {
           setWiping(true)
           const { db } = await import('../db')
-          await db.delete().catch(() => {})
+          await db.delete().catch(err => console.error('Duress wipe failed:', err))
           localStorage.clear()
           window.location.reload()
           return
@@ -185,7 +185,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
             setWiping(true)
             setError('Too many failed attempts — erasing all data for safety')
             import('../db').then(({ db }) => {
-              db.delete().catch(() => {}).finally(() => {
+              db.delete().catch(err => console.error('Max-attempts wipe failed:', err)).finally(() => {
                 localStorage.clear()
                 window.location.reload()
               })

@@ -52,7 +52,7 @@ export function FieldTextInput({ label, value, onChange, placeholder, hint, requ
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500/40"
         style={fieldInputStyle}
       />
       {hint && <FieldHint text={hint} required={required} />}
@@ -76,7 +76,7 @@ export function FieldTextArea({ label, value, onChange, placeholder, hint, icon 
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         rows={2}
-        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none"
+        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500/40 resize-none"
         style={fieldInputStyle}
       />
       {hint && <FieldHint text={hint} />}
@@ -145,7 +145,7 @@ export function FieldCurrency({ label, value, onChange, hint }:
             if (!isNaN(v)) onChange(Math.min(999999, Math.max(0, v)))
           }}
           placeholder="0"
-          className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent"
+          className="flex-1 px-2 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500/40 bg-transparent"
           style={{ color: 'var(--text-primary)', fontSize: '16px' }}
         />
       </div>
@@ -168,7 +168,7 @@ export function FieldSelect<T extends string>({ label, value, options, onChange,
         id={id}
         value={value}
         onChange={e => onChange(e.target.value as T)}
-        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500/40"
         style={fieldInputStyle}
       >
         {options.map(o => (
@@ -224,7 +224,7 @@ export function FieldDate({ label, value, onChange, hint, icon }:
         type="date"
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500/40"
         style={fieldInputStyle}
       />
       {hint && <FieldHint text={hint} />}
@@ -244,7 +244,7 @@ export function FieldDateTime({ label, value, onChange, hint }:
         type="datetime-local"
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500/40"
         style={fieldInputStyle}
       />
       {hint && <FieldHint text={hint} />}

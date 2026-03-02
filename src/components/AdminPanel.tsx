@@ -112,7 +112,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedId(id)
       setTimeout(() => setCopiedId(null), 2000)
-    })
+    }).catch(() => {})
   }
 
   if (!isOpen) return null

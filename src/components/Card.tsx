@@ -1,3 +1,4 @@
+import React from 'react'
 import type { ReactNode } from 'react'
 
 interface CardProps {
@@ -15,6 +16,11 @@ export function Card({ children, className = '', onClick }: CardProps) {
         borderColor: 'var(--border)',
       }}
       onClick={onClick}
+      {...(onClick ? {
+        role: 'button',
+        tabIndex: 0,
+        onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } },
+      } : {})}
     >
       {children}
     </div>

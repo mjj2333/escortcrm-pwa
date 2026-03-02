@@ -19,6 +19,7 @@ export function CollapsibleCard({ label, id, expanded, toggle, children, badge, 
       <button
         onClick={() => toggle(id)}
         aria-expanded={isOpen}
+        aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${label}`}
         className="flex items-center justify-between w-full px-3 py-2.5 active:opacity-70"
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">

@@ -162,7 +162,7 @@ export default function App() {
 
   // Migrate existing bookings to payment ledger (one-time)
   useEffect(() => {
-    migrateToPaymentLedger().catch(() => {})
+    migrateToPaymentLedger().catch(err => console.error('Payment ledger migration failed:', err))
   }, [])
 
   const { pushNav, replaceNav } = useHashNav(activeTab, screen, setActiveTab, setScreen)

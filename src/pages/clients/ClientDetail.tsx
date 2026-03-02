@@ -49,6 +49,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [showBlockConfirm, setShowBlockConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [showMerge, setShowMerge] = useState(false)
   const [showMessageSheet, setShowMessageSheet] = useState(false)
   const [showAllHistory, setShowAllHistory] = useState(false)
@@ -116,8 +117,11 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   }, 0)
 
   function copyToClipboard(text: string, field: string) {
-    navigator.clipboard.writeText(text).catch(() => {})
-    setCopiedField(field)
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedField(field)
+    }).catch(() => {
+      setCopiedField(field) // Still show visual feedback; clipboard may fail in insecure contexts
+    })
     setTimeout(() => setCopiedField(null), 1500)
   }
 
@@ -147,6 +151,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   }
 
   async function confirmDelete() {
+    if (deleting) return
+    setDeleting(true)
     try {
       // Snapshot everything before deletion for undo
       const clientSnap = await db.clients.get(clientId)
@@ -195,6 +201,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
       })
     } catch (err) {
       showToast(`Delete failed: ${(err as Error).message}`)
+      setDeleting(false)
     }
   }
 
@@ -828,6 +835,7 @@ function ContactActionBar({ client }: { client: Client }) {
         <a
           key={a.label}
           href={a.href}
+          aria-label={a.label}
           className="flex flex-col items-center gap-1"
           style={{ textDecoration: 'none' }}
           onClick={e => e.stopPropagation()}

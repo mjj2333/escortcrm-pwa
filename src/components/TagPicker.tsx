@@ -105,7 +105,8 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
           >
             {tag.icon && <span>{tag.icon}</span>}
             {tag.name}
-            <button onClick={() => removeTag(tag.id)} className="ml-0.5 opacity-70 hover:opacity-100">
+            <button onClick={() => removeTag(tag.id)} className="ml-0.5 opacity-70 hover:opacity-100"
+              aria-label={`Remove ${tag.name} tag`}>
               <X size={10} />
             </button>
           </span>

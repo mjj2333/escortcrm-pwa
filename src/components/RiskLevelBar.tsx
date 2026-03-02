@@ -95,6 +95,7 @@ export function RiskLevelBar({ value, onChange, disabled }: RiskLevelBarProps) {
             <button
               key={l.level}
               onClick={() => !disabled && onChange(l.level)}
+              aria-label={`Set risk level to ${l.label}`}
               className="flex-1 flex items-center justify-center relative z-10"
               disabled={disabled}
             >
