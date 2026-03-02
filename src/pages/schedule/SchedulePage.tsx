@@ -78,6 +78,9 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
 
   const filtersActive = searchQuery.trim() !== '' || activeStatuses.size > 0 || dateFrom !== '' || dateTo !== ''
   const isDateRangeActive = dateFrom !== '' || dateTo !== ''
+  // Pre-parse date range boundaries once (avoid parseISO inside per-booking filters)
+  const dateRangeStart = dateFrom ? startOfDay(parseISO(dateFrom)) : null
+  const dateRangeEnd = dateTo ? endOfDay(parseISO(dateTo)) : null
 
   // Journal prompt after completing a booking
   const [journalBooking, setJournalBooking] = useState<Booking | null>(null)
@@ -89,7 +92,12 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const bookings    = rawBookings ?? []
   const clients     = useLiveQuery(() => db.clients.toArray()) ?? []
   const availability = useLiveQuery(() => db.availability.toArray()) ?? []
-  const clientFor = (id?: string) => clients.find(c => c.id === id)
+  const clientMap = useMemo(() => {
+    const map = new Map<string, (typeof clients)[0]>()
+    for (const c of clients) map.set(c.id, c)
+    return map
+  }, [clients])
+  const clientFor = (id?: string) => id ? clientMap.get(id) : undefined
 
   // Shared search + status predicate
   const matchesFilters = useMemo(() => {
@@ -132,8 +140,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
       if (!matchesFilters(b)) return false
       if (isDateRangeActive) {
         const dt = new Date(b.dateTime)
-        if (dateFrom && dt < startOfDay(parseISO(dateFrom))) return false
-        if (dateTo   && dt > endOfDay(parseISO(dateTo)))     return false
+        if (dateRangeStart && dt < dateRangeStart) return false
+        if (dateRangeEnd   && dt > dateRangeEnd)   return false
       }
       return true
     })

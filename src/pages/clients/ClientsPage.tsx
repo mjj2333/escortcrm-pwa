@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Search, UserX, Pin, ArrowDownUp } from 'lucide-react'
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { db } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -59,46 +59,47 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
 
   if (clients === undefined) return <ClientsPageSkeleton />
 
-  const blockedCount = clients.filter(c => c.isBlocked).length
+  const blockedCount = useMemo(() => clients.filter(c => c.isBlocked).length, [clients])
 
-  const filtered = clients
-    .filter(c => showBlocked ? c.isBlocked : !c.isBlocked)
-    .filter(c => {
-      if (!search) return true
-      const q = search.toLowerCase()
-      if (c.alias.toLowerCase().includes(q)) return true
-      if (c.nickname?.toLowerCase().includes(q)) return true
-      if (c.email?.toLowerCase().includes(q)) return true
-      if (c.referenceSource?.toLowerCase().includes(q)) return true
-      if (c.tags.some(t => t.name.toLowerCase().includes(q))) return true
-      const digits = search.replace(/\D/g, '')
-      if (digits && c.phone?.replace(/\D/g, '').includes(digits)) return true
-      return false
-    })
-    .filter(c => {
-      if (filterScreening && c.screeningStatus !== filterScreening) return false
-      if (filterRisk && c.riskLevel !== filterRisk) return false
-      return true
-    })
-    .sort((a, b) => {
-      if (!showBlocked && a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1
-      switch (sortMode) {
-        case 'recent': {
-          const aTime = a.lastSeen ? new Date(a.lastSeen).getTime() : 0
-          const bTime = b.lastSeen ? new Date(b.lastSeen).getTime() : 0
-          if (aTime !== bTime) return bTime - aTime
-          return a.alias.localeCompare(b.alias)
+  const filtered = useMemo(() => {
+    const q = search ? search.toLowerCase() : ''
+    const digits = search ? search.replace(/\D/g, '') : ''
+    return clients
+      .filter(c => {
+        if (showBlocked ? !c.isBlocked : c.isBlocked) return false
+        if (filterScreening && c.screeningStatus !== filterScreening) return false
+        if (filterRisk && c.riskLevel !== filterRisk) return false
+        if (q) {
+          if (c.alias.toLowerCase().includes(q)) return true
+          if (c.nickname?.toLowerCase().includes(q)) return true
+          if (c.email?.toLowerCase().includes(q)) return true
+          if (c.referenceSource?.toLowerCase().includes(q)) return true
+          if (c.tags.some(t => t.name.toLowerCase().includes(q))) return true
+          if (digits && c.phone?.replace(/\D/g, '').includes(digits)) return true
+          return false
         }
-        case 'newest': {
-          const aTime = a.dateAdded ? new Date(a.dateAdded).getTime() : 0
-          const bTime = b.dateAdded ? new Date(b.dateAdded).getTime() : 0
-          if (aTime !== bTime) return bTime - aTime
-          return a.alias.localeCompare(b.alias)
+        return true
+      })
+      .sort((a, b) => {
+        if (!showBlocked && a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1
+        switch (sortMode) {
+          case 'recent': {
+            const aTime = a.lastSeen ? new Date(a.lastSeen).getTime() : 0
+            const bTime = b.lastSeen ? new Date(b.lastSeen).getTime() : 0
+            if (aTime !== bTime) return bTime - aTime
+            return a.alias.localeCompare(b.alias)
+          }
+          case 'newest': {
+            const aTime = a.dateAdded ? new Date(a.dateAdded).getTime() : 0
+            const bTime = b.dateAdded ? new Date(b.dateAdded).getTime() : 0
+            if (aTime !== bTime) return bTime - aTime
+            return a.alias.localeCompare(b.alias)
+          }
+          default:
+            return a.alias.localeCompare(b.alias)
         }
-        default:
-          return a.alias.localeCompare(b.alias)
-      }
-    })
+      })
+  }, [clients, search, showBlocked, filterScreening, filterRisk, sortMode])
 
 
   return (

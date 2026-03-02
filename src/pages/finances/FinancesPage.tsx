@@ -335,23 +335,31 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   }, [completedBookings, incomeByBookingId])
   const maxDayRev = Math.max(1, ...dayRevenue)
 
-  // Trends: 12-month data
+  // Trends: 12-month data (pre-bucket by YYYY-MM to avoid O(months × items))
   const monthly = useMemo(() => {
+    const txnByMonth = new Map<string, { income: number; expenses: number }>()
+    for (const t of allTransactions) {
+      const td = new Date(t.date)
+      const key = `${td.getFullYear()}-${td.getMonth()}`
+      const bucket = txnByMonth.get(key) ?? { income: 0, expenses: 0 }
+      if (t.type === 'income') bucket.income += t.amount
+      else if (t.type === 'expense') bucket.expenses += t.amount
+      txnByMonth.set(key, bucket)
+    }
+    const bCountByMonth = new Map<string, number>()
+    for (const b of allBookings) {
+      if (b.status !== 'Completed') continue
+      const bd = new Date(b.dateTime)
+      const key = `${bd.getFullYear()}-${bd.getMonth()}`
+      bCountByMonth.set(key, (bCountByMonth.get(key) ?? 0) + 1)
+    }
     const now = new Date()
     const start = subMonths(startOfMonth(now), 11)
     const months = eachMonthOfInterval({ start, end: now })
     return months.map(m => {
-      const mTxns = allTransactions.filter(t => {
-        const td = new Date(t.date)
-        return td.getFullYear() === m.getFullYear() && td.getMonth() === m.getMonth()
-      })
-      const income = mTxns.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-      const expenses = mTxns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-      const bCount = allBookings.filter(b => {
-        const bd = new Date(b.dateTime)
-        return bd.getFullYear() === m.getFullYear() && bd.getMonth() === m.getMonth() && b.status === 'Completed'
-      }).length
-      return { month: m, label: fmtShortMonth(m), income, expenses, bookings: bCount }
+      const key = `${m.getFullYear()}-${m.getMonth()}`
+      const bucket = txnByMonth.get(key) ?? { income: 0, expenses: 0 }
+      return { month: m, label: fmtShortMonth(m), income: bucket.income, expenses: bucket.expenses, bookings: bCountByMonth.get(key) ?? 0 }
     })
   }, [allTransactions, allBookings])
 
