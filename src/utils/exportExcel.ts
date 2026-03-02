@@ -1,8 +1,15 @@
 // src/utils/exportExcel.ts
 // Exports all app data as a styled multi-sheet Excel workbook.
 
-import ExcelJS from 'exceljs'
+import type ExcelJS from 'exceljs'
 import { db, bookingTotal } from '../db'
+
+// Lazy-load ExcelJS (937KB) — only fetched when user triggers Excel export
+let _ExcelJS: typeof ExcelJS | null = null
+async function getExcelJS(): Promise<typeof ExcelJS> {
+  if (!_ExcelJS) _ExcelJS = (await import('exceljs')).default
+  return _ExcelJS
+}
 import type { Client, Booking, Transaction, BookingPayment, IncidentLog } from '../types'
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -344,7 +351,8 @@ export async function exportAllToExcel(): Promise<void> {
 
   const clientMap = new Map(clients.map(c => [c.id, c.alias]))
 
-  const wb = new ExcelJS.Workbook()
+  const XL = await getExcelJS()
+  const wb = new XL.Workbook()
   wb.creator = 'Companion'
   wb.created = new Date()
 
