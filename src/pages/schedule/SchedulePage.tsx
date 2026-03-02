@@ -7,7 +7,7 @@ import {
   parseISO, startOfDay, endOfDay
 } from 'date-fns'
 import { fmtMonthYear, fmtMonth, fmtFullDayDate } from '../../utils/dateFormat'
-import { db, formatCurrency, bookingTotal } from '../../db'
+import { db, formatCurrency } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { EmptyState } from '../../components/EmptyState'
 import { BookingEditor } from './BookingEditor'
@@ -752,7 +752,7 @@ function DayDetailModal({
     <div
       ref={backdropRef}
       className="fixed inset-0 z-50 flex items-end justify-center"
-      role="dialog" aria-modal="true" aria-label={`Bookings for ${selectedDate ? fmtMediumDate(selectedDate) : 'selected day'}`}
+      role="dialog" aria-modal="true" aria-label={`Bookings for ${fmtFullDayDate(date)}`}
       style={{
         backgroundColor: visible ? 'rgba(0,0,0,0.5)' : 'transparent',
         transition: 'background-color 0.2s',

@@ -8,7 +8,7 @@ const SchedulePage = lazy(() => import('./pages/schedule/SchedulePage').then(m =
 const ClientsPage = lazy(() => import('./pages/clients/ClientsPage').then(m => ({ default: m.ClientsPage })))
 const FinancesPage = lazy(() => import('./pages/finances/FinancesPage').then(m => ({ default: m.FinancesPage })))
 const SafetyPage = lazy(() => import('./pages/safety/SafetyPage').then(m => ({ default: m.SafetyPage })))
-import { useLocalStorage, lsKey } from './hooks/useSettings'
+import { useLocalStorage } from './hooks/useSettings'
 
 // Lazy-load secondary screens — only fetched when the user navigates to them
 const ClientDetail = lazy(() => import('./pages/clients/ClientDetail').then(m => ({ default: m.ClientDetail })))
@@ -31,24 +31,9 @@ import { useHashNav, parseNavHash } from './hooks/useHashNav'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AlertTriangle } from 'lucide-react'
 
-// Apply theme synchronously at module load to prevent FOUC (flash of unstyled content)
-;(() => {
-  const dm = localStorage.getItem(lsKey('darkMode'))
-  const oled = localStorage.getItem(lsKey('oledBlack'))
-  const themeMode = localStorage.getItem(lsKey('themeMode'))
-  let isDark: boolean
-  if (themeMode) {
-    const mode = JSON.parse(themeMode)
-    isDark = mode === 'system'
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-      : mode === 'dark'
-  } else {
-    isDark = dm === null ? true : JSON.parse(dm)
-  }
-  const isOled = oled === null ? true : JSON.parse(oled)
-  document.documentElement.classList.toggle('dark', isDark)
-  document.documentElement.classList.toggle('oled-black', isDark && isOled)
-})()
+// Theme is applied in index.html inline script (before any JS modules load) to prevent FOUC.
+// Do NOT duplicate that logic here — the inline script is the single source of truth for the
+// localStorage prefix ('c_') used for theme keys. See index.html lines 15-38.
 
 type Screen =
   | { type: 'tab' }

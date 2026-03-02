@@ -7,7 +7,8 @@ import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldCurrency, FieldSelect, FieldDate, FieldTextArea } from '../../components/FormFields'
 import type { Transaction, TransactionType, TransactionCategory, PaymentMethod } from '../../types'
 
-const categories: TransactionCategory[] = ['booking', 'tip', 'gift', 'refund', 'supplies', 'travel', 'advertising', 'clothing', 'health', 'rent', 'phone', 'other']
+const incomeCategories: TransactionCategory[] = ['booking', 'tip', 'gift', 'refund', 'other']
+const expenseCategories: TransactionCategory[] = ['supplies', 'travel', 'advertising', 'clothing', 'health', 'rent', 'phone', 'refund', 'other']
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
@@ -112,7 +113,7 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
 
         <SectionLabel label="Details" />
         <FieldCurrency label="Amount" value={amount} onChange={setAmount} />
-        <FieldSelect label="Category" value={category} options={categories} onChange={setCategory} displayFn={titleCase} />
+        <FieldSelect label="Category" value={category} options={type === 'income' ? incomeCategories : expenseCategories} onChange={setCategory} displayFn={titleCase} />
         <FieldSelect label="Payment Method" value={paymentMethod} options={paymentMethods} onChange={setPaymentMethod} />
         <FieldDate label="Date" value={date} onChange={setDate} />
 

@@ -19,12 +19,18 @@ function swBuildStamp() {
         const buildId = Date.now().toString(36)
         content = content.replace('__BUILD_ID__', buildId)
 
-        // Collect JS/CSS assets from the build output for pre-caching
+        // Pre-cache only the entry bundle, vendor chunks, and CSS — NOT lazy-loaded page chunks.
+        // Lazy chunks are cached on first visit by the SW fetch handler.
         const assetsDir = resolve(__dirname, 'dist/assets')
         try {
           const files = readdirSync(assetsDir)
           const assets = files
-            .filter(f => f.endsWith('.js') || f.endsWith('.css'))
+            .filter(f => {
+              if (f.endsWith('.css')) return true
+              if (!f.endsWith('.js')) return false
+              // Include entry bundle and vendor chunks; exclude lazy-loaded page chunks
+              return f.startsWith('index-') || f.startsWith('vendor-') || f.startsWith('_commonjs')
+            })
             .map(f => `/assets/${f}`)
           content = content.replace("'__PRECACHE_ASSETS__'", JSON.stringify(assets))
         } catch { /* no assets dir */ }

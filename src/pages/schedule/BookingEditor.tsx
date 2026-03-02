@@ -145,7 +145,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
       setNewClientBoundaries('')
       setConflictWarning(null)
     }
-  }, [isOpen, booking, rebookFrom, preselectedClientId])
+  }, [isOpen, booking, rebookFrom, preselectedClientId, preselectedDate])
 
   const selectedClient = clients.find(c => c.id === clientId)
   const total = baseRate + extras + ((locationType === 'Outcall' || locationType === 'Travel') ? travelFee : 0)

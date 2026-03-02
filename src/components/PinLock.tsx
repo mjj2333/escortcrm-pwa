@@ -176,7 +176,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
 
         if (hash === correctPin) {
           await clearAttempts()
-          onUnlock(pinSnapshot)
+          onUnlockRef.current(pinSnapshot)
         } else {
           const attempts = await recordFailedAttempt()
 
@@ -217,7 +217,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
           if (cancelled) return
           await clearAttempts() // reset any prior failed attempts
           onSetPin?.(hash, pin)
-          onUnlock(pin)
+          onUnlockRef.current(pin)
         })
       } else {
         setError('PINs don\'t match')
@@ -226,7 +226,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
       }
     }
     return () => { cancelled = true }
-  }, [pin, confirmPin, phase, isSetup, correctPin, onUnlock, onSetPin, lockedOut])
+  }, [pin, confirmPin, phase, isSetup, correctPin, onSetPin, lockedOut])
 
   const isDisabled = lockedOut || wiping
 

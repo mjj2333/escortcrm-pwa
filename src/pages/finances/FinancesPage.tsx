@@ -230,9 +230,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
 
   // Revenue by booking type (Incall/Outcall/Travel/Virtual)
   const bookingTypeBreakdown = useMemo(() => {
-    const completedInPeriod = allBookings.filter(b =>
-      b.status === 'Completed' && new Date(b.dateTime) >= startDate
-    )
+    const completedInPeriod = filteredBookings.filter(b => b.status === 'Completed')
     if (completedInPeriod.length === 0) return []
     const grouped: Record<string, { count: number; revenue: number }> = {}
     completedInPeriod.forEach(b => {
@@ -244,12 +242,12 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
         .filter(t => t.bookingId === b.id && t.type === 'income')
         .reduce((s, t) => s + t.amount, 0)
       // Fallback to booking total if no transactions linked
-      grouped[type].revenue += rev > 0 ? rev : bookingTotal(b)
+      grouped[type].revenue += rev > 0 ? rev : (b.baseRate + (b.extras ?? 0) + (b.travelFee ?? 0))
     })
     return Object.entries(grouped)
       .map(([type, data]) => ({ type: type as LocationType, ...data }))
       .sort((a, b) => b.revenue - a.revenue)
-  }, [allBookings, filtered, startDate.getTime()])
+  }, [filteredBookings, filtered])
 
   // Payment method breakdown (income only)
   const paymentMethodBreakdown = useMemo(() => {
@@ -376,7 +374,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
 
   const clientSourceCounts = useMemo(() => {
     const counts: Record<string, number> = {}
-    clients.forEach(c => { if ((c as any).referenceSource) counts[(c as any).referenceSource] = (counts[(c as any).referenceSource] ?? 0) + 1 })
+    clients.forEach(c => { if (c.referenceSource) counts[c.referenceSource] = (counts[c.referenceSource] ?? 0) + 1 })
     return Object.entries(counts).sort((a, b) => b[1] - a[1])
   }, [clients])
 
