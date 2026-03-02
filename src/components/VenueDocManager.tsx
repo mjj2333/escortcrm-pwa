@@ -159,7 +159,7 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
 
       {/* Full-screen preview */}
       {previewDoc && previewUrl && (
-        <div className="fixed inset-0 z-[60] flex flex-col" style={{ backgroundColor: 'rgba(0,0,0,0.95)' }}>
+        <div className="fixed inset-0 z-[60] flex flex-col" role="dialog" aria-modal="true" aria-label="Document preview" style={{ backgroundColor: 'rgba(0,0,0,0.95)' }}>
           <div className="flex items-center justify-between px-4 py-3 shrink-0">
             <button onClick={() => setPreviewDoc(null)} style={{ color: '#fff' }}>
               <X size={22} />
@@ -169,7 +169,7 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
             </span>
             {editable && (
               <button onClick={() => handleDelete(previewDoc.id)}>
-                <Trash2 size={18} className="text-red-400" />
+                <Trash2 size={18} className="text-red-500" />
               </button>
             )}
           </div>

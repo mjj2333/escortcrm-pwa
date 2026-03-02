@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import { startOfDay } from 'date-fns'
 import { fmtShortDayDate } from '../../utils/dateFormat'
@@ -27,14 +27,37 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
   const [endTime, setEndTime] = useState(current?.endTime ?? '22:00')
   const [notes, setNotes] = useState(current?.notes ?? '')
   const [saving, setSaving] = useState(false)
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
 
-  // Escape key to close
+  // Focus management + focus trap
   useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement | null
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
+      if (e.key === 'Tab' && sheetRef.current) {
+        const focusable = sheetRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus() }
+        } else {
+          if (document.activeElement === last) { e.preventDefault(); first.focus() }
+        }
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    requestAnimationFrame(() => {
+      const first = sheetRef.current?.querySelector<HTMLElement>('button, input, select')
+      first?.focus()
+    })
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      previousFocusRef.current?.focus()
+    }
   }, [onClose])
 
   async function handleStatusTap(status: AvailabilityStatus) {
@@ -124,7 +147,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
   const showSaveButton = !!selectedStatus
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label="Set availability">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50"
@@ -133,6 +156,7 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
 
       {/* Panel */}
       <div
+        ref={sheetRef}
         className="relative w-full max-w-lg rounded-t-2xl overflow-y-auto safe-bottom"
         style={{
           backgroundColor: 'var(--bg-card)',

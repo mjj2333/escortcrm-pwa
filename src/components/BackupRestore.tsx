@@ -601,7 +601,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
                 {working ? 'Restoring...' : 'Choose backup file'}
               </span>
             </button>
-            <p className="text-[10px] text-center mt-2 text-red-400">
+            <p className="text-[10px] text-center mt-2 text-red-500">
               Warning: Restoring will replace ALL current data
             </p>
             <p className="text-[10px] text-center mt-1" style={{ color: 'var(--text-secondary)' }}>

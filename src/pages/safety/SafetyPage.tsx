@@ -255,12 +255,12 @@ export function SafetyPage() {
               </button>
             </div>
             {primaryContact && (
-              <p className="text-[10px] text-red-400 text-center mt-2">
+              <p className="text-[10px] text-red-500 text-center mt-2">
                 "Not OK" opens your SMS app pre-filled — tap Send to alert {primaryContact.name}
               </p>
             )}
             {!primaryContact && (
-              <p className="text-[10px] text-red-400 text-center mt-2">
+              <p className="text-[10px] text-red-500 text-center mt-2">
                 Add a safety contact to enable emergency alerts
               </p>
             )}

@@ -572,7 +572,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#ef4444' }}>Boundaries — Do Not Cross</p>
-                  <p className="text-sm leading-relaxed" style={{ color: '#f87171', whiteSpace: 'pre-wrap' }}>{client.boundaries}</p>
+                  <p className="text-sm leading-relaxed" style={{ color: '#ef4444', whiteSpace: 'pre-wrap' }}>{client.boundaries}</p>
                 </div>
               </div>
             )}

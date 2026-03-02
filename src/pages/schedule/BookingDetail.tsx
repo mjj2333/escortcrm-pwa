@@ -333,7 +333,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                   </p>
                 )}
                 {client.boundaries && (
-                  <p className="text-xs text-red-400" style={{ whiteSpace: 'pre-wrap' }}>
+                  <p className="text-xs text-red-500" style={{ whiteSpace: 'pre-wrap' }}>
                     🚫 {client.boundaries.slice(0, 100)}{client.boundaries.length > 100 ? '…' : ''}
                   </p>
                 )}

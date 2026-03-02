@@ -233,9 +233,9 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
               <p className="font-semibold text-red-500 text-sm">
                 {safetyChecks.length} Pending Check-in{safetyChecks.length > 1 ? 's' : ''}
               </p>
-              <p className="text-xs text-red-400">Tap to review</p>
+              <p className="text-xs text-red-500">Tap to review</p>
             </div>
-            <ChevronRight size={16} className="text-red-400" />
+            <ChevronRight size={16} className="text-red-500" />
           </button>
         )}
 

@@ -357,7 +357,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
             >
               <div className="flex-1 text-center">
                 <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--text-secondary)' }}>Discard</p>
-                <p className="text-sm font-bold text-red-400">{sourceClient.alias}</p>
+                <p className="text-sm font-bold text-red-500">{sourceClient.alias}</p>
               </div>
               <ArrowRight size={18} style={{ color: '#a855f7', flexShrink: 0 }} />
               <div className="flex-1 text-center">

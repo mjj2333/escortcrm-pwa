@@ -84,6 +84,13 @@ button, a, [role="button"], input, select, textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Visible focus ring for keyboard users */
+input:focus-visible, textarea:focus-visible, select:focus-visible,
+button:focus-visible, a:focus-visible, [role="button"]:focus-visible {
+  outline: 2px solid rgba(168, 85, 247, 0.5);
+  outline-offset: 2px;
+}
+
 /* Smooth transitions — scoped to interactive elements only */
 button, a, [role="button"], input, select, textarea {
   transition-property: background-color, border-color, color, opacity;

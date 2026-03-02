@@ -120,7 +120,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label="Admin — Gift Codes">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div
         className="relative w-full max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden safe-bottom"

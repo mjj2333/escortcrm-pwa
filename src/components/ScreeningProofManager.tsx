@@ -236,7 +236,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
               <button
                 onClick={() => handleDelete(previewDoc)}
                 aria-label="Delete document"
-                className="text-red-400 active:text-red-300"
+                className="text-red-500 active:text-red-300"
               >
                 <Trash2 size={20} />
               </button>

@@ -36,7 +36,7 @@ export const TabBar = memo(function TabBar({ activeTab, onTabChange, onStealthTr
   }, [onStealthTrigger, onTabChange])
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t safe-bottom"
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t safe-bottom" aria-label="Main navigation"
       style={{
         backgroundColor: 'var(--bg-card)',
         borderColor: 'var(--border)',

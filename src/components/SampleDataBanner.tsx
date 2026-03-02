@@ -77,6 +77,7 @@ export function SampleDataBanner() {
           className="fixed inset-0 z-[80] flex items-center justify-center p-6"
           role="dialog"
           aria-modal="true"
+          aria-label="Confirm clear sample data"
           onClick={() => setShowConfirm(false)}
         >
           <div className="absolute inset-0 bg-black/50" />

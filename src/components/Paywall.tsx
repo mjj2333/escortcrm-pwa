@@ -137,6 +137,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
   return (
     <div
       className="fixed inset-0 z-[100] flex flex-col"
+      role="dialog" aria-modal="true" aria-label="Upgrade to Pro"
       style={{ backgroundColor: 'var(--bg-primary)' }}
     >
       <div className="flex-1 overflow-y-auto">

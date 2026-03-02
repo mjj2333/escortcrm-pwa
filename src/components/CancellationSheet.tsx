@@ -48,24 +48,37 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
   const sheetRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
-  // Escape key to close
-  const handleEscape = useCallback((e: KeyboardEvent) => {
+  // Escape key to close + focus trap
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose()
+    if (e.key === 'Tab' && sheetRef.current) {
+      const focusable = sheetRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus() }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
+    }
   }, [onClose])
   useEffect(() => {
     if (booking) {
       previousFocusRef.current = document.activeElement as HTMLElement | null
-      document.addEventListener('keydown', handleEscape)
+      document.addEventListener('keydown', handleKeyDown)
       requestAnimationFrame(() => {
         const first = sheetRef.current?.querySelector<HTMLElement>('button, input, select')
         first?.focus()
       })
       return () => {
-        document.removeEventListener('keydown', handleEscape)
+        document.removeEventListener('keydown', handleKeyDown)
         previousFocusRef.current?.focus()
       }
     }
-  }, [booking, handleEscape])
+  }, [booking, handleKeyDown])
 
   if (!booking) return null
 

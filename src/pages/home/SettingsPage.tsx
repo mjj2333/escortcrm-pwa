@@ -371,7 +371,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
           }}
             hint={remindersEnabled ? "You'll get alerts 1 hour and 15 minutes before bookings, plus birthday reminders." : 'Enable push notification reminders for upcoming bookings.'} />
           {remindersEnabled && 'Notification' in window && Notification.permission === 'denied' && (
-            <p className="text-xs text-red-400 mb-3">
+            <p className="text-xs text-red-500 mb-3">
               Notifications are blocked by your browser. Enable them in your browser settings.
             </p>
           )}
