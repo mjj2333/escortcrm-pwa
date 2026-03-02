@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import {
   Download, Upload, X, CheckCircle, AlertCircle, Lock, Unlock, Database, FileSpreadsheet
 } from 'lucide-react'
@@ -353,6 +354,7 @@ function downloadFile(content: string, filename: string) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
+  useScrollLock(isOpen)
   const [password, setPassword] = useState('')
   const [useEncryption, setUseEncryption] = useState(true)
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)

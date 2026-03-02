@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, X, FileText, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { db, newId } from '../db'
@@ -17,6 +18,7 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
   ) ?? []
 
   const [previewDoc, setPreviewDoc] = useState<VenueDoc | null>(null)
+  useScrollLock(!!previewDoc)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const thumbUrlsRef = useRef(new Map<string, string>())
   const [, forceRender] = useState(0)

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { Upload, X, FileSpreadsheet, FileText, CheckCircle, AlertCircle } from 'lucide-react'
 import { db, newId } from '../db'
 import type {
@@ -514,6 +515,7 @@ const DATA_TABS: TabDef[] = [
 ]
 
 export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: ImportExportProps) {
+  useScrollLock(isOpen)
   const [dataType, setDataType] = useState<DataType>(initialTab)
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
   const [importing, setImporting] = useState(false)

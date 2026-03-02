@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import { startOfDay } from 'date-fns'
 import { fmtShortDayDate } from '../../utils/dateFormat'
 import { db, newId } from '../../db'
@@ -20,6 +21,7 @@ const statuses: { status: AvailabilityStatus; color: string; label: string }[] =
 ]
 
 export function AvailabilityPicker({ date, current, onClose }: AvailabilityPickerProps) {
+  useScrollLock(true)
   const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus | null>(current?.status ?? null)
   const [startTime, setStartTime] = useState(current?.startTime ?? '10:00')
   const [endTime, setEndTime] = useState(current?.endTime ?? '22:00')

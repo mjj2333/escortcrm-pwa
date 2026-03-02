@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { Sparkles, Trash2 } from 'lucide-react'
 import { isSampleDataActive, clearSampleData, SAMPLE_DATA_EVENT } from '../data/sampleDataState'
 
@@ -6,6 +7,7 @@ export function SampleDataBanner() {
   const [visible, setVisible] = useState(isSampleDataActive())
   const [clearing, setClearing] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  useScrollLock(showConfirm)
 
   // Re-check when sample data is seeded or cleared
   useEffect(() => {

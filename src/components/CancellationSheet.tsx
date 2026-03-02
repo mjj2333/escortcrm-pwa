@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, formatCurrency, recordBookingPayment, newId } from '../db'
 import { showToast } from './Toast'
@@ -13,6 +14,7 @@ interface CancellationSheetProps {
 }
 
 export function CancellationSheet({ booking, mode, onClose }: CancellationSheetProps) {
+  useScrollLock(!!booking)
   const [cancelledBy, setCancelledBy] = useState<CancelledBy>('client')
   const [cancelReason, setCancelReason] = useState('')
   const [depositOutcome, setDepositOutcome] = useState<DepositOutcome | ''>('')

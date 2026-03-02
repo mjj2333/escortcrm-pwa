@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Send, Copy, Phone, Mail, MessageSquare } from 'lucide-react'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted } from '../db'
@@ -175,6 +176,7 @@ interface SendMessageSheetProps {
 }
 
 export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: SendMessageSheetProps) {
+  useScrollLock(isOpen)
   const hasBooking = !!booking
   const hasDirections = !!(venue?.directions && venue.directions.length > 0)
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useId } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -15,6 +16,7 @@ interface ConfirmDialogProps {
 export function ConfirmDialog({
   isOpen, title, message, confirmLabel = 'Confirm', confirmColor = '#ef4444', onConfirm, onCancel, inputPlaceholder
 }: ConfirmDialogProps) {
+  useScrollLock(isOpen)
   const [inputValue, setInputValue] = useState('')
   const dialogRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)

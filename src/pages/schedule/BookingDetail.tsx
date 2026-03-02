@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Clock, MapPin, Send,
@@ -58,6 +59,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const [showRebook, setShowRebook] = useState(false)
   const [confirmAction, setConfirmAction] = useState<'noshow' | 'cancel' | 'delete' | null>(null)
   const [showPaymentForm, setShowPaymentForm] = useState(false)
+  useScrollLock(showPaymentForm)
   const [showJournal, setShowJournal] = useState(false)
   const [showMessageSheet, setShowMessageSheet] = useState(false)
   const { expanded, toggle } = useAccordion(['details', 'pricing'])

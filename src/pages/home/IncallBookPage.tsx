@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   X, Plus, ArrowLeft, Star, Copy, Check, MapPin, Phone, Mail, User,
@@ -48,15 +49,13 @@ export function IncallBookPage({ isOpen, onClose }: IncallBookPageProps) {
 
   const venues = useLiveQuery(() => db.incallVenues.toArray()) ?? []
 
+  useScrollLock(isOpen)
+
   useEffect(() => {
     if (isOpen) {
       setScreen({ view: 'list' })
       setSearch('')
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
     }
-    return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
   if (!isOpen) return null
@@ -646,6 +645,7 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
   directions: string
   address: string
 }) {
+  useScrollLock(isOpen)
   const clients = useLiveQuery(() => db.clients.toArray()) ?? []
   const [search, setSearch] = useState('')
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
@@ -1099,6 +1099,7 @@ export function VenuePicker({ isOpen, onClose, onSelect }: {
   onClose: () => void
   onSelect: (venue: IncallVenue) => void
 }) {
+  useScrollLock(isOpen)
   const venues = useLiveQuery(() => db.incallVenues.toArray()) ?? []
   const [search, setSearch] = useState('')
 

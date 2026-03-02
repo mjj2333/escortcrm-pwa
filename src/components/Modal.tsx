@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
+import { useScrollLock } from '../hooks/useScrollLock'
 
 interface ModalProps {
   isOpen: boolean
@@ -15,10 +16,11 @@ export function Modal({ isOpen, onClose, title, children, actions }: ModalProps)
   onCloseRef.current = onClose
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
+  useScrollLock(isOpen)
+
   useEffect(() => {
     if (isOpen) {
       previousFocusRef.current = document.activeElement as HTMLElement | null
-      document.body.style.overflow = 'hidden'
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') onCloseRef.current()
         // Focus trap: cycle through focusable elements
@@ -42,15 +44,10 @@ export function Modal({ isOpen, onClose, title, children, actions }: ModalProps)
       if (firstFocusable) firstFocusable.focus()
       else dialogRef.current?.focus()
       return () => {
-        document.body.style.overflow = ''
         document.removeEventListener('keydown', handleKeyDown)
-        // Restore focus to the element that opened the modal
         previousFocusRef.current?.focus()
       }
-    } else {
-      document.body.style.overflow = ''
     }
-    return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
   if (!isOpen) return null

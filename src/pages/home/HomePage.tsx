@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
 import { useState, useRef, useEffect, useCallback, lazy, Suspense, useReducer } from 'react'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import { db, formatCurrency, isUpcoming, bookingTotal } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { Card, CardHeader } from '../../components/Card'
@@ -554,6 +555,7 @@ function AllActiveBookingsModal({
   onCancel?: (booking: import('../../types').Booking) => void
   onNoShow?: (booking: import('../../types').Booking) => void
 }) {
+  useScrollLock(true)
   const backdropRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
 

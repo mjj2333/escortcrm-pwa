@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ChevronRight, User, UserPlus, Search, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
@@ -36,6 +37,7 @@ interface BookingEditorProps {
 }
 
 export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, preselectedDate, rebookFrom }: BookingEditorProps) {
+  useScrollLock(isOpen)
   const isEditing = !!booking
   const clients = useLiveQuery(() => db.clients.filter(c => !c.isBlocked).sortBy('alias')) ?? []
   const safetyContacts = useLiveQuery(() => db.safetyContacts.filter(c => c.isActive).toArray()) ?? []

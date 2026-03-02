@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, CalendarDays, CalendarRange, List, SlidersHorizontal, X, ChevronRight } from 'lucide-react'
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import {
   startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday,
   startOfWeek, endOfWeek, isSameMonth, isSameWeek, addMonths, subMonths, addWeeks, subWeeks, subDays,
@@ -1005,6 +1006,7 @@ function DayDetailModal({
   date, bookings, clientFor, availForDay, availColor, filtersActive,
   onClose, onOpenBooking, onSetAvailability, onAddBooking, onBookingCompleted, onCancel, onNoShow,
 }: DayDetailModalProps) {
+  useScrollLock(true)
   const backdropRef = useRef<HTMLDivElement>(null)
   const avail = availForDay(date)
 

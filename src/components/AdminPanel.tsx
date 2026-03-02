@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { Shield, Plus, Copy, Trash2, Check, Loader, Lock, RefreshCw, Calendar } from 'lucide-react'
 import type { GiftCodeRecord } from '../../netlify/functions/admin-gift-codes'
 
@@ -10,6 +11,7 @@ interface AdminPanelProps {
 }
 
 export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
+  useScrollLock(isOpen)
   const [password, setPassword] = useState('')
   const [authed, setAuthed] = useState(false)
   const [authError, setAuthError] = useState('')

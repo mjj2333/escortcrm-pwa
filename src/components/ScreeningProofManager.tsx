@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, X, FileText, ZoomIn, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { fmtMediumDate } from '../utils/dateFormat'
@@ -18,6 +19,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
   ) ?? []
 
   const [previewDoc, setPreviewDoc] = useState<ScreeningDoc | null>(null)
+  useScrollLock(!!previewDoc)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const thumbUrlsRef = useRef(new Map<string, string>())
   const [, forceRender] = useState(0)

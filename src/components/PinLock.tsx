@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Shield, Delete, Fingerprint } from 'lucide-react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { isBiometricEnabled, assertBiometric } from '../hooks/useBiometric'
 import { lsKey } from '../hooks/useSettings'
 
@@ -75,6 +76,7 @@ interface PinLockProps {
 }
 
 export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: PinLockProps) {
+  useScrollLock(true)
   const [pin, setPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
   const [phase, setPhase] = useState<'enter' | 'confirm'>(isSetup ? 'enter' : 'enter')

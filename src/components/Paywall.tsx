@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { Shield, Check, Sparkles, Mail, X, Loader, ChevronLeft } from 'lucide-react'
 import {
   STRIPE_MONTHLY_LINK,
@@ -47,6 +48,7 @@ interface PaywallProps {
 }
 
 export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
+  useScrollLock(true)
   const [showVerify, setShowVerify] = useState(!!initialCode)
   const [verifyInput, setVerifyInput] = useState(initialCode || '')
   const [isGiftMode, setIsGiftMode] = useState(!!initialCode)
