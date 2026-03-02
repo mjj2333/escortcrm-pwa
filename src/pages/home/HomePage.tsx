@@ -3,7 +3,7 @@ import {
   Settings, Clock, CalendarDays, DollarSign, Users,
   ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X, CircleUser, Building2
 } from 'lucide-react'
-import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, addYears, isSameDay } from 'date-fns'
+import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, isSameDay } from 'date-fns'
 import { useState, useRef, useEffect, useCallback, lazy, Suspense, useReducer } from 'react'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import { db, formatCurrency, isUpcoming, bookingTotal } from '../../db'
@@ -119,9 +119,18 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
     .filter(c => c.birthday && !c.isBlocked)
     .map(c => {
       const bday = new Date(c.birthday!)
-      // Find next birthday
-      let next = new Date(now.getFullYear(), bday.getMonth(), bday.getDate())
-      if (next < todayStart) next = addYears(next, 1)
+      // Find next birthday — clamp Feb 29 to Feb 28 in non-leap years
+      const bdayMonth = bday.getMonth()
+      const bdayDay = bday.getDate()
+      let year = now.getFullYear()
+      let next = new Date(year, bdayMonth, bdayDay)
+      // If Date constructor overflowed (e.g. Feb 29 → Mar 1), clamp to last day of month
+      if (next.getMonth() !== bdayMonth) next = new Date(year, bdayMonth + 1, 0)
+      if (next < todayStart) {
+        year += 1
+        next = new Date(year, bdayMonth, bdayDay)
+        if (next.getMonth() !== bdayMonth) next = new Date(year, bdayMonth + 1, 0)
+      }
       const daysUntil = differenceInDays(next, todayStart)
       return { client: c, daysUntil, nextBirthday: next }
     })

@@ -1696,7 +1696,7 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                     {fmtMediumDate(new Date(t.date))}
                     {t.paymentMethod ? ` · ${t.paymentMethod}` : ''}
-                    {t.notes ? ` · ${t.notes.slice(0, 30)}` : ''}
+                    {t.notes ? ` · ${t.notes.slice(0, 30)}${t.notes.length > 30 ? '…' : ''}` : ''}
                   </p>
                 </button>
                 <p className={`text-sm font-semibold ${t.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>

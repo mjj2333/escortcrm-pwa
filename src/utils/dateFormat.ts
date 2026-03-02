@@ -15,9 +15,12 @@ function fmtTimeStr(d: Date, options: Intl.DateTimeFormatOptions): string {
   return d.toLocaleTimeString(locale, options)
 }
 
-/** "Feb 28" */
+/** "Feb 28" or "Feb 28, 2027" if not current year */
 export function fmtShortDate(d: Date): string {
-  return fmtDate(d, { month: 'short', day: 'numeric' })
+  if (isNaN(d.getTime())) return ''
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric'
+  return d.toLocaleDateString(locale, opts)
 }
 
 /** "Feb 28, 2026" */

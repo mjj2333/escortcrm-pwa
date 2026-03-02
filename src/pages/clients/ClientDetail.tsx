@@ -52,7 +52,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [deleting, setDeleting] = useState(false)
   const [showMerge, setShowMerge] = useState(false)
   const [showMessageSheet, setShowMessageSheet] = useState(false)
-  const [showAllHistory, setShowAllHistory] = useState(false)
+  const [historyLimit, setHistoryLimit] = useState(10)
   const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: any; booking: any } | null>(null)
   const [showUnblockConfirm, setShowUnblockConfirm] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -260,20 +260,20 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         </div>
 
         {/* Inline contact/address summary */}
-        <div className="space-y-0.5 -mt-1">
+        <div className="space-y-0.5 -mt-1 min-w-0">
           {client.phone && (
-            <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-              <Phone size={11} /> {client.phone}
+            <p className="text-xs flex items-center gap-1.5 min-w-0" style={{ color: 'var(--text-secondary)' }}>
+              <Phone size={11} className="shrink-0" /> <span className="truncate">{client.phone}</span>
             </p>
           )}
           {client.email && (
-            <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-              <Mail size={11} /> {client.email}
+            <p className="text-xs flex items-center gap-1.5 min-w-0" style={{ color: 'var(--text-secondary)' }}>
+              <Mail size={11} className="shrink-0" /> <span className="truncate">{client.email}</span>
             </p>
           )}
           {client.address && (
-            <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-              <MapPin size={11} /> {client.address}
+            <p className="text-xs flex items-center gap-1.5 min-w-0" style={{ color: 'var(--text-secondary)' }}>
+              <MapPin size={11} className="shrink-0" /> <span className="truncate">{client.address}</span>
             </p>
           )}
         </div>
@@ -499,7 +499,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         {client.tags.length > 0 && (
           <CollapsibleCard label="Tags" id="tags" expanded={expanded} toggle={toggle}
             preview={<div className="flex gap-1 flex-wrap">{client.tags.slice(0, 3).map(t => (
-              <span key={t.id} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${t.color}25`, color: t.color }}>
+              <span key={t.id} className="text-[10px] px-1.5 py-0.5 rounded-full truncate max-w-[120px]" style={{ backgroundColor: `${t.color}25`, color: t.color }}>
                 {t.icon}{t.name}
               </span>
             ))}{client.tags.length > 3 && <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>+{client.tags.length - 3}</span>}</div>}>
@@ -532,9 +532,9 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
               </div>
             )}
             {client.referenceSource && (
-              <div className="flex items-center justify-between py-1.5">
-                <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Reference</span>
-                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{client.referenceSource}</span>
+              <div className="flex items-center justify-between gap-3 py-1.5">
+                <span className="text-sm shrink-0" style={{ color: 'var(--text-primary)' }}>Reference</span>
+                <span className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{client.referenceSource}</span>
               </div>
             )}
             {client.verificationNotes && (
@@ -597,7 +597,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         {/* Booking History */}
         {pastBookings.length > 0 && (
           <CollapsibleCard label={`History (${pastBookings.length})`} id="history" expanded={expanded} toggle={toggle}>
-            {(showAllHistory ? pastBookings : pastBookings.slice(0, 10)).map(b => (
+            {pastBookings.slice(0, historyLimit).map(b => (
               <button key={b.id} onClick={() => onOpenBooking(b.id)}
                 className="flex items-center justify-between py-2 w-full text-left">
                 <div>
@@ -612,12 +612,12 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{formatCurrency(bookingTotal(b))}</span>
               </button>
             ))}
-            {pastBookings.length > 10 && (
+            {pastBookings.length > historyLimit && (
               <button
-                onClick={() => setShowAllHistory(v => !v)}
+                onClick={() => setHistoryLimit(l => l + 50)}
                 className="w-full text-center py-2 text-xs font-medium text-purple-500"
               >
-                {showAllHistory ? 'Show less' : `Show all ${pastBookings.length} bookings`}
+                Show more ({pastBookings.length - historyLimit} remaining)
               </button>
             )}
           </CollapsibleCard>
