@@ -76,7 +76,8 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
     }
     onChange([...selected, tag])
     // Save to localStorage for reuse
-    const saved = JSON.parse(localStorage.getItem(lsKey('customTags')) ?? '[]') as ClientTag[]
+    let saved: ClientTag[] = []
+    try { saved = JSON.parse(localStorage.getItem(lsKey('customTags')) ?? '[]') } catch { /* corrupted */ }
     if (!saved.some(t => t.name === name)) {
       saved.push(tag)
       localStorage.setItem(lsKey('customTags'), JSON.stringify(saved))
@@ -91,7 +92,8 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
   }
 
   // Merge preset + saved custom for the picker
-  const allCustom = JSON.parse(localStorage.getItem(lsKey('customTags')) ?? '[]') as ClientTag[]
+  let allCustom: ClientTag[] = []
+  try { allCustom = JSON.parse(localStorage.getItem(lsKey('customTags')) ?? '[]') } catch { /* corrupted */ }
 
   return (
     <div>

@@ -21,7 +21,8 @@ export function hasSampleDataBeenOffered(): boolean {
  */
 export async function clearSampleData(): Promise<void> {
   const raw = localStorage.getItem('companion_sample_ids')
-  const ids: Record<string, string[]> = raw ? JSON.parse(raw) : {}
+  let ids: Record<string, string[]> = {}
+  try { if (raw) ids = JSON.parse(raw) } catch { /* corrupted */ }
 
   await db.transaction('rw',
     [db.clients, db.bookings, db.transactions, db.safetyContacts, db.safetyChecks,
@@ -52,7 +53,8 @@ export async function clearSampleData(): Promise<void> {
   }
 
   const profileKeysRaw = localStorage.getItem('companion_sample_profile_keys')
-  const profileKeys: string[] = profileKeysRaw ? JSON.parse(profileKeysRaw) : []
+  let profileKeys: string[] = []
+  try { if (profileKeysRaw) profileKeys = JSON.parse(profileKeysRaw) } catch { /* corrupted */ }
 
   function clearLS(key: string, defaultValue: unknown) {
     const prefixedKey = lsKey(key)

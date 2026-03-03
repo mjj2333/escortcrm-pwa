@@ -197,7 +197,12 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
     }
   }
 
+  const isTerminal = booking.status === 'Completed' || booking.status === 'Cancelled' || booking.status === 'No Show'
+
   async function setBookingStatus(newStatus: BookingStatus) {
+    // Prevent reverting terminal statuses — payment ledger & timestamps already written
+    if (isTerminal) return
+
     if (newStatus === 'Cancelled') {
       // Delegate to parent's cancellation sheet
       if (onCancel) {
@@ -251,6 +256,7 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
   }
 
   async function markNoShow() {
+    if (isTerminal) return
     // Delegate to parent's cancellation sheet
     if (onNoShow) {
       closePanel()
@@ -354,47 +360,49 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
               />
             </ActionRow>
 
-            {/* Row 2: Booking Status */}
-            <ActionRow label="Status">
-              {statusFlowPills.map(p => (
-                <ActionPill
-                  key={p.status}
-                  label={p.label}
-                  active={booking.status === p.status}
-                  color={p.color}
-                  onTap={() => {
-                    if (p.status !== booking.status) setBookingStatus(p.status)
-                  }}
-                />
-              ))}
-            </ActionRow>
-
-            {/* Row 3: Session / terminal statuses + cancel */}
-            <ActionRow label="">
-              {statusSessionPills.map(p => (
-                <ActionPill
-                  key={p.status}
-                  label={p.label}
-                  active={booking.status === p.status}
-                  color={p.color}
-                  onTap={() => {
-                    if (p.status !== booking.status) setBookingStatus(p.status)
-                  }}
-                />
-              ))}
-              <ActionPill
-                label="Cancel"
-                active={booking.status === 'Cancelled'}
-                color="#ef4444"
-                onTap={() => setBookingStatus('Cancelled')}
-              />
-              <ActionPill
-                label="No Show"
-                active={booking.status === 'No Show'}
-                color="#ef4444"
-                onTap={() => markNoShow()}
-              />
-            </ActionRow>
+            {/* Row 2+3: Status pills — hidden for terminal bookings */}
+            {!isTerminal && (
+              <>
+                <ActionRow label="Status">
+                  {statusFlowPills.map(p => (
+                    <ActionPill
+                      key={p.status}
+                      label={p.label}
+                      active={booking.status === p.status}
+                      color={p.color}
+                      onTap={() => {
+                        if (p.status !== booking.status) setBookingStatus(p.status)
+                      }}
+                    />
+                  ))}
+                </ActionRow>
+                <ActionRow label="">
+                  {statusSessionPills.map(p => (
+                    <ActionPill
+                      key={p.status}
+                      label={p.label}
+                      active={booking.status === p.status}
+                      color={p.color}
+                      onTap={() => {
+                        if (p.status !== booking.status) setBookingStatus(p.status)
+                      }}
+                    />
+                  ))}
+                  <ActionPill
+                    label="Cancel"
+                    active={booking.status === 'Cancelled'}
+                    color="#ef4444"
+                    onTap={() => setBookingStatus('Cancelled')}
+                  />
+                  <ActionPill
+                    label="No Show"
+                    active={booking.status === 'No Show'}
+                    color="#ef4444"
+                    onTap={() => markNoShow()}
+                  />
+                </ActionRow>
+              </>
+            )}
           </>
         )}
       </div>

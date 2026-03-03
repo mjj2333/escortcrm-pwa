@@ -8,7 +8,7 @@ export const DEFAULT_REMINDER_INTERVAL = 14 // days
 
 /** Records the current timestamp as the last successful backup time. */
 export function recordBackupTimestamp() {
-  localStorage.setItem(lsKey(LAST_BACKUP_KEY), new Date().toISOString())
+  try { localStorage.setItem(lsKey(LAST_BACKUP_KEY), new Date().toISOString()) } catch { /* localStorage full */ }
 }
 
 /** Returns the number of days since the last backup, or null if never backed up. */

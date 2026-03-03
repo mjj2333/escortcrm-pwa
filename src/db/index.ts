@@ -488,22 +488,35 @@ export async function recordBookingPayment(opts: {
 }): Promise<string> {
   const paymentId = newId()
   await db.transaction('rw', [db.payments, db.transactions, db.bookings], async () => {
+    // Clamp non-tip/non-cancellation payments to remaining balance
+    let amount = opts.amount
+    if (opts.label !== 'Tip' && opts.label !== 'Cancellation Fee') {
+      const bk = await db.bookings.get(opts.bookingId)
+      if (bk) {
+        const remaining = opts.label === 'Deposit'
+          ? bk.depositAmount - (await db.payments.where('bookingId').equals(opts.bookingId).filter(p => p.label === 'Deposit').toArray()).reduce((s, p) => s + p.amount, 0)
+          : bookingTotal(bk) - await getBookingTotalPaid(opts.bookingId)
+        if (remaining <= 0) return
+        amount = Math.min(amount, remaining)
+      }
+    }
+
     await db.payments.add({
       id: paymentId,
       bookingId: opts.bookingId,
-      amount: opts.amount,
+      amount,
       method: opts.method,
       label: opts.label,
       date: new Date(),
       notes: opts.notes,
     })
     // Create matching income transaction
-    if (opts.amount > 0) {
+    if (amount > 0) {
       await db.transactions.add({
         id: newId(),
         bookingId: opts.bookingId,
         paymentId,
-        amount: opts.amount,
+        amount,
         type: 'income',
         category: opts.label === 'Tip' ? 'tip' : opts.label === 'Cancellation Fee' ? 'other' : 'booking',
         paymentMethod: opts.method,

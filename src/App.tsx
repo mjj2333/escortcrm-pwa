@@ -3,18 +3,23 @@ import { TabBar } from './components/TabBar'
 import { PinLock, hashPin } from './components/PinLock'
 import { HomePage } from './pages/home/HomePage'
 
+// Retry a dynamic import once after 1.5s on failure (handles transient network errors)
+function retryImport<T>(factory: () => Promise<T>): Promise<T> {
+  return factory().catch(() => new Promise<T>(resolve => setTimeout(() => resolve(factory()), 1500)))
+}
+
 // Lazy-load tab pages — only fetched when the user switches to that tab
-const SchedulePage = lazy(() => import('./pages/schedule/SchedulePage').then(m => ({ default: m.SchedulePage })))
-const ClientsPage = lazy(() => import('./pages/clients/ClientsPage').then(m => ({ default: m.ClientsPage })))
-const FinancesPage = lazy(() => import('./pages/finances/FinancesPage').then(m => ({ default: m.FinancesPage })))
-const SafetyPage = lazy(() => import('./pages/safety/SafetyPage').then(m => ({ default: m.SafetyPage })))
+const SchedulePage = lazy(() => retryImport(() => import('./pages/schedule/SchedulePage').then(m => ({ default: m.SchedulePage }))))
+const ClientsPage = lazy(() => retryImport(() => import('./pages/clients/ClientsPage').then(m => ({ default: m.ClientsPage }))))
+const FinancesPage = lazy(() => retryImport(() => import('./pages/finances/FinancesPage').then(m => ({ default: m.FinancesPage }))))
+const SafetyPage = lazy(() => retryImport(() => import('./pages/safety/SafetyPage').then(m => ({ default: m.SafetyPage }))))
 import { useLocalStorage } from './hooks/useSettings'
 
 // Lazy-load secondary screens — only fetched when the user navigates to them
-const ClientDetail = lazy(() => import('./pages/clients/ClientDetail').then(m => ({ default: m.ClientDetail })))
-const BookingDetail = lazy(() => import('./pages/schedule/BookingDetail').then(m => ({ default: m.BookingDetail })))
-const SettingsPage = lazy(() => import('./pages/home/SettingsPage').then(m => ({ default: m.SettingsPage })))
-const Calculator = lazy(() => import('./components/Calculator'))
+const ClientDetail = lazy(() => retryImport(() => import('./pages/clients/ClientDetail').then(m => ({ default: m.ClientDetail }))))
+const BookingDetail = lazy(() => retryImport(() => import('./pages/schedule/BookingDetail').then(m => ({ default: m.BookingDetail }))))
+const SettingsPage = lazy(() => retryImport(() => import('./pages/home/SettingsPage').then(m => ({ default: m.SettingsPage }))))
+const Calculator = lazy(() => retryImport(() => import('./components/Calculator')))
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
 import { useBookingReminders } from './hooks/useBookingReminders'
 import { isActivated, revalidateActivation } from './components/paywallState'

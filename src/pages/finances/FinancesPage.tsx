@@ -530,7 +530,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
                 <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{goalPeriodForDisplay}ly Income Goal</p>
                 {goalIsAllPeriod && (
                   <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
-                    Showing {goalPeriodForDisplay.toLowerCase()}ly goal for reference
+                    Based on your {goalPeriodForDisplay.toLowerCase()}ly target
                   </p>
                 )}
               </div>
@@ -1417,7 +1417,7 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
               <label htmlFor={f.id} className="text-xs font-semibold block mb-1" style={{ color: 'var(--text-primary)' }}>{f.label}</label>
               <input type="text" inputMode="numeric"
                 id={f.id}
-                value={f.value}
+                value={f.value ? Number(f.value).toLocaleString() : ''}
                 onChange={e => f.set(e.target.value.replace(/[^0-9]/g, ''))}
                 placeholder="0"
                 className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"

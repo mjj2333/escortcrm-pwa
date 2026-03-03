@@ -7,7 +7,7 @@ interface ToastData {
   id: number
   message: string
   type: ToastType
-  onUndo?: () => void
+  onUndo?: () => void | Promise<void>
 }
 
 let toastId = 0
@@ -19,7 +19,7 @@ export function showToast(message: string, type: ToastType = 'success') {
 }
 
 // Shows a toast with an Undo button. onUndo is called if the user taps it within 5s.
-export function showUndoToast(message: string, onUndo: () => void) {
+export function showUndoToast(message: string, onUndo: () => void | Promise<void>) {
   const toast: ToastData = { id: ++toastId, message, type: 'undo', onUndo }
   listeners.forEach(fn => fn(toast))
 }
@@ -94,7 +94,7 @@ export function ToastContainer() {
             {toast.type === 'undo' && toast.onUndo && (
               <button
                 onClick={() => {
-                  toast.onUndo!()
+                  Promise.resolve(toast.onUndo!()).catch(() => showToast('Undo failed', 'error'))
                   dismiss(toast.id)
                 }}
                 className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg ml-1 active:opacity-70"
