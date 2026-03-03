@@ -104,8 +104,8 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
   const depositPartial = totalDeposits > 0 && depositRemaining > 0
 
 
-  // Panel width
-  const PANEL_WIDTH = 280
+  // Panel width — cap at 85% of screen to keep card grabbable on small devices
+  const PANEL_WIDTH = Math.min(280, typeof window !== 'undefined' ? window.innerWidth * 0.85 : 280)
   const SNAP_THRESHOLD = 60
 
   // ━━━ Gesture handling ━━━

@@ -135,6 +135,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
           <input
             type="text" placeholder="Search clients..." value={search}
             onChange={e => { setSearch(e.target.value); setRenderLimit(50) }}
+            aria-label="Search clients"
             className="flex-1 bg-transparent text-sm outline-none"
             style={{ color: 'var(--text-primary)', fontSize: '16px' }}
           />

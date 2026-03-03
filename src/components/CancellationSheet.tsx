@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { X } from 'lucide-react'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, formatCurrency, recordBookingPayment, newId } from '../db'
@@ -185,8 +186,8 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
           <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
             {mode === 'noshow' ? 'Mark as No-Show' : 'Cancel Booking'}
           </h3>
-          <button onClick={onClose} className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Dismiss
+          <button onClick={onClose} className="p-1 rounded-lg" style={{ color: 'var(--text-secondary)' }} aria-label="Close">
+            <X size={18} />
           </button>
         </div>
 

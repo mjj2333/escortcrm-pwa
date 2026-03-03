@@ -28,6 +28,7 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
   const [scheduledTime, setScheduledTime] = useState('')
   const [bufferMinutes, setBufferMinutes] = useState(check.bufferMinutes)
   const [safetyContactId, setSafetyContactId] = useState<string>(check.safetyContactId ?? '')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -37,8 +38,6 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
       setSaving(false)
     }
   }, [isOpen, check])
-
-  const [saving, setSaving] = useState(false)
   const isValid = scheduledTime.length > 0 && bufferMinutes > 0
 
   async function handleSave() {

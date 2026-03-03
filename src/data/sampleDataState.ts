@@ -26,10 +26,16 @@ export async function clearSampleData(): Promise<void> {
 
   await db.transaction('rw',
     [db.clients, db.bookings, db.transactions, db.safetyContacts, db.safetyChecks,
-     db.incidents, db.serviceRates, db.availability, db.payments, db.incallVenues, db.journalEntries],
+     db.incidents, db.serviceRates, db.availability, db.payments, db.incallVenues, db.journalEntries, db.bookingChecklist],
     async () => {
       if (ids.clients?.length) await db.clients.bulkDelete(ids.clients)
-      if (ids.bookings?.length) await db.bookings.bulkDelete(ids.bookings)
+      if (ids.bookings?.length) {
+        // Also delete checklist items for sample bookings
+        for (const bId of ids.bookings) {
+          await db.bookingChecklist.where('bookingId').equals(bId).delete()
+        }
+        await db.bookings.bulkDelete(ids.bookings)
+      }
       if (ids.transactions?.length) await db.transactions.bulkDelete(ids.transactions)
       if (ids.safetyContacts?.length) await db.safetyContacts.bulkDelete(ids.safetyContacts)
       if (ids.safetyChecks?.length) await db.safetyChecks.bulkDelete(ids.safetyChecks)

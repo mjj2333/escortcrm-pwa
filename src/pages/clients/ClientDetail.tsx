@@ -54,6 +54,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [showMerge, setShowMerge] = useState(false)
   const [showMessageSheet, setShowMessageSheet] = useState(false)
   const [historyLimit, setHistoryLimit] = useState(10)
+  useEffect(() => { setHistoryLimit(10) }, [clientId])
   const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: JournalEntry; booking?: Booking } | null>(null)
   const [showNewActivity, setShowNewActivity] = useState(false)
   const [showUnblockConfirm, setShowUnblockConfirm] = useState(false)
@@ -77,10 +78,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     .filter(b => b.status === 'Completed' || b.status === 'Cancelled' || b.status === 'No Show')
     .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()), [bookings])
 
-  const detailNow = new Date()
+  const [detailNow, setDetailNow] = useState(() => new Date())
+  useEffect(() => {
+    const interval = setInterval(() => setDetailNow(new Date()), 60_000)
+    return () => clearInterval(interval)
+  }, [])
   const upcomingBookings = useMemo(() => bookings
     .filter(b => new Date(b.dateTime) > detailNow && b.status !== 'Cancelled' && b.status !== 'Completed' && b.status !== 'No Show')
-    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()), [bookings])
+    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()), [bookings, detailNow])
 
   // Pre-build payment lookup to avoid O(n*m) nested filters
   const paymentsByBookingId = useMemo(() => {
@@ -110,7 +115,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   // Visit frequency indicator
   const visitInterval = useMemo(() =>
     client ? computeClientInterval(completedBookings, client.lastSeen, detailNow) : null,
-    [completedBookings, client?.lastSeen])
+    [completedBookings, client?.lastSeen, detailNow])
 
   if (!client) {
     if (!settled) return null

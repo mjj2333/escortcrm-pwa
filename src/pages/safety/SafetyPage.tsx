@@ -214,7 +214,6 @@ export function SafetyPage() {
 
   return (
     <div className="pb-20">
-      <div>
       <PageHeader title="Safety">
         {tab === 'contacts' && (
           <button onClick={() => { setEditingContact(undefined); setShowContactEditor(true) }} className="p-2 rounded-lg text-purple-500" aria-label="Add safety contact">
@@ -232,7 +231,6 @@ export function SafetyPage() {
           </button>
         )}
       </PageHeader>
-      </div>
 
       <div className="max-w-lg mx-auto">
         {/* Overdue Banner */}
@@ -482,6 +480,7 @@ export function SafetyPage() {
                       value={incidentSearch}
                       onChange={e => setIncidentSearch(e.target.value)}
                       placeholder="Search incidents..."
+                      aria-label="Search incidents"
                       className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none"
                       style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
                     />
