@@ -130,11 +130,13 @@ const PROFILE_LS_KEYS = [
   'profileTagline', 'profileSetupDone',
   'defaultDepositType', 'defaultDepositPercentage', 'defaultDepositFlat',
   'currency', 'introTemplate', 'directionsTemplate',
+  'tplConfirmation', 'tplDepositReminder', 'tplScreening', 'tplCancellation', 'tplThankYou',
   'taxRate', 'setAsideRate',
   'goalWeekly', 'goalMonthly', 'goalQuarterly', 'goalYearly',
   'darkMode', 'oledBlack', 'remindersEnabled',
   'financeCards_v2', 'financeHintDismissed',
   'defaultChecklistItems', 'stealthEnabled',
+  'bufferMinutes', 'outcallBufferMinutes',
 ]
 
 export async function createBackup(): Promise<BackupPayload> {
@@ -533,6 +535,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
                   backgroundColor: 'var(--bg-card)',
                   color: 'var(--text-primary)',
                   border: '1px solid var(--border)',
+                  fontSize: '16px',
                 }}
               />
             )}

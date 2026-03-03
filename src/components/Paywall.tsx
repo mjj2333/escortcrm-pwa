@@ -330,6 +330,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
                   color: 'var(--text-primary)',
                   border: '1px solid var(--border)',
                   fontFamily: isGiftMode ? 'monospace' : 'inherit',
+                  fontSize: '16px',
                 }}
               />
               {error && <p className="text-xs text-red-500">{error}</p>}

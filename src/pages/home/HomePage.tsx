@@ -47,11 +47,15 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
     return () => clearTimeout(timer)
   }, [tick])
 
-  const now = new Date()
-  const todayStart = startOfDay(now)
-  const todayEnd = endOfDay(now)
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 })
-  const monthStart = startOfMonth(now)
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60_000)
+    return () => clearInterval(interval)
+  }, [])
+  const todayStart = useMemo(() => startOfDay(now), [now])
+  const todayEnd = useMemo(() => endOfDay(now), [now])
+  const weekStart = useMemo(() => startOfWeek(now, { weekStartsOn: 1 }), [now])
+  const monthStart = useMemo(() => startOfMonth(now), [now])
 
   const [showAllActive, setShowAllActive] = useState(false)
   const [showAllBalances, setShowAllBalances] = useState(false)
@@ -178,7 +182,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
       <PageHeader title="Home">
         <button
           onClick={() => setShowIncallBook(true)}
-          className="p-2 rounded-lg active:bg-white/10 transition-colors"
+          className="p-2 rounded-lg active:opacity-60 transition-colors"
           style={{ color: 'var(--text-secondary)' }}
           aria-label="Incall Book"
         >
@@ -186,7 +190,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
         </button>
         <button
           onClick={() => setShowProfile(true)}
-          className="p-2 rounded-lg active:bg-white/10 transition-colors relative"
+          className="p-2 rounded-lg active:opacity-60 transition-colors relative"
           style={{ color: 'var(--text-secondary)' }}
           aria-label="Profile"
         >
@@ -197,7 +201,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
         </button>
         <button
           onClick={onOpenSettings}
-          className="p-2 rounded-lg active:bg-white/10 transition-colors"
+          className="p-2 rounded-lg active:opacity-60 transition-colors"
           style={{ color: 'var(--text-secondary)' }}
           aria-label="Settings"
         >

@@ -1769,17 +1769,23 @@ function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
         if (txnSnap) await db.transactions.put(txnSnap)
         if (paySnap) {
           await db.payments.put(paySnap)
-          // Re-sync booking payment booleans
+          // Re-sync booking payment booleans and status
           const booking = await db.bookings.get(paySnap.bookingId)
           if (booking) {
-            const allPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).toArray())
-              .reduce((s, p) => s + p.amount, 0)
-            const depositPaid = (await db.payments.where('bookingId').equals(paySnap.bookingId).filter(p => p.label === 'Deposit').toArray())
-              .reduce((s, p) => s + p.amount, 0)
-            await db.bookings.update(paySnap.bookingId, {
+            const allPayments = await db.payments.where('bookingId').equals(paySnap.bookingId).toArray()
+            const allPaid = allPayments.filter(p => p.label !== 'Tip').reduce((s, p) => s + p.amount, 0)
+            const depositPaid = allPayments.filter(p => p.label === 'Deposit').reduce((s, p) => s + p.amount, 0)
+            const updates: Record<string, unknown> = {
               paymentReceived: allPaid >= bookingTotal(booking),
               depositReceived: depositPaid >= booking.depositAmount,
-            })
+            }
+            // Restore status if deposit was removed and booking was downgraded
+            if (paySnap.label === 'Deposit' && depositPaid >= booking.depositAmount
+              && booking.status === 'Pending Deposit' && booking.depositAmount > 0) {
+              updates.status = 'Confirmed'
+              updates.confirmedAt = new Date()
+            }
+            await db.bookings.update(paySnap.bookingId, updates)
           }
         }
       })

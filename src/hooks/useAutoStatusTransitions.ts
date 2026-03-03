@@ -145,6 +145,8 @@ export function useAutoStatusTransitions() {
               depositAmount: b.depositAmount,
               depositMethod: b.depositMethod,
               paymentMethod: b.paymentMethod,
+              tourId: b.tourId,
+              notes: b.notes,
               requiresSafetyCheck: b.requiresSafetyCheck,
               safetyCheckMinutesAfter: b.safetyCheckMinutesAfter,
               safetyContactId: b.safetyContactId,

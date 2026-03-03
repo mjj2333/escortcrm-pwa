@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { fmtShortDate, fmtMediumDate } from '../../utils/dateFormat'
 import { db, formatCurrency, bookingTotal } from '../../db'
+import type { BookingPayment } from '../../types'
 import { Card } from '../../components/Card'
 import { StatusBadge } from '../../components/StatusBadge'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -29,6 +30,13 @@ export function TourDetail({ tourId, onBack, onOpenBooking }: TourDetailProps) {
     [tourId]
   ) ?? []
   const clients = useLiveQuery(() => db.clients.toArray()) ?? []
+  const bookingIds = bookings.map(b => b.id)
+  const payments = useLiveQuery(
+    () => bookingIds.length > 0
+      ? db.payments.where('bookingId').anyOf(bookingIds).toArray()
+      : Promise.resolve([] as BookingPayment[]),
+    [bookingIds.join(',')]
+  ) ?? []
 
   const [showEditor, setShowEditor] = useState(false)
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
@@ -52,18 +60,18 @@ export function TourDetail({ tourId, onBack, onOpenBooking }: TourDetailProps) {
     )
   }
 
-  // Compute profitability — deduplicate booking income already counted via transactions
-  const bookingIds = new Set(bookings.map(b => b.id))
+  // Compute profitability — use actual payments for booking income
+  const bookingIdSet = new Set(bookingIds)
   const nonBookingIncome = transactions
-    .filter(t => t.type === 'income' && (!t.bookingId || !bookingIds.has(t.bookingId)))
+    .filter(t => t.type === 'income' && (!t.bookingId || !bookingIdSet.has(t.bookingId)))
     .reduce((s, t) => s + t.amount, 0)
-  const bookingIncome = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + bookingTotal(b), 0)
+  const bookingIncome = payments.filter(p => p.label !== 'Tip').reduce((s, p) => s + p.amount, 0)
   const income = bookingIncome + nonBookingIncome
   const expenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const net = income - expenses
 
   const sortedBookings = [...bookings].sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
-  const incomeTransactions = transactions.filter(t => t.type === 'income' && (!t.bookingId || !bookingIds.has(t.bookingId)))
+  const incomeTransactions = transactions.filter(t => t.type === 'income' && (!t.bookingId || !bookingIdSet.has(t.bookingId)))
   const expenseTransactions = transactions.filter(t => t.type === 'expense')
 
   async function handleArchiveToggle() {

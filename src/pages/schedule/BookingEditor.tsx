@@ -162,7 +162,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
 
   // Filter client list
   const filteredClients = clients.filter(c =>
-    !clientSearch || c.alias.toLowerCase().includes(clientSearch.toLowerCase())
+    !c.isBlocked && (!clientSearch || c.alias.toLowerCase().includes(clientSearch.toLowerCase()))
   )
 
   // Auto-set safety check based on client risk
@@ -444,7 +444,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
                 {filteredClients.map(c => (
                   <button key={c.id} type="button"
                     onClick={() => { setClientId(c.id); setShowClientPicker(false); setClientSearch('') }}
-                    className="flex items-center gap-2 px-3 py-2.5 w-full text-left active:bg-white/5"
+                    className="flex items-center gap-2 px-3 py-2.5 w-full text-left active:opacity-70"
                     style={{ borderTop: '1px solid var(--border)' }}>
                     <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
                       style={{ backgroundColor: 'rgba(168,85,247,0.15)' }}>

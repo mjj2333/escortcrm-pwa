@@ -81,12 +81,14 @@ export function SafetyPage() {
   }
 
   async function checkInAll() {
-    for (const c of overdueChecks) {
-      await db.safetyChecks.update(c.id, {
-        status: 'checkedIn' as SafetyCheckStatus,
-        checkedInAt: new Date(),
-      })
-    }
+    await db.transaction('rw', db.safetyChecks, async () => {
+      for (const c of overdueChecks) {
+        await db.safetyChecks.update(c.id, {
+          status: 'checkedIn' as SafetyCheckStatus,
+          checkedInAt: new Date(),
+        })
+      }
+    })
     showToast(`${overdueChecks.length} check-in${overdueChecks.length > 1 ? 's' : ''} confirmed`)
   }
 

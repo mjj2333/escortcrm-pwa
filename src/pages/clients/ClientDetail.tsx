@@ -427,8 +427,9 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                       }
                     }}
                     className={`w-10 h-6 rounded-full relative transition-colors ${
-                      (client.requiresSafetyCheck || forcedOn) ? 'bg-green-500' : 'bg-zinc-600'
+                      (client.requiresSafetyCheck || forcedOn) ? 'bg-green-500' : ''
                     } ${forcedOn ? 'opacity-60' : ''}`}
+                    style={!(client.requiresSafetyCheck || forcedOn) ? { backgroundColor: 'var(--border)' } : undefined}
                   >
                     <div className="w-4 h-4 rounded-full bg-white absolute top-1 transition-transform"
                       style={{ transform: (client.requiresSafetyCheck || forcedOn) ? 'translateX(20px)' : 'translateX(4px)' }} />

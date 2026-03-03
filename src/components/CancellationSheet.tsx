@@ -4,6 +4,7 @@ import { useScrollLock } from '../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, formatCurrency, recordBookingPayment, newId } from '../db'
 import { showToast } from './Toast'
+import { deriveCurrencySymbol } from './FormFields'
 import type { Booking, BookingStatus, PaymentMethod, CancelledBy, DepositOutcome } from '../types'
 
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
@@ -287,7 +288,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
             <div className="flex-1">
               <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>Amount</label>
               <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--bg-base)' }}>
-                <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>$</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{deriveCurrencySymbol()}</span>
                 <input
                   type="text"
                   inputMode="decimal"

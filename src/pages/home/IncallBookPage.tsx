@@ -334,6 +334,7 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [showSendDirections, setShowSendDirections] = useState(false)
 
   if (!venue) return (
@@ -365,6 +366,8 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
   }
 
   async function handleDelete() {
+    if (deleting) return
+    setDeleting(true)
     await db.transaction('rw', [db.venueDocs, db.bookings, db.incallVenues], async () => {
       await db.venueDocs.where('venueId').equals(venueId).delete()
       // Clear venueId from any bookings referencing this venue
@@ -614,7 +617,7 @@ function CopyRow({ icon, label: _label, text, copied, onCopy }: {
         <span style={{ color: 'var(--text-secondary)' }}>{icon}</span>
         <span className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>{text}</span>
       </div>
-      <button onClick={onCopy} className="shrink-0 p-1.5 rounded-lg active:bg-white/10">
+      <button onClick={onCopy} className="shrink-0 p-1.5 rounded-lg active:opacity-60">
         {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} style={{ color: 'var(--text-secondary)' }} />}
       </button>
     </div>
@@ -761,7 +764,7 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
                       <button
                         key={c.id}
                         onClick={() => setSelectedClient(c)}
-                        className="w-full text-left flex items-center gap-3 py-2.5 px-2 rounded-lg active:bg-white/5"
+                        className="w-full text-left flex items-center gap-3 py-2.5 px-2 rounded-lg active:opacity-70"
                       >
                         <div
                           className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
@@ -1173,7 +1176,7 @@ export function VenuePicker({ isOpen, onClose, onSelect }: {
                     <button
                       key={v.id}
                       onClick={() => { onSelect(v); onClose() }}
-                      className="w-full text-left flex items-center gap-3 py-2.5 px-2 rounded-lg active:bg-white/5"
+                      className="w-full text-left flex items-center gap-3 py-2.5 px-2 rounded-lg active:opacity-70"
                     >
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"

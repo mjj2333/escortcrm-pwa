@@ -155,7 +155,7 @@ export function BookingChecklist({ bookingId }: BookingChecklistProps) {
           onKeyDown={e => { if (e.key === 'Enter') addItem() }}
           placeholder="Add item..."
           className="flex-1 text-sm py-1.5 px-2 rounded-lg border-0 outline-none"
-          style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}
+          style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '16px' }}
         />
         <button
           onClick={addItem}

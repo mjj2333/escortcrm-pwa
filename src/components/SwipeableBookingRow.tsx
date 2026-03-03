@@ -45,8 +45,8 @@ function ActionPill({ label, active, color, onTap }: {
       onClick={e => { e.stopPropagation(); onTap() }}
       className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide shrink-0 transition-all"
       style={{
-        backgroundColor: active ? `${color}` : 'rgba(255,255,255,0.08)',
-        color: active ? '#fff' : 'rgba(255,255,255,0.5)',
+        backgroundColor: active ? `${color}` : 'var(--bg-base)',
+        color: active ? '#fff' : 'var(--text-secondary)',
         textShadow: active ? '0 1px 2px rgba(0,0,0,0.3)' : 'none',
         minWidth: '38px',
         textAlign: 'center',
@@ -61,7 +61,7 @@ function ActionRow({ label, children }: { label: string; children: React.ReactNo
   return (
     <div className="flex items-center gap-1.5 px-2">
       <span className="text-[8px] font-bold uppercase tracking-wider w-[44px] shrink-0"
-        style={{ color: 'rgba(255,255,255,0.45)' }}>
+        style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
         {label}
       </span>
       <div className="flex gap-1 flex-1 justify-end">
@@ -315,7 +315,7 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
         aria-hidden={offset === 0}
         style={{
           width: `${PANEL_WIDTH}px`,
-          background: 'linear-gradient(135deg, #1e1b2e, #1a1a2e)',
+          background: 'var(--bg-secondary)',
         }}
       >
         {/* Unverified: show only screening row */}
