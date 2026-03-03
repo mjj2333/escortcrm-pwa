@@ -527,8 +527,8 @@ export async function recordBookingPayment(opts: {
   label: PaymentLabel
   clientAlias?: string
   notes?: string
-}): Promise<string> {
-  const paymentId = newId()
+}): Promise<string | null> {
+  let paymentId: string | null = null
   await db.transaction('rw', [db.payments, db.transactions, db.bookings], async () => {
     // Clamp non-tip/non-cancellation payments to remaining balance
     let amount = opts.amount
@@ -543,6 +543,7 @@ export async function recordBookingPayment(opts: {
       }
     }
 
+    paymentId = newId()
     await db.payments.add({
       id: paymentId,
       bookingId: opts.bookingId,

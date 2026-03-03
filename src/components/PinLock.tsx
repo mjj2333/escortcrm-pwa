@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Shield, Delete, Fingerprint } from 'lucide-react'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { isBiometricEnabled, assertBiometric } from '../hooks/useBiometric'
+import { clearFieldEncryption } from '../db/fieldCrypto'
 import { lsKey } from '../hooks/useSettings'
 
 /** SHA-256 hash a PIN string → hex. Used for storage and comparison so
@@ -170,6 +171,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
         const duressHash = duressRaw ? duressRaw.replace(/^"|"$/g, '') : ''
         if (duressHash && hash === duressHash) {
           setWiping(true)
+          clearFieldEncryption()
           try {
             const { db } = await import('../db')
             await db.delete()
@@ -191,6 +193,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
           // Wipe all data at 10 failed attempts
           if (attempts >= MAX_ATTEMPTS_BEFORE_WIPE) {
             setWiping(true)
+            clearFieldEncryption()
             setError('Too many failed attempts — erasing all data for safety')
             try {
               const { db } = await import('../db')

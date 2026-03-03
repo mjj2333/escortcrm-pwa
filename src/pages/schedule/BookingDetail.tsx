@@ -253,14 +253,18 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
     }
   }
 
+  const [deletingPayment, setDeletingPayment] = useState(false)
   async function confirmDeletePayment() {
-    if (!deletePaymentId) return
+    if (!deletePaymentId || deletingPayment) return
+    setDeletingPayment(true)
     try {
       await removeBookingPayment(deletePaymentId)
       setDeletePaymentId(null)
       showToast('Payment removed')
     } catch (err) {
       showToast(`Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      setDeletingPayment(false)
     }
   }
 

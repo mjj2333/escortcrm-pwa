@@ -174,6 +174,14 @@ export default function App() {
 
   const { pushNav, replaceNav } = useHashNav(activeTab, screen, setActiveTab, setScreen)
 
+  // Close settings overlay on back button (popstate)
+  useEffect(() => {
+    if (!showSettings) return
+    function onPop() { setShowSettings(false) }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [showSettings])
+
   function handleTabChange(tab: number) {
     // Tab switches replace history — tapping tabs shouldn't pollute the back stack
     replaceNav(tab, { type: 'tab' })
@@ -192,8 +200,11 @@ export default function App() {
   }
 
   function goBack() {
-    // Prefer browser back so the history stack stays consistent
-    if (history.length > 1) {
+    // Use browser back if we have a valid app state behind us.
+    // history.state is set by pushNav/replaceNav, so its presence means
+    // the previous entry is ours. history.length is unreliable — it counts
+    // entries from before the PWA was opened.
+    if (history.state?.tab !== undefined && screen.type !== 'tab') {
       history.back()
     } else {
       replaceNav(activeTab, { type: 'tab' })
@@ -221,27 +232,31 @@ export default function App() {
   // Paywall — shown when user requests upgrade (never blocks app)
   if (showPaywall) {
     return (
-      <Suspense fallback={null}>
-        <ToastContainer />
-        <Paywall
-          onActivated={() => {
-            setShowPaywall(false)
-            setDeepLinkCode(undefined)
-          }}
-          onClose={() => { setShowPaywall(false); setDeepLinkCode(undefined); }}
-          initialCode={deepLinkCode}
-        />
-      </Suspense>
+      <ErrorBoundary fallback={<RouteErrorFallback />}>
+        <Suspense fallback={null}>
+          <ToastContainer />
+          <Paywall
+            onActivated={() => {
+              setShowPaywall(false)
+              setDeepLinkCode(undefined)
+            }}
+            onClose={() => { setShowPaywall(false); setDeepLinkCode(undefined); }}
+            initialCode={deepLinkCode}
+          />
+        </Suspense>
+      </ErrorBoundary>
     )
   }
 
   // Stealth mode — full-screen calculator disguise
   if (isStealthMode) {
     return (
-      <Suspense fallback={<div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 200 }} />}>
-        <ToastContainer />
-        <Calculator onExit={() => setIsStealthMode(false)} pinHash={pinCode} />
-      </Suspense>
+      <ErrorBoundary fallback={<RouteErrorFallback />}>
+        <Suspense fallback={<div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 200 }} />}>
+          <ToastContainer />
+          <Calculator onExit={() => setIsStealthMode(false)} pinHash={pinCode} />
+        </Suspense>
+      </ErrorBoundary>
     )
   }
 
