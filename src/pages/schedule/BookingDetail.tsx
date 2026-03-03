@@ -324,26 +324,54 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                 <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
                   {client.nickname ?? client.alias}<VerifiedBadge client={client} size={13} />
                 </p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  {client.preferredContact}{client.screeningStatus !== 'Screened' ? ` · ${client.screeningStatus}` : ''}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    {client.preferredContact}{client.screeningStatus !== 'Screened' ? ` · ${client.screeningStatus}` : ''}
+                  </p>
+                  {client.riskLevel !== 'Unknown' && (
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                      client.riskLevel === 'High Risk' ? 'bg-red-500/15 text-red-500' :
+                      client.riskLevel === 'Medium Risk' ? 'bg-orange-500/15 text-orange-500' :
+                      'bg-green-500/15 text-green-500'
+                    }`}>
+                      {client.riskLevel}
+                    </span>
+                  )}
+                </div>
               </div>
               <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
             </div>
 
-            {/* Preferences preview */}
-            {(client.preferences || client.boundaries) && (
+            {/* Preferences, boundaries, notes */}
+            {(client.preferences || client.boundaries || client.notes) && (
               <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
                 {client.preferences && (
                   <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
-                    💜 {client.preferences.slice(0, 100)}{client.preferences.length > 100 ? '…' : ''}
+                    💜 {client.preferences}
                   </p>
                 )}
                 {client.boundaries && (
                   <p className="text-xs text-red-500" style={{ whiteSpace: 'pre-wrap' }}>
-                    🚫 {client.boundaries.slice(0, 100)}{client.boundaries.length > 100 ? '…' : ''}
+                    🚫 {client.boundaries}
                   </p>
                 )}
+                {client.notes && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+                    📝 {client.notes}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Client tags */}
+            {client.tags && client.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {client.tags.map(tag => (
+                  <span key={tag.id} className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: `${tag.color}25`, color: tag.color }}>
+                    {tag.icon && <span className="mr-0.5">{tag.icon}</span>}{tag.name}
+                  </span>
+                ))}
               </div>
             )}
           </Card>
