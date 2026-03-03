@@ -66,22 +66,6 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     return () => clearTimeout(timer)
   }, [])
 
-  if (!client) {
-    if (!settled) return null
-    return (
-      <div className="flex flex-col items-center justify-center p-8 text-center" style={{ minHeight: '60vh' }}>
-        <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Client not found</h2>
-        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>This client may have been deleted.</p>
-        <button
-          onClick={onBack}
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97]"
-        >
-          Go back
-        </button>
-      </div>
-    )
-  }
-
   const completedBookings = useMemo(() => bookings
     .filter(b => b.status === 'Completed')
     .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()), [bookings])
@@ -127,6 +111,22 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const visitInterval = useMemo(() =>
     client ? computeClientInterval(completedBookings, client.lastSeen, detailNow) : null,
     [completedBookings, client?.lastSeen])
+
+  if (!client) {
+    if (!settled) return null
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center" style={{ minHeight: '60vh' }}>
+        <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Client not found</h2>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>This client may have been deleted.</p>
+        <button
+          onClick={onBack}
+          className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97]"
+        >
+          Go back
+        </button>
+      </div>
+    )
+  }
 
   function copyToClipboard(text: string, field: string) {
     navigator.clipboard.writeText(text).then(() => {
