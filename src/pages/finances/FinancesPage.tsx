@@ -7,7 +7,7 @@ import {
 import { useState, useMemo } from 'react'
 import {
   startOfMonth, startOfWeek, startOfYear, startOfQuarter,
-  subMonths, getDay, getHours, eachMonthOfInterval,
+  subMonths, subWeeks, getDay, getHours, eachMonthOfInterval,
   differenceInDays, endOfMonth, endOfWeek, endOfQuarter, endOfYear,
   startOfDay, endOfDay, parseISO
 } from 'date-fns'
@@ -34,33 +34,33 @@ type CardKey =
   // Financial
   | 'goal' | 'stats' | 'tax' | 'bookingTypes' | 'paymentMethods' | 'expenses' | 'outstanding' | 'transactions'
   // Trends
-  | 'monthOverMonth' | 'incomeTrend' | 'bookingVolume' | 'monthlyBreakdown'
+  | 'monthOverMonth' | 'weekOverWeek' | 'incomeTrend' | 'bookingVolume' | 'monthlyBreakdown'
   // Timing
   | 'peakTimes' | 'heatmap' | 'revenueByDay'
   // Clients
-  | 'retention' | 'repeatRevenue' | 'topClients' | 'reliability' | 'clientSources'
+  | 'retention' | 'repeatRevenue' | 'topClients' | 'clientLTV' | 'reliability' | 'clientSources'
 
 interface CardGroup { label: string; keys: CardKey[] }
 const CARD_GROUPS: CardGroup[] = [
   { label: '💰 Financial', keys: ['goal', 'stats', 'tax', 'bookingTypes', 'paymentMethods', 'expenses', 'outstanding', 'transactions'] },
-  { label: '📈 Trends', keys: ['monthOverMonth', 'incomeTrend', 'bookingVolume', 'monthlyBreakdown'] },
+  { label: '📈 Trends', keys: ['monthOverMonth', 'weekOverWeek', 'incomeTrend', 'bookingVolume', 'monthlyBreakdown'] },
   { label: '🕐 Timing', keys: ['peakTimes', 'heatmap', 'revenueByDay'] },
-  { label: '👥 Clients', keys: ['retention', 'repeatRevenue', 'topClients', 'reliability', 'clientSources'] },
+  { label: '👥 Clients', keys: ['retention', 'repeatRevenue', 'topClients', 'clientLTV', 'reliability', 'clientSources'] },
 ]
 const CARD_LABELS: Record<CardKey, string> = {
   goal: 'Income Goal', stats: 'Summary Stats', tax: 'Tax Estimate',
   bookingTypes: 'Revenue by Booking Type', paymentMethods: 'Payment Methods',
   expenses: 'Top Expenses', outstanding: 'Outstanding Balances', transactions: 'Recent Transactions',
-  monthOverMonth: 'Month over Month', incomeTrend: '12-Month Income Trend',
+  monthOverMonth: 'Month over Month', weekOverWeek: 'Week over Week', incomeTrend: '12-Month Income Trend',
   bookingVolume: 'Booking Volume', monthlyBreakdown: 'Monthly Breakdown',
   peakTimes: 'Peak Times', heatmap: 'Booking Heatmap', revenueByDay: 'Revenue by Day of Week',
   retention: 'Client Retention', repeatRevenue: 'Repeat vs One-time Revenue',
-  topClients: 'Top Clients by Revenue', reliability: 'Reliability Concerns', clientSources: 'Client Sources',
+  topClients: 'Top Clients by Revenue', clientLTV: 'Client Lifetime Value', reliability: 'Reliability Concerns', clientSources: 'Client Sources',
 }
 const ALL_CARDS: CardKey[] = CARD_GROUPS.flatMap(g => g.keys)
 const DEFAULT_VISIBLE: CardKey[] = [
   'goal', 'stats', 'tax', 'bookingTypes', 'paymentMethods', 'expenses', 'outstanding', 'transactions',
-  'monthOverMonth', 'incomeTrend',
+  'monthOverMonth', 'weekOverWeek', 'incomeTrend',
 ]
 
 // Location type display config
@@ -371,6 +371,19 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   const maxMonthlyIncome = Math.max(1, ...monthly.map(m => m.income))
   const maxMonthlyBookings = Math.max(1, ...monthly.map(m => m.bookings))
 
+  // Week over Week
+  const wowCurrentStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+  const wowPrevStart = subWeeks(wowCurrentStart, 1)
+  const wowCurrentIncome = allTransactions
+    .filter(t => t.type === 'income' && new Date(t.date) >= wowCurrentStart)
+    .reduce((s, t) => s + t.amount, 0)
+  const wowPrevIncome = allTransactions
+    .filter(t => t.type === 'income' && new Date(t.date) >= wowPrevStart && new Date(t.date) < wowCurrentStart)
+    .reduce((s, t) => s + t.amount, 0)
+  const wowChange = wowPrevIncome > 0
+    ? Math.round(((wowCurrentIncome - wowPrevIncome) / wowPrevIncome) * 100)
+    : null
+
   // Client analytics (filtered by period)
   const clientStats = useMemo(() => {
     return clients.map(c => {
@@ -385,6 +398,34 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
 
   const topClients = useMemo(() => [...clientStats].sort((a, b) => b.revenue - a.revenue).slice(0, 10), [clientStats])
   const unreliableClients = useMemo(() => clientStats.filter(s => s.cancelRate >= 30 && s.totalBookings >= 2).sort((a, b) => b.cancelRate - a.cancelRate), [clientStats])
+
+  // Client Lifetime Value — all-time revenue per client (ignores period filter)
+  const clientLTV = useMemo(() => {
+    const bookingClientMap = new Map<string, string>()
+    const completedByClient = new Map<string, number>()
+    for (const b of allBookings) {
+      if (b.clientId) bookingClientMap.set(b.id, b.clientId)
+      if (b.clientId && b.status === 'Completed') {
+        completedByClient.set(b.clientId, (completedByClient.get(b.clientId) ?? 0) + 1)
+      }
+    }
+    const ltvMap = new Map<string, number>()
+    for (const t of allTransactions) {
+      if (t.type === 'income' && t.bookingId) {
+        const cid = bookingClientMap.get(t.bookingId)
+        if (cid) ltvMap.set(cid, (ltvMap.get(cid) ?? 0) + t.amount)
+      }
+    }
+    return [...ltvMap.entries()]
+      .map(([clientId, revenue]) => ({
+        client: clientMap.get(clientId),
+        revenue,
+        bookingCount: completedByClient.get(clientId) ?? 0,
+      }))
+      .filter(x => x.client && x.revenue > 0)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10)
+  }, [allTransactions, allBookings, clientMap])
 
   const retentionMetrics = useMemo(() => {
     // Build per-client completed booking count in one pass
@@ -860,6 +901,37 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
           </Card>
         )}
 
+        {/* Week over Week */}
+        {isCardVisible('weekOverWeek') && (
+          <Card>
+            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Week over Week</p>
+            {period !== 'Week' && (
+              <p className="text-[10px] mb-2" style={{ color: 'var(--text-secondary)' }}>
+                Comparing full calendar weeks (not limited to {period.toLowerCase()} period)
+              </p>
+            )}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>This Week</p>
+                <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(wowCurrentIncome)}</p>
+              </div>
+              <div className="w-px" style={{ backgroundColor: 'var(--border)' }} />
+              <div className="flex-1">
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>vs Last Week</p>
+                <div className="flex items-center gap-1">
+                  {wowChange === null
+                    ? <span className="text-xl font-bold" style={{ color: 'var(--text-secondary)' }}>N/A</span>
+                    : <>
+                        {wowChange >= 0 ? <TrendingUp size={18} className="text-green-500" /> : <TrendingDown size={18} className="text-red-500" />}
+                        <span className={`text-xl font-bold ${wowChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>{Math.abs(wowChange)}%</span>
+                      </>
+                  }
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* 12-Month Income Trend */}
         {isCardVisible('incomeTrend') && (
           <Card>
@@ -1092,6 +1164,37 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
                 ))}
               </div>
             )}
+          </Card>
+        )}
+
+        {/* Client Lifetime Value */}
+        {isCardVisible('clientLTV') && clientLTV.length > 0 && (
+          <Card>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Client Lifetime Value</p>
+              <span className="text-sm">👑</span>
+            </div>
+            <p className="text-[10px] mb-3" style={{ color: 'var(--text-secondary)' }}>All-time revenue (ignores period filter)</p>
+            <div className="space-y-2">
+              {clientLTV.map((item, i) => {
+                const c = item.client!
+                const since = c.clientSince ?? c.dateAdded
+                const monthsAgo = since ? Math.max(1, Math.round(differenceInDays(new Date(), new Date(since)) / 30)) : null
+                return (
+                  <div key={c.id} className="flex items-center gap-3">
+                    <span className="text-xs w-5 text-center" style={{ color: 'var(--text-secondary)' }}>#{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{c.alias}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        {item.bookingCount} booking{item.bookingCount !== 1 ? 's' : ''}
+                        {monthsAgo !== null ? ` · ${monthsAgo}mo` : ''}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold text-green-500">{formatCurrency(item.revenue)}</span>
+                  </div>
+                )
+              })}
+            </div>
           </Card>
         )}
 
