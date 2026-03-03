@@ -64,6 +64,8 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
   const [showDuressRemove, setShowDuressRemove] = useState(false)
   const [disablingPin, setDisablingPin] = useState(false)
   const [stealthEnabled, setStealthEnabled] = useLocalStorage('stealthEnabled', false)
+  const [bufferMinutes, setBufferMinutes] = useLocalStorage('bufferMinutes', 30)
+  const [outcallBufferMinutes, setOutcallBufferMinutes] = useLocalStorage('outcallBufferMinutes', 30)
 
   /** Apply the resolved dark/light state to the DOM */
   function applyDarkState(isDark: boolean) {
@@ -375,6 +377,61 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
               Notifications are blocked by your browser. Enable them in your browser settings.
             </p>
           )}
+
+          {/* Scheduling */}
+          <SectionLabel label="Scheduling" />
+          <div className="mb-3">
+            <label className="text-xs font-semibold block mb-1.5" style={{ color: 'var(--text-primary)' }}>
+              Buffer Between Bookings
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {[0, 15, 30, 45, 60].map(mins => (
+                <button
+                  key={mins}
+                  type="button"
+                  onClick={() => setBufferMinutes(mins)}
+                  aria-pressed={bufferMinutes === mins}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                  style={{
+                    backgroundColor: bufferMinutes === mins ? '#a855f7' : 'var(--bg-primary)',
+                    color: bufferMinutes === mins ? '#fff' : 'var(--text-secondary)',
+                    border: `1px solid ${bufferMinutes === mins ? '#a855f7' : 'var(--border)'}`,
+                  }}
+                >
+                  {mins === 0 ? 'Off' : `${mins} min`}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+              Minimum gap required between bookings. You'll be warned if a new booking is too close.
+            </p>
+          </div>
+          <div className="mb-3">
+            <label className="text-xs font-semibold block mb-1.5" style={{ color: 'var(--text-primary)' }}>
+              Extra Time for Outcalls
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {[0, 15, 30, 45, 60].map(mins => (
+                <button
+                  key={mins}
+                  type="button"
+                  onClick={() => setOutcallBufferMinutes(mins)}
+                  aria-pressed={outcallBufferMinutes === mins}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                  style={{
+                    backgroundColor: outcallBufferMinutes === mins ? '#a855f7' : 'var(--bg-primary)',
+                    color: outcallBufferMinutes === mins ? '#fff' : 'var(--text-secondary)',
+                    border: `1px solid ${outcallBufferMinutes === mins ? '#a855f7' : 'var(--border)'}`,
+                  }}
+                >
+                  {mins === 0 ? 'Off' : `${mins} min`}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+              Additional buffer when either booking is an outcall or travel appointment.
+            </p>
+          </div>
 
           {/* Data */}
           <SectionLabel label="Data" />

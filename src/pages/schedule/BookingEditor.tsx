@@ -92,7 +92,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
   const [newClientBoundaries, setNewClientBoundaries] = useState('')
 
   // Availability conflict
-  const [conflictWarning, setConflictWarning] = useState<{ reason: string; dayStatus: string; isDoubleBook: boolean } | null>(null)
+  const [conflictWarning, setConflictWarning] = useState<{ reason: string; dayStatus: string; isDoubleBook: boolean; isBufferConflict: boolean } | null>(null)
 
   // Escape key to dismiss conflict warning
   const handleConflictEscape = useCallback((e: KeyboardEvent) => {
@@ -233,12 +233,13 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
     if (!isValid || saving) return
     const dt = new Date(dateTime)
 
-    const conflict = await checkBookingConflict(dt, duration, booking?.id)
+    const conflict = await checkBookingConflict(dt, duration, locationType, booking?.id)
     if (conflict.hasConflict) {
       setConflictWarning({
         reason: conflict.reason,
         dayStatus: conflict.dayStatus ?? '',
         isDoubleBook: conflict.isDoubleBook ?? false,
+        isBufferConflict: conflict.isBufferConflict ?? false,
       })
       return
     }
@@ -810,32 +811,37 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
           onClick={e => e.stopPropagation()}>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: conflictWarning.isDoubleBook ? 'rgba(239,68,68,0.15)' : 'rgba(249,115,22,0.15)' }}>
-              <AlertTriangle size={20} style={{ color: conflictWarning.isDoubleBook ? '#ef4444' : '#f97316' }} />
+              style={{ backgroundColor: conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict ? 'rgba(239,68,68,0.15)' : 'rgba(249,115,22,0.15)' }}>
+              <AlertTriangle size={20} style={{ color: conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict ? '#ef4444' : '#f97316' }} />
             </div>
             <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
-              {conflictWarning.isDoubleBook ? 'Double Booking' : 'Availability Conflict'}
+              {conflictWarning.isDoubleBook ? 'Double Booking' : conflictWarning.isBufferConflict ? 'Scheduling Conflict' : 'Availability Conflict'}
             </h3>
           </div>
           <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>{conflictWarning.reason}</p>
-          {!conflictWarning.isDoubleBook && (
-            <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
-              If you continue, this day will be set to <strong style={{ color: '#f97316' }}>Limited</strong> and
-              only this booking's time slot will be open.
-            </p>
-          )}
           {conflictWarning.isDoubleBook && (
             <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
               This booking will overlap with another appointment. Are you sure you want to proceed?
+            </p>
+          )}
+          {conflictWarning.isBufferConflict && (
+            <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+              There isn't enough buffer time between these bookings. You can adjust this in Settings.
+            </p>
+          )}
+          {!conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict && (
+            <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+              If you continue, this day will be set to <strong style={{ color: '#f97316' }}>Limited</strong> and
+              only this booking's time slot will be open.
             </p>
           )}
           <div className="flex gap-3">
             <button onClick={() => setConflictWarning(null)}
               className="flex-1 py-3 rounded-xl text-sm font-semibold"
               style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Go Back</button>
-            <button onClick={() => saveBooking(!conflictWarning.isDoubleBook)}
+            <button onClick={() => saveBooking(!conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict)}
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
-              style={{ background: conflictWarning.isDoubleBook
+              style={{ background: conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict
                 ? 'linear-gradient(135deg, #ef4444, #dc2626)'
                 : 'linear-gradient(135deg, #f97316, #ef4444)' }}>
               Book Anyway</button>

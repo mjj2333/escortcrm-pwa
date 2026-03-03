@@ -1,6 +1,6 @@
 import { startOfDay } from 'date-fns'
 import { db, newId } from '../db'
-import type { DayAvailability, TimeSlot } from '../types'
+import type { DayAvailability, LocationType, TimeSlot } from '../types'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TIME SLOT HELPERS
@@ -55,6 +55,20 @@ export interface AvailabilityConflict {
   dayStatus?: string
   dayAvail?: DayAvailability
   isDoubleBook?: boolean  // true if conflict is with another booking, not availability
+  isBufferConflict?: boolean  // true if gap-too-small (not actual overlap)
+}
+
+/** Read buffer settings from localStorage (matches useLocalStorage key convention) */
+function getBufferSettings(): { bufferMinutes: number; outcallBufferMinutes: number } {
+  let bufferMinutes = 30
+  let outcallBufferMinutes = 30
+  try {
+    const raw1 = localStorage.getItem('c_bufferMinutes')
+    if (raw1 !== null) bufferMinutes = JSON.parse(raw1)
+    const raw2 = localStorage.getItem('c_outcallBufferMinutes')
+    if (raw2 !== null) outcallBufferMinutes = JSON.parse(raw2)
+  } catch { /* use defaults */ }
+  return { bufferMinutes, outcallBufferMinutes }
 }
 
 /**
@@ -64,6 +78,7 @@ export interface AvailabilityConflict {
 export async function checkBookingConflict(
   bookingDateTime: Date,
   durationMinutes: number,
+  locationType?: LocationType,
   excludeBookingId?: string
 ): Promise<AvailabilityConflict> {
   // 1. Check for overlapping bookings first
@@ -71,6 +86,8 @@ export async function checkBookingConflict(
   const bookingEndMs = bookingStartMs + durationMinutes * 60000
 
   const activeBookings = await db.bookings.where('status').noneOf(['Cancelled', 'No Show', 'Completed']).toArray()
+
+  // Pass 1: true overlap (no buffer)
   const overlapping = activeBookings.find(b => {
     if (b.id === excludeBookingId) return false
     const bStart = new Date(b.dateTime).getTime()
@@ -85,6 +102,35 @@ export async function checkBookingConflict(
       hasConflict: true,
       reason: `This overlaps with an existing booking at ${timeStr}.`,
       isDoubleBook: true,
+    }
+  }
+
+  // Pass 2: buffer violations
+  const { bufferMinutes, outcallBufferMinutes } = getBufferSettings()
+  const isNewOutcall = locationType === 'Outcall' || locationType === 'Travel'
+
+  if (bufferMinutes > 0 || outcallBufferMinutes > 0) {
+    for (const b of activeBookings) {
+      if (b.id === excludeBookingId) continue
+      const bStart = new Date(b.dateTime).getTime()
+      const bEnd = bStart + b.duration * 60000
+      const isExistingOutcall = b.locationType === 'Outcall' || b.locationType === 'Travel'
+      const extraBuffer = (isNewOutcall || isExistingOutcall) ? outcallBufferMinutes : 0
+      const totalBuffer = bufferMinutes + extraBuffer
+      const effectiveBufferMs = totalBuffer * 60000
+      if (bookingStartMs < bEnd + effectiveBufferMs && bookingEndMs > bStart - effectiveBufferMs) {
+        const bTime = new Date(b.dateTime)
+        const timeStr = formatTime12(dateToTimeStr(bTime))
+        // Compute actual gap
+        const gapMs = Math.max(bookingStartMs - bEnd, bStart - bookingEndMs, 0)
+        const gapMin = Math.round(gapMs / 60000)
+        const outcallNote = extraBuffer > 0 ? ' for outcalls' : ''
+        return {
+          hasConflict: true,
+          reason: `Only ${gapMin}m gap before your booking at ${timeStr} (${totalBuffer}m required${outcallNote}).`,
+          isBufferConflict: true,
+        }
+      }
     }
   }
 
