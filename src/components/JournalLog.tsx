@@ -103,7 +103,7 @@ export function JournalLog({ clientId, onEditEntry, onAddNew }: JournalLogProps)
                         </p>
                         {!isSession && (
                           <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                            style={{ backgroundColor: bg, color: entryIcon(entry.entryType).className.includes('blue') ? '#3b82f6' : entryIcon(entry.entryType).className.includes('green') ? '#22c55e' : '#f59e0b' }}>
+                            style={{ backgroundColor: bg, color: entry.entryType === 'call' ? '#3b82f6' : entry.entryType === 'message' ? '#22c55e' : '#f59e0b' }}>
                             {entryTypeLabel(entry.entryType)}
                           </span>
                         )}
