@@ -5,7 +5,7 @@ import { HomePage } from './pages/home/HomePage'
 
 // Retry a dynamic import once after 1.5s on failure (handles transient network errors)
 function retryImport<T>(factory: () => Promise<T>): Promise<T> {
-  return factory().catch(() => new Promise<T>(resolve => setTimeout(() => resolve(factory()), 1500)))
+  return factory().catch(() => new Promise<T>((resolve, reject) => setTimeout(() => factory().then(resolve, reject), 1500)))
 }
 
 // Lazy-load tab pages — only fetched when the user switches to that tab

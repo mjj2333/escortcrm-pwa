@@ -51,7 +51,7 @@ export default defineConfig({
     swBuildStamp(),
   ],
   build: {
-    sourcemap: true,
+    sourcemap: 'hidden',
     rollupOptions: {
       output: {
         manualChunks: {

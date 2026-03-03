@@ -47,11 +47,6 @@ export function useBookingReminders(enabled: boolean) {
     if (!enabled) return
     if (!('Notification' in window)) return
 
-    // Request permission on mount
-    if (Notification.permission === 'default') {
-      Notification.requestPermission()
-    }
-
     async function checkReminders() {
       if (Notification.permission !== 'granted') return
 

@@ -13,8 +13,6 @@ function sendCompletionNotification(clientAlias: string, durationMin: number) {
       icon: '/icon-192.png',
       tag: 'session-complete',
     }) } catch { /* Notification API unavailable */ }
-  } else if (Notification.permission !== 'denied') {
-    Notification.requestPermission()
   }
 }
 
