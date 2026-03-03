@@ -106,6 +106,10 @@ function resolveTemplatePlaceholders(
   const workEmail = localStorage.getItem(lsKey('profileWorkEmail'))?.replace(/^"|"$/g, '') || ''
   const workPhone = localStorage.getItem(lsKey('profileWorkPhone'))?.replace(/^"|"$/g, '') || ''
   const website = localStorage.getItem(lsKey('profileWebsite'))?.replace(/^"|"$/g, '') || ''
+  const onlyFans = localStorage.getItem(lsKey('profileOnlyFans'))?.replace(/^"|"$/g, '') || ''
+  const instagram = localStorage.getItem(lsKey('profileInstagram'))?.replace(/^"|"$/g, '') || ''
+  const twitter = localStorage.getItem(lsKey('profileTwitter'))?.replace(/^"|"$/g, '') || ''
+  const bsky = localStorage.getItem(lsKey('profileBsky'))?.replace(/^"|"$/g, '') || ''
 
   // Deposit string
   let depositStr: string
@@ -147,6 +151,10 @@ function resolveTemplatePlaceholders(
     .replace(/\{email\}/g, safe(workEmail))
     .replace(/\{phone\}/g, safe(workPhone))
     .replace(/\{website\}/g, safe(website))
+    .replace(/\{of\}/g, safe(onlyFans))
+    .replace(/\{instagram\}/g, safe(instagram))
+    .replace(/\{twitter\}/g, safe(twitter))
+    .replace(/\{bsky\}/g, safe(bsky))
     .replace(/\{rates\}/g, safe(ratesStr))
     .replace(/\{deposit\}/g, safe(depositStr))
     .replace(/\{venue\}/g, safe(venue?.name || ''))

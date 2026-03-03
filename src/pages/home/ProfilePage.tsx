@@ -20,6 +20,10 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
   const [workEmail, setWorkEmail] = useLocalStorage('profileWorkEmail', '')
   const [workPhone, setWorkPhone] = useLocalStorage('profileWorkPhone', '')
   const [website, setWebsite] = useLocalStorage('profileWebsite', '')
+  const [onlyFans, setOnlyFans] = useLocalStorage('profileOnlyFans', '')
+  const [instagram, setInstagram] = useLocalStorage('profileInstagram', '')
+  const [twitter, setTwitter] = useLocalStorage('profileTwitter', '')
+  const [bsky, setBsky] = useLocalStorage('profileBsky', '')
   const [tagline, setTagline] = useLocalStorage('profileTagline', '')
   const [currency, setCurrency] = useLocalStorage(CURRENCY_KEY, DEFAULT_CURRENCY)
   const [, setProfileSetupDone] = useLocalStorage('profileSetupDone', false)
@@ -129,6 +133,10 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           <FieldTextInput label="Email" value={workEmail} onChange={setWorkEmail} placeholder="Working email" />
           <FieldTextInput label="Phone" value={workPhone} onChange={v => setWorkPhone(formatPhone(v))} placeholder="Working phone" />
           <FieldTextInput label="Website / Ad Link" value={website} onChange={setWebsite} placeholder="https://" />
+          <FieldTextInput label="OnlyFans" value={onlyFans} onChange={setOnlyFans} placeholder="onlyfans.com/..." />
+          <FieldTextInput label="Instagram" value={instagram} onChange={setInstagram} placeholder="@handle" />
+          <FieldTextInput label="Twitter / X" value={twitter} onChange={setTwitter} placeholder="@handle" />
+          <FieldTextInput label="Bluesky" value={bsky} onChange={setBsky} placeholder="@handle.bsky.social" />
           <FieldTextInput label="Tagline" value={tagline} onChange={setTagline} placeholder="Short bio or tagline" />
         </div>
 
@@ -296,7 +304,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
 
         {/* Intro Template */}
         <SectionLabel label="Intro Message Template" />
-        <FieldHint text="Sent to new clients after an inquiry. Placeholders: {client}, {name}, {rates}, {deposit}, {email}, {phone}, {website}" />
+        <FieldHint text="Sent to new clients after an inquiry. Placeholders: {client}, {name}, {rates}, {deposit}, {email}, {phone}, {website}, {of}, {instagram}, {twitter}, {bsky}" />
         <textarea
           value={introTemplate}
           onChange={e => setIntroTemplate(e.target.value)}
@@ -329,7 +337,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
         {showBookingTemplates && (
           <div>
             <p className="text-[11px] mb-3 px-1" style={{ color: 'var(--text-tertiary, var(--text-secondary))' }}>
-              Used from Message Client. Placeholders: {'{client}'}, {'{name}'}, {'{date}'}, {'{time}'}, {'{duration}'}, {'{rate}'}, {'{deposit}'}, {'{balance}'}, {'{venue}'}, {'{address}'}, {'{directions}'}
+              Used from Message Client. Placeholders: {'{client}'}, {'{name}'}, {'{date}'}, {'{time}'}, {'{duration}'}, {'{rate}'}, {'{deposit}'}, {'{balance}'}, {'{venue}'}, {'{address}'}, {'{directions}'}, {'{of}'}, {'{instagram}'}, {'{twitter}'}, {'{bsky}'}
             </p>
 
             <SectionLabel label="Confirmation" />

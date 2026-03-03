@@ -48,6 +48,10 @@ export async function clearSampleData(): Promise<void> {
     profileWorkEmail: 'valentina@protonmail.com',
     profileWorkPhone: '(555) 800-7777',
     profileWebsite: 'https://valentinarose.com',
+    profileOnlyFans: 'onlyfans.com/valentinarose',
+    profileInstagram: '@valentina.rose',
+    profileTwitter: '@ValentinaRoseVIP',
+    profileBsky: '@valentinarose.bsky.social',
     profileTagline: 'Refined companionship for discerning gentlemen',
     profileSetupDone: true,
   }
@@ -75,7 +79,8 @@ export async function clearSampleData(): Promise<void> {
     }
     const defaults: Record<string, unknown> = {
       profileWorkingName: '', profileWorkEmail: '', profileWorkPhone: '',
-      profileWebsite: '', profileTagline: '', profileSetupDone: false,
+      profileWebsite: '', profileOnlyFans: '', profileInstagram: '', profileTwitter: '', profileBsky: '',
+      profileTagline: '', profileSetupDone: false,
       defaultDepositType: 'percent', defaultDepositPercentage: 25,
       defaultDepositFlat: 0, currency: 'USD', introTemplate: '', directionsTemplate: '',
     }

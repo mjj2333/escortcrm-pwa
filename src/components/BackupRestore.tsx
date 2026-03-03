@@ -125,7 +125,8 @@ function base64ToBlob(b64: string, mimeType: string): Blob {
 // localStorage keys to include in backup
 const PROFILE_LS_KEYS = [
   'profileWorkingName', 'profileWorkEmail', 'profileWorkPhone',
-  'profileWebsite', 'profileTagline', 'profileSetupDone',
+  'profileWebsite', 'profileOnlyFans', 'profileInstagram', 'profileTwitter', 'profileBsky',
+  'profileTagline', 'profileSetupDone',
   'defaultDepositType', 'defaultDepositPercentage', 'defaultDepositFlat',
   'currency', 'introTemplate', 'directionsTemplate',
   'taxRate', 'setAsideRate',

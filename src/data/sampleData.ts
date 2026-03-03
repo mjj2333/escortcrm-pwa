@@ -86,6 +86,10 @@ export async function seedSampleData(): Promise<void> {
   setLS('profileWorkEmail', 'valentina@protonmail.com')
   setLS('profileWorkPhone', '(555) 800-7777')
   setLS('profileWebsite', 'https://valentinarose.com')
+  setLS('profileOnlyFans', 'onlyfans.com/valentinarose')
+  setLS('profileInstagram', '@valentina.rose')
+  setLS('profileTwitter', '@ValentinaRoseVIP')
+  setLS('profileBsky', '@valentinarose.bsky.social')
   setLS('profileTagline', 'Refined companionship for discerning gentlemen')
   setLS('profileSetupDone', true)
   setLS('defaultDepositType', 'percent')
@@ -769,6 +773,7 @@ export async function seedSampleData(): Promise<void> {
   // Store which profile keys were set by sample data so we only clear those
   const sampleProfileKeys = [
     'profileWorkingName', 'profileWorkEmail', 'profileWorkPhone', 'profileWebsite',
+    'profileOnlyFans', 'profileInstagram', 'profileTwitter', 'profileBsky',
     'profileTagline', 'profileSetupDone', 'defaultDepositType', 'defaultDepositPercentage',
     'defaultDepositFlat', 'currency', 'introTemplate', 'directionsTemplate',
   ]
