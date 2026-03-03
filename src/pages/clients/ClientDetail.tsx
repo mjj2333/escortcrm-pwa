@@ -54,7 +54,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [showMerge, setShowMerge] = useState(false)
   const [showMessageSheet, setShowMessageSheet] = useState(false)
   const [historyLimit, setHistoryLimit] = useState(10)
-  const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: JournalEntry; booking: Booking } | null>(null)
+  const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: JournalEntry; booking?: Booking } | null>(null)
+  const [showNewActivity, setShowNewActivity] = useState(false)
   const [showUnblockConfirm, setShowUnblockConfirm] = useState(false)
   const { expanded, toggle } = useAccordion()
 
@@ -651,15 +652,16 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           </CollapsibleCard>
         )}
 
-        {/* Session Journal */}
-        <CollapsibleCard label="Session Journal" id="journal" expanded={expanded} toggle={toggle}>
+        {/* Activity */}
+        <CollapsibleCard label="Activity" id="journal" expanded={expanded} toggle={toggle}>
           {isPro() ? (
             <JournalLog
               clientId={clientId}
               onEditEntry={(entry, booking) => setJournalEditEntry({ entry, booking })}
+              onAddNew={() => setShowNewActivity(true)}
             />
           ) : (
-            <ProGate feature="Session Journal" onUpgrade={onShowPaywall} inline />
+            <ProGate feature="Activity Log" onUpgrade={onShowPaywall} inline />
           )}
         </CollapsibleCard>
 
@@ -725,10 +727,17 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           isOpen={!!journalEditEntry}
           onClose={() => setJournalEditEntry(null)}
           booking={journalEditEntry.booking}
+          clientId={clientId}
           clientAlias={client.alias}
           existingEntry={journalEditEntry.entry}
         />
       )}
+      <JournalEntryEditor
+        isOpen={showNewActivity}
+        onClose={() => setShowNewActivity(false)}
+        clientId={clientId}
+        clientAlias={client.alias}
+      />
       <SendMessageSheet
         isOpen={showMessageSheet}
         onClose={() => setShowMessageSheet(false)}

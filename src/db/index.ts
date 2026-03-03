@@ -214,6 +214,25 @@ class CompanionDatabase extends Dexie {
       bookingChecklist: 'id, bookingId, sortOrder',
       meta: 'key',
     })
+
+    // v12: Add entryType index to journal entries (support standalone activity entries)
+    this.version(12).stores({
+      clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId',
+      transactions: 'id, bookingId, type, category, date',
+      availability: 'id, date',
+      safetyContacts: 'id, isPrimary, isActive',
+      safetyChecks: 'id, bookingId, status, scheduledTime',
+      incidents: 'id, clientId, bookingId, date, severity',
+      serviceRates: 'id, sortOrder, isActive',
+      payments: 'id, bookingId, label, date',
+      journalEntries: 'id, bookingId, clientId, date, entryType',
+      screeningDocs: 'id, clientId, uploadedAt',
+      incallVenues: 'id, city, isFavorite, isArchived, createdAt',
+      venueDocs: 'id, venueId, uploadedAt',
+      bookingChecklist: 'id, bookingId, sortOrder',
+      meta: 'key',
+    })
   }
 }
 

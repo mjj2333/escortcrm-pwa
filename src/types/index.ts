@@ -219,10 +219,13 @@ export interface ScreeningDoc {
 
 export type JournalTag = 'Regular' | 'Great Chemistry' | 'New Experience' | 'Boundary Issue' | 'Generous' | 'Difficult' | 'Late' | 'Respectful' | 'Rushed' | 'Relaxed'
 
+export type JournalEntryType = 'session' | 'call' | 'message' | 'note'
+
 export interface JournalEntry {
   id: string
-  bookingId: string
+  bookingId?: string
   clientId: string
+  entryType?: JournalEntryType
   date: Date
   notes: string
   tags: JournalTag[]
