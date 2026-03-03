@@ -631,7 +631,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
                   style={duration !== rate.duration || baseRate !== rate.rate || customDuration
                     ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' } : {}}>
                   <div className="font-bold">{rate.name}</div>
-                  <div className="text-xs opacity-70">{formatCurrency(rate.rate)}</div>
+                  <div className="text-xs opacity-70">{Math.round((rate.duration / 60) * 100) / 100}h · {formatCurrency(rate.rate)}</div>
                 </button>
               ))}
               <button type="button" onClick={() => setCustomDuration(true)}
