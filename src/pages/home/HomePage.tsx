@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Settings, Clock, CalendarDays, DollarSign, Users,
-  ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X, CircleUser, Building2
+  ChevronRight, ShieldAlert, TrendingUp, Cake, Bell, Database, X, CircleUser, Building2, UserCheck
 } from 'lucide-react'
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, isToday, differenceInDays, isSameDay } from 'date-fns'
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense, useReducer } from 'react'
@@ -20,6 +20,7 @@ import type { Booking } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
 import { useBackupReminder } from '../../hooks/useBackupReminder'
 import { HomePageSkeleton } from '../../components/Skeleton'
+import { computeFollowUps } from '../../utils/followUpReminders'
 import { AvailabilityPicker } from '../schedule/AvailabilityPicker'
 import { BookingEditor } from '../schedule/BookingEditor'
 
@@ -136,6 +137,10 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
     })
     .filter(b => b.daysUntil <= 30)
     .sort((a, b) => a.daysUntil - b.daysUntil), [clients, now, todayStart])
+
+  // Follow-up reminders (overdue clients based on booking frequency)
+  const followUpReminders = useMemo(() =>
+    computeFollowUps(clients, allBookings, now).slice(0, 5), [clients, allBookings, now])
 
   const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients])
   const clientForBooking = (clientId?: string) =>
@@ -433,6 +438,60 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                   +{bookingsWithBalance.length - 4} more
                 </button>
               )}
+            </div>
+          </Card>
+        )}
+
+        {/* Follow-Up Reminders */}
+        {followUpReminders.length > 0 && (
+          <Card>
+            <CardHeader
+              title="Follow-Up Due"
+              icon={<UserCheck size={16} className="text-blue-500" />}
+            />
+            <div className="space-y-2">
+              {followUpReminders.map(({ clientId, avgIntervalDays, daysSinceLastSeen, daysOverdue }) => {
+                const c = clientMap.get(clientId)
+                if (!c) return null
+                return (
+                  <button
+                    key={clientId}
+                    onClick={() => onOpenClient(clientId)}
+                    className="flex items-center gap-3 w-full text-left py-1.5"
+                  >
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: 'rgba(59,130,246,0.15)' }}
+                    >
+                      <span className="text-xs font-bold" style={{ color: '#3b82f6' }}>
+                        {c.alias.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                        {c.alias}
+                      </p>
+                      <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                        Every ~{avgIntervalDays}d — last seen {daysSinceLastSeen}d ago
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-semibold text-orange-500">
+                        {daysOverdue}d overdue
+                      </span>
+                      {c.screeningStatus === 'Screened' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setBookClientId(c.id) }}
+                          className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
+                        >
+                          Book
+                        </button>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </Card>
         )}

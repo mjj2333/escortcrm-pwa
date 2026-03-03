@@ -4,9 +4,10 @@ import {
   ArrowLeft, Edit, Phone, MessageSquare, Mail, Copy, Check,
   Pin, PinOff, Gift, Heart, ChevronRight, Shield,
   ThumbsUp, ShieldAlert, Plus, RotateCcw, Trash2, Merge,
-  MapPin, Send, StickyNote
+  MapPin, Send, StickyNote, UserCheck
 } from 'lucide-react'
 import { fmtShortDate, fmtMediumDate, fmtShortDayDate, fmtTime } from '../../utils/dateFormat'
+import { computeClientInterval } from '../../utils/followUpReminders'
 import { db, formatCurrency, bookingTotal, bookingDurationFormatted, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../../db'
 import { StatusBadge } from '../../components/StatusBadge'
 import { RiskLevelBar } from '../../components/RiskLevelBar'
@@ -120,6 +121,11 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     const owing = bTotal - bPaid
     return sum + (owing > 0 ? owing : 0)
   }, 0), [activeBookings, paymentsByBookingId])
+
+  // Visit frequency indicator
+  const visitInterval = useMemo(() =>
+    client ? computeClientInterval(completedBookings, client.lastSeen, detailNow) : null,
+    [completedBookings, client?.lastSeen])
 
   function copyToClipboard(text: string, field: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -305,6 +311,20 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
             <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Last Seen</p>
           </div>
         </div>
+
+        {/* Visit Frequency */}
+        {visitInterval && (
+          <div className="flex items-center justify-center gap-1.5 -mt-1 mb-1">
+            <UserCheck size={12} style={{ color: visitInterval.daysOverdue > 0 ? '#f97316' : 'var(--text-secondary)' }} />
+            <p className="text-[11px]" style={{ color: visitInterval.daysOverdue > 0 ? '#f97316' : 'var(--text-secondary)' }}>
+              Usually every ~{visitInterval.avgIntervalDays}d
+              {visitInterval.daysOverdue > 0
+                ? ` · ${visitInterval.daysOverdue}d overdue`
+                : ` · next in ~${Math.abs(visitInterval.daysOverdue)}d`
+              }
+            </p>
+          </div>
+        )}
 
         {/* Outstanding Balance */}
         {outstandingBalance > 0 && (
