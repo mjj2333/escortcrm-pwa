@@ -522,17 +522,12 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
           </button>
         )}
 
-        {/* Goal Progress */}
-        {isCardVisible('goal') && (hasGoal ? (
+        {/* Goal Progress — hidden on All/Custom since there's no matching period */}
+        {isCardVisible('goal') && !goalIsAllPeriod && (hasGoal ? (
           <Card onClick={() => setShowGoalEditor(true)}>
             <div className="flex items-center justify-between mb-2">
               <div>
                 <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{goalPeriodForDisplay}ly Income Goal</p>
-                {goalIsAllPeriod && (
-                  <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
-                    Based on your {goalPeriodForDisplay.toLowerCase()}ly target
-                  </p>
-                )}
               </div>
               {goalProgress >= 1 ? (
                 <span className="text-lg">✅</span>
