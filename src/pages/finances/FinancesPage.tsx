@@ -898,8 +898,6 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
             return (
               <div className="space-y-2">
                 {sorted.map(tour => {
-                  const tourIncome = allTransactions.filter(t => t.tourId === tour.id && t.type === 'income').reduce((s, t) => s + t.amount, 0)
-                    + allBookings.filter(b => b.tourId === tour.id && b.status === 'Completed').reduce((s, b) => s + bookingTotal(b), 0)
                   // Deduplicate booking income already counted via transactions
                   const tourBookingIds = new Set(allBookings.filter(b => b.tourId === tour.id).map(b => b.id))
                   const nonBookingIncome = allTransactions

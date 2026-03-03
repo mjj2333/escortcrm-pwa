@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
-  ArrowLeft, Edit, Archive, ArchiveRestore, MapPin, Calendar,
-  TrendingUp, TrendingDown, DollarSign, ChevronRight
+  ArrowLeft, Edit, Archive, ArchiveRestore, MapPin, Calendar, ChevronRight
 } from 'lucide-react'
 import { fmtShortDate, fmtMediumDate } from '../../utils/dateFormat'
 import { db, formatCurrency, bookingTotal } from '../../db'
@@ -45,10 +44,7 @@ export function TourDetail({ tourId, onBack, onOpenBooking }: TourDetailProps) {
     )
   }
 
-  // Compute profitability
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-    + bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + bookingTotal(b), 0)
-  // Deduplicate: income transactions linked to tour bookings are already counted via bookings
+  // Compute profitability — deduplicate booking income already counted via transactions
   const bookingIds = new Set(bookings.map(b => b.id))
   const nonBookingIncome = transactions
     .filter(t => t.type === 'income' && (!t.bookingId || !bookingIds.has(t.bookingId)))
@@ -180,7 +176,7 @@ export function TourDetail({ tourId, onBack, onOpenBooking }: TourDetailProps) {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <StatusBadge label={b.status} color={bookingStatusColors[b.status]} />
+                      <StatusBadge text={b.status} color={bookingStatusColors[b.status]} />
                       <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {formatCurrency(bookingTotal(b))}
                       </span>
@@ -248,7 +244,7 @@ export function TourDetail({ tourId, onBack, onOpenBooking }: TourDetailProps) {
       <TourEditor isOpen={showEditor} onClose={() => setShowEditor(false)} tour={tour} />
       <ConfirmDialog
         isOpen={showArchiveConfirm}
-        onClose={() => setShowArchiveConfirm(false)}
+        onCancel={() => setShowArchiveConfirm(false)}
         onConfirm={handleArchiveToggle}
         title={tour.isArchived ? 'Restore Tour' : 'Archive Tour'}
         message={tour.isArchived ? 'This tour will be visible again in your tours list.' : 'This tour will be hidden from your active tours list.'}
