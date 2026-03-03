@@ -49,6 +49,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [showRebook, setShowRebook] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(copyTimerRef.current), [])
   const [showBlockConfirm, setShowBlockConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -101,7 +102,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const noShowCount = useMemo(() => bookings.filter(b => b.status === 'No Show').length, [bookings])
   const completedIds = useMemo(() => new Set(completedBookings.map(b => b.id)), [completedBookings])
   const totalRevenue = useMemo(() => allPayments
-    .filter(p => completedIds.has(p.bookingId))
+    .filter(p => completedIds.has(p.bookingId) && p.label !== 'Tip')
     .reduce((sum, p) => sum + p.amount, 0), [allPayments, completedIds])
 
   // Outstanding balance: sum of (total - paid) for Pending Deposit+ bookings

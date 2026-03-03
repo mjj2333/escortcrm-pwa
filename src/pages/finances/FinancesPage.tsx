@@ -903,7 +903,9 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
                   const nonBookingIncome = allTransactions
                     .filter(t => t.tourId === tour.id && t.type === 'income' && (!t.bookingId || !tourBookingIds.has(t.bookingId)))
                     .reduce((s, t) => s + t.amount, 0)
-                  const bookingIncome = allBookings.filter(b => b.tourId === tour.id && b.status === 'Completed').reduce((s, b) => s + bookingTotal(b), 0)
+                  const bookingIncome = allPayments
+                    .filter(p => tourBookingIds.has(p.bookingId) && p.label !== 'Tip')
+                    .reduce((s, p) => s + p.amount, 0)
                   const income = bookingIncome + nonBookingIncome
                   const tourExpenses = allTransactions.filter(t => t.tourId === tour.id && t.type === 'expense').reduce((s, t) => s + t.amount, 0)
                   const net = income - tourExpenses

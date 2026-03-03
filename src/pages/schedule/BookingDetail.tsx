@@ -585,6 +585,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                   backgroundColor: 'var(--bg-secondary)',
                   color: client.screeningStatus === 'In Progress' ? '#3b82f6' : '#f59e0b',
                   border: 'none',
+                  fontSize: '16px',
                 }}
               >
                 <option value="Unscreened">Unscreened</option>

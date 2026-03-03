@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Archive, ArchiveRestore, MapPin, Calendar, ChevronRight
@@ -48,7 +48,7 @@ export function TourDetail({ tourId, onBack, onOpenBooking }: TourDetailProps) {
     return () => clearTimeout(timer)
   }, [])
 
-  const clientMap = new Map(clients.map(c => [c.id, c]))
+  const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients])
 
   if (!tour) {
     if (!settled) return null

@@ -485,14 +485,14 @@ export function SafetyPage() {
                       placeholder="Search incidents..."
                       aria-label="Search incidents"
                       className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none"
-                      style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                      style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', fontSize: '16px' }}
                     />
                   </div>
                   <select
                     value={incidentSeverityFilter}
                     onChange={e => setIncidentSeverityFilter(e.target.value as IncidentSeverity | 'all')}
                     className="px-3 py-2 rounded-lg text-sm outline-none"
-                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)', fontSize: '16px' }}
                   >
                     <option value="all">All</option>
                     <option value="critical">Critical</option>

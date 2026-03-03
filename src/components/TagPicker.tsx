@@ -202,7 +202,7 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
                   onChange={e => setCustomIcon(e.target.value)}
                   placeholder="Emoji"
                   className="w-12 text-center text-sm p-1.5 rounded-lg bg-transparent outline-none"
-                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '16px' }}
                   maxLength={2}
                 />
                 <input
@@ -211,7 +211,7 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
                   onChange={e => setCustomName(e.target.value)}
                   placeholder="Tag name..."
                   className="flex-1 text-sm p-1.5 rounded-lg bg-transparent outline-none"
-                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '16px' }}
                   maxLength={30}
                   onKeyDown={e => e.key === 'Enter' && addCustomTag()}
                 />

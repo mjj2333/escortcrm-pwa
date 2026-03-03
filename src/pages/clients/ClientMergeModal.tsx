@@ -6,7 +6,7 @@
 //   3. For each field that differs, they choose which value to keep.
 //   4. On confirm: all bookings/incidents re-pointed to target, source deleted.
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Search, ArrowRight, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { fmtMediumDate } from '../../utils/dateFormat'
@@ -100,6 +100,18 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
   const [choices, setChoices] = useState<Record<string, FieldChoice>>({})
   const [showAllFields, setShowAllFields] = useState(false)
   const [working, setWorking] = useState(false)
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setStep('pick')
+      setSearch('')
+      setTargetClient(null)
+      setChoices({})
+      setShowAllFields(false)
+      setWorking(false)
+    }
+  }, [isOpen])
 
   const allClients = useLiveQuery(() => db.clients.toArray()) ?? []
 

@@ -191,7 +191,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
             value={filterScreening}
             onChange={e => { setFilterScreening(e.target.value); setRenderLimit(50) }}
             className="text-[10px] font-semibold px-2 py-1.5 rounded-full outline-none"
-            style={{ backgroundColor: filterScreening ? 'rgba(168,85,247,0.15)' : 'var(--bg-secondary)', color: filterScreening ? '#a855f7' : 'var(--text-secondary)', border: 'none' }}
+            style={{ backgroundColor: filterScreening ? 'rgba(168,85,247,0.15)' : 'var(--bg-secondary)', color: filterScreening ? '#a855f7' : 'var(--text-secondary)', border: 'none', fontSize: '16px' }}
           >
             <option value="">All Screening</option>
             <option value="Unscreened">Unscreened</option>
@@ -202,7 +202,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
             value={filterRisk}
             onChange={e => { setFilterRisk(e.target.value); setRenderLimit(50) }}
             className="text-[10px] font-semibold px-2 py-1.5 rounded-full outline-none"
-            style={{ backgroundColor: filterRisk ? 'rgba(168,85,247,0.15)' : 'var(--bg-secondary)', color: filterRisk ? '#a855f7' : 'var(--text-secondary)', border: 'none' }}
+            style={{ backgroundColor: filterRisk ? 'rgba(168,85,247,0.15)' : 'var(--bg-secondary)', color: filterRisk ? '#a855f7' : 'var(--text-secondary)', border: 'none', fontSize: '16px' }}
           >
             <option value="">All Risk</option>
             <option value="Low Risk">Low Risk</option>

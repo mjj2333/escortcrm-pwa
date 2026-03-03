@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { Shield, Plus, Copy, Trash2, Check, Loader, Lock, RefreshCw, Calendar } from 'lucide-react'
 import type { GiftCodeRecord } from '../../netlify/functions/admin-gift-codes'
@@ -31,6 +31,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
   // Copy feedback
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(copyTimerRef.current), [])
 
   async function callAdmin(body: object, pwd: string) {
     const res = await fetch(ADMIN_ENDPOINT, {
@@ -154,7 +155,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                   onKeyDown={e => e.key === 'Enter' && handleAuth()}
                   placeholder="Admin password..."
                   className="flex-1 px-2 py-2.5 text-sm outline-none bg-transparent"
-                  style={{ color: 'var(--text-primary)' }}
+                  style={{ color: 'var(--text-primary)', fontSize: '16px' }}
                 />
               </div>
               {authError && <p className="text-xs text-red-500">{authError}</p>}
@@ -221,7 +222,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                     onChange={e => setGenLabel(e.target.value)}
                     placeholder="Label (e.g. Beta tester — Jane)"
                     className="w-full px-3 py-2 text-sm rounded-lg outline-none"
-                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)', fontSize: '16px' }}
                   />
                   <div className="flex items-center gap-2">
                     <Calendar size={14} style={{ color: 'var(--text-secondary)' }} />
@@ -230,7 +231,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                       value={genExpiry}
                       onChange={e => setGenExpiry(e.target.value)}
                       className="flex-1 px-3 py-2 text-sm rounded-lg outline-none"
-                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)', fontSize: '16px' }}
                     />
                     <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Expiry (optional)</span>
                   </div>

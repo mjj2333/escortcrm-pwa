@@ -208,7 +208,7 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
   // Total paid for balance calculation
   const totalPaid = useLiveQuery(
     () => booking
-      ? db.payments.where('bookingId').equals(booking.id).toArray().then(ps => ps.reduce((s, p) => s + p.amount, 0))
+      ? db.payments.where('bookingId').equals(booking.id).toArray().then(ps => ps.filter(p => p.label !== 'Tip').reduce((s, p) => s + p.amount, 0))
       : Promise.resolve(0),
     [booking?.id]
   ) ?? 0
