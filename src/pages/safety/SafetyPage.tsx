@@ -50,6 +50,7 @@ export function SafetyPage() {
   const [deleteContactConfirm, setDeleteContactConfirm] = useState<{ id: string; name: string } | null>(null)
   const [alertConfirm, setAlertConfirm] = useState<string | null>(null)
   const [alertAllConfirm, setAlertAllConfirm] = useState(false)
+  const [deleteIncidentConfirm, setDeleteIncidentConfirm] = useState<IncidentLog | null>(null)
   const [checkinsLimit, setCheckinsLimit] = useState(30)
   const [incidentSearch, setIncidentSearch] = useState('')
   const [incidentSeverityFilter, setIncidentSeverityFilter] = useState<IncidentSeverity | 'all'>('all')
@@ -545,13 +546,7 @@ export function SafetyPage() {
                             <Edit2 size={13} />
                           </button>
                           <button
-                            onClick={async () => {
-                              const snap = await db.incidents.get(incident.id)
-                              await db.incidents.delete(incident.id)
-                              showUndoToast('Incident deleted', async () => {
-                                if (snap) await db.incidents.put(snap)
-                              })
-                            }}
+                            onClick={() => setDeleteIncidentConfirm(incident)}
                             className="p-1"
                             style={{ color: 'var(--text-secondary)' }}
                             aria-label="Delete incident"
@@ -732,6 +727,23 @@ export function SafetyPage() {
         onCancel={() => setAlertConfirm(null)}
       />
       {/* Confirm alert was sent for all overdue checks */}
+      <ConfirmDialog
+        isOpen={!!deleteIncidentConfirm}
+        title="Delete Incident"
+        message={`Delete this incident${deleteIncidentConfirm?.description ? `: "${deleteIncidentConfirm.description.slice(0, 50)}${deleteIncidentConfirm.description.length > 50 ? '…' : ''}"` : ''}?`}
+        confirmLabel="Delete"
+        onConfirm={async () => {
+          if (deleteIncidentConfirm) {
+            const snap = await db.incidents.get(deleteIncidentConfirm.id)
+            await db.incidents.delete(deleteIncidentConfirm.id)
+            showUndoToast('Incident deleted', async () => {
+              if (snap) await db.incidents.put(snap)
+            })
+          }
+          setDeleteIncidentConfirm(null)
+        }}
+        onCancel={() => setDeleteIncidentConfirm(null)}
+      />
       <ConfirmDialog
         isOpen={alertAllConfirm}
         title="Confirm Alerts Sent"

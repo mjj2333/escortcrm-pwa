@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
@@ -332,6 +332,7 @@ function VenueList({ cities, grouped, search, onSearchChange, activeCount, archi
 function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () => void; onBack: () => void }) {
   const venue = useLiveQuery(() => db.incallVenues.get(venueId), [venueId])
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [showSendDirections, setShowSendDirections] = useState(false)
 
@@ -349,7 +350,8 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
       .then(() => showToast('Copied to clipboard'))
       .catch(() => showToast('Could not copy to clipboard'))
     setCopiedField(field)
-    setTimeout(() => setCopiedField(null), 2000)
+    clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = setTimeout(() => setCopiedField(null), 2000)
   }
 
   async function toggleFavorite() {

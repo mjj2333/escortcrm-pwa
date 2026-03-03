@@ -96,11 +96,16 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     function onChange(e: MediaQueryListEvent) {
       setDarkMode(e.matches)
-      applyDarkState(e.matches)
+      document.documentElement.classList.toggle('dark', e.matches)
+      if (!e.matches) {
+        document.documentElement.classList.remove('oled-black')
+      } else if (oledBlack) {
+        document.documentElement.classList.add('oled-black')
+      }
     }
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
-  }, [themeMode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [themeMode, oledBlack])
 
   function handleOledBlackChange(value: boolean) {
     setOledBlack(value)

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { Shield, Plus, Copy, Trash2, Check, Loader, Lock, RefreshCw, Calendar } from 'lucide-react'
 import type { GiftCodeRecord } from '../../netlify/functions/admin-gift-codes'
@@ -30,6 +30,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
 
   // Copy feedback
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   async function callAdmin(body: object, pwd: string) {
     const res = await fetch(ADMIN_ENDPOINT, {
@@ -113,7 +114,8 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
   function copyToClipboard(text: string, id: string) {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedId(id)
-      setTimeout(() => setCopiedId(null), 2000)
+      clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = setTimeout(() => setCopiedId(null), 2000)
     }).catch(() => {})
   }
 

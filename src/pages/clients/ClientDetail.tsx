@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Phone, MessageSquare, Mail, Copy, Check,
@@ -48,6 +48,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const [showBookingEditor, setShowBookingEditor] = useState(false)
   const [showRebook, setShowRebook] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [showBlockConfirm, setShowBlockConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -139,7 +140,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     }).catch(() => {
       setCopiedField(field) // Still show visual feedback; clipboard may fail in insecure contexts
     })
-    setTimeout(() => setCopiedField(null), 1500)
+    clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = setTimeout(() => setCopiedField(null), 1500)
   }
 
   async function togglePin() {
