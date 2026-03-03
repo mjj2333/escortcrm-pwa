@@ -46,6 +46,7 @@ export function SafetyPage() {
   const [editingIncident, setEditingIncident] = useState<IncidentLog | undefined>(undefined)
   const [editingCheck, setEditingCheck] = useState<SafetyCheck | null>(null)
   const [blacklistConfirm, setBlacklistConfirm] = useState<{ clientId: string; alias: string } | null>(null)
+  const [unblacklistConfirm, setUnblacklistConfirm] = useState<{ clientId: string; alias: string } | null>(null)
   const [deleteContactConfirm, setDeleteContactConfirm] = useState<{ id: string; name: string } | null>(null)
   const [alertConfirm, setAlertConfirm] = useState<string | null>(null)
   const [alertAllConfirm, setAlertAllConfirm] = useState(false)
@@ -498,8 +499,8 @@ export function SafetyPage() {
                     <option value="low">Low</option>
                   </select>
                 </div>
-                {incidents
-                  .filter(i => {
+                {(() => {
+                  const filtered = incidents.filter(i => {
                     if (incidentSeverityFilter !== 'all' && i.severity !== incidentSeverityFilter) return false
                     if (incidentSearch.trim()) {
                       const q = incidentSearch.toLowerCase()
@@ -512,7 +513,14 @@ export function SafetyPage() {
                     }
                     return true
                   })
-                  .map(incident => {
+                  if (filtered.length === 0) {
+                    return (
+                      <p className="text-center text-sm py-8" style={{ color: 'var(--text-secondary)' }}>
+                        No incidents match your filters.
+                      </p>
+                    )
+                  }
+                  return filtered.map(incident => {
                   const linkedClient = incident.clientId ? clientFor(incident.clientId) : undefined
                   const isBlacklisted = linkedClient?.isBlocked
                   return (
@@ -584,7 +592,7 @@ export function SafetyPage() {
                       )}
                     </Card>
                   )
-                })}
+                })})()}
               </div>
             )
           )}
@@ -639,12 +647,7 @@ export function SafetyPage() {
                           )}
                         </div>
                         <button
-                          onClick={async () => {
-                            await db.clients.update(client.id, { isBlocked: false })
-                            showUndoToast(`${client.alias} removed from blacklist`, async () => {
-                              await db.clients.update(client.id, { isBlocked: true })
-                            })
-                          }}
+                          onClick={() => setUnblacklistConfirm({ clientId: client.id, alias: client.alias })}
                           className="text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 active:opacity-70"
                           style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}
                           aria-label={`Remove ${client.alias} from blacklist`}
@@ -683,6 +686,23 @@ export function SafetyPage() {
           setBlacklistConfirm(null)
         }}
         onCancel={() => setBlacklistConfirm(null)}
+      />
+      <ConfirmDialog
+        isOpen={!!unblacklistConfirm}
+        title="Remove from Blacklist"
+        message={`Remove ${unblacklistConfirm?.alias ?? 'this client'} from your blacklist?`}
+        confirmLabel="Remove"
+        confirmColor="#22c55e"
+        onConfirm={async () => {
+          if (unblacklistConfirm) {
+            await db.clients.update(unblacklistConfirm.clientId, { isBlocked: false })
+            showUndoToast(`${unblacklistConfirm.alias} removed from blacklist`, async () => {
+              await db.clients.update(unblacklistConfirm.clientId, { isBlocked: true })
+            })
+          }
+          setUnblacklistConfirm(null)
+        }}
+        onCancel={() => setUnblacklistConfirm(null)}
       />
       {/* Confirm dialog before deleting safety contacts */}
       <ConfirmDialog

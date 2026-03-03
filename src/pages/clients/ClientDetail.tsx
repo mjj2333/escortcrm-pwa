@@ -630,7 +630,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
               <button key={b.id} onClick={() => onOpenBooking(b.id)}
                 className="flex items-center justify-between py-2 w-full text-left">
                 <div>
-                  <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{fmtMediumDate(new Date(b.dateTime))}</p>
+                  <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{fmtMediumDate(new Date(b.dateTime))} · {fmtTime(new Date(b.dateTime))}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                       {bookingDurationFormatted(b.duration)} · {b.locationType}

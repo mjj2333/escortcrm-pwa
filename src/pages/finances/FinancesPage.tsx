@@ -498,16 +498,16 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
 
       <div className="px-4 py-3 max-w-lg mx-auto space-y-4">
         {/* Period Selector */}
-        <div className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="flex gap-1 p-1 rounded-lg overflow-x-auto" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           {(['Week', 'Month', 'Quarter', 'Year', 'All', 'Custom'] as TimePeriod[]).map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
               aria-pressed={period === p}
-              className={`flex-1 py-2 rounded-md text-xs font-medium transition-colors ${
+              className={`flex-1 py-2 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                 period === p ? 'bg-purple-600 text-white' : ''
               }`}
-              style={period !== p ? { color: 'var(--text-secondary)' } : {}}
+              style={{ ...period !== p ? { color: 'var(--text-secondary)' } : {}, minWidth: '3rem' }}
             >
               {p}
             </button>

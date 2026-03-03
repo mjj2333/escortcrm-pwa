@@ -222,6 +222,7 @@ export default function App() {
             setIsLocked(false)
           } catch (err) {
             console.error('Encryption init failed:', err)
+            showToast('Encryption failed — some data may appear as [encrypted]', 'error')
             setIsLocked(false) // unlock anyway so user isn't stuck
           }
         }} />

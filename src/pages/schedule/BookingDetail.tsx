@@ -24,7 +24,7 @@ import { SessionTimer } from '../../components/SessionTimer'
 import { BookingChecklist, useChecklistCount } from '../../components/BookingChecklist'
 import { CancellationSheet } from '../../components/CancellationSheet'
 import { SendMessageSheet } from '../../components/SendMessageSheet'
-import { bookingStatusColors, journalTagColors } from '../../types'
+import { bookingStatusColors, journalTagColors, riskLevelColors } from '../../types'
 import type { Booking, BookingStatus, PaymentMethod, PaymentLabel, ScreeningStatus } from '../../types'
 
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
@@ -333,13 +333,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                     {client.preferredContact}{client.screeningStatus !== 'Screened' ? ` · ${client.screeningStatus}` : ''}
                   </p>
                   {client.riskLevel !== 'Unknown' && (
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                      client.riskLevel === 'High Risk' ? 'bg-red-500/15 text-red-500' :
-                      client.riskLevel === 'Medium Risk' ? 'bg-orange-500/15 text-orange-500' :
-                      'bg-green-500/15 text-green-500'
-                    }`}>
-                      {client.riskLevel}
-                    </span>
+                    <StatusBadge text={client.riskLevel} color={riskLevelColors[client.riskLevel]} />
                   )}
                 </div>
               </div>
@@ -510,7 +504,10 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-green-500">{formatCurrency(p.amount)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-green-500">{formatCurrency(p.amount)}</span>
+                    <Trash2 size={12} style={{ color: 'var(--text-secondary)', opacity: 0.5 }} />
+                  </div>
                 </button>
               ))}
             </div>
