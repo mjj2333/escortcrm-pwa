@@ -7,6 +7,7 @@ import { SectionLabel, FieldHint, FieldTextInput, fieldInputStyle, deriveCurrenc
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { showToast } from '../../components/Toast'
 import { formatPhone } from '../../utils/formatPhone'
+import { formatHandle, formatOnlyFans } from '../../utils/formatSocial'
 import { useLocalStorage } from '../../hooks/useSettings'
 
 interface ProfilePageProps {
@@ -35,7 +36,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
 
   // Intro template
   const [introTemplate, setIntroTemplate] = useLocalStorage('introTemplate',
-    'Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}'
+    'Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\n{website}\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}'
   )
 
   // Booking message templates
@@ -133,10 +134,10 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           <FieldTextInput label="Email" value={workEmail} onChange={setWorkEmail} placeholder="Working email" />
           <FieldTextInput label="Phone" value={workPhone} onChange={v => setWorkPhone(formatPhone(v))} placeholder="Working phone" />
           <FieldTextInput label="Website / Ad Link" value={website} onChange={setWebsite} placeholder="https://" />
-          <FieldTextInput label="OnlyFans" value={onlyFans} onChange={setOnlyFans} placeholder="onlyfans.com/..." />
-          <FieldTextInput label="Instagram" value={instagram} onChange={setInstagram} placeholder="@handle" />
-          <FieldTextInput label="Twitter / X" value={twitter} onChange={setTwitter} placeholder="@handle" />
-          <FieldTextInput label="Bluesky" value={bsky} onChange={setBsky} placeholder="@handle.bsky.social" />
+          <FieldTextInput label="OnlyFans" value={onlyFans} onChange={setOnlyFans} placeholder="onlyfans.com/..." onBlur={() => setOnlyFans(formatOnlyFans(onlyFans))} />
+          <FieldTextInput label="Instagram" value={instagram} onChange={setInstagram} placeholder="@handle" onBlur={() => setInstagram(formatHandle(instagram))} />
+          <FieldTextInput label="Twitter / X" value={twitter} onChange={setTwitter} placeholder="@handle" onBlur={() => setTwitter(formatHandle(twitter))} />
+          <FieldTextInput label="Bluesky" value={bsky} onChange={setBsky} placeholder="@handle.bsky.social" onBlur={() => setBsky(formatHandle(bsky))} />
           <FieldTextInput label="Tagline" value={tagline} onChange={setTagline} placeholder="Short bio or tagline" />
         </div>
 
@@ -314,7 +315,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           style={{ ...fieldInputStyle, fontSize: '16px' }}
         />
         <button
-          onClick={() => setIntroTemplate('Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}')}
+          onClick={() => setIntroTemplate('Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\n{website}\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}')}
           className="text-xs text-purple-500 mb-3 px-1"
         >
           Reset to default

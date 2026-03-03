@@ -97,7 +97,7 @@ export async function seedSampleData(): Promise<void> {
   setLS('defaultDepositFlat', 0)
   setLS('currency', 'USD')
   setLS('introTemplate',
-    'Hi {client}! Thank you for your inquiry. ✨\n\nMy name is {name}. Here is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nYou can learn more at {website} or reach me at {email}.\n\nLooking forward to hearing from you!\n\n— {name}'
+    'Hi {client}! Thank you for your inquiry. ✨\n\nMy name is {name}. Here is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nYou can learn more at {website} or reach me at {email}.\n\nFollow me: {instagram} · {twitter} · {bsky}\nOnlyFans: {of}\n\nLooking forward to hearing from you!\n\n— {name}'
   )
   setLS('directionsTemplate',
     'Hi! Here are the directions to our meeting:\n\n📍 {address}\n\n{directions}\n\nSee you soon!\n— {name}'

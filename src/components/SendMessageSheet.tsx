@@ -39,7 +39,7 @@ const TEMPLATES: TemplateConfig[] = [
     key: 'intro',
     label: 'Intro',
     storageKey: 'introTemplate',
-    defaultText: 'Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}',
+    defaultText: 'Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\n{website}\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}',
     requiresBooking: false,
   },
   {

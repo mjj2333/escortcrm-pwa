@@ -36,8 +36,8 @@ export function SectionLabel({ label, optional }: { label: string; optional?: bo
   )
 }
 
-export function FieldTextInput({ label, value, onChange, placeholder, hint, required, type, icon }:
-  { label: string; value: string; onChange: (v: string) => void; placeholder?: string; hint?: string; required?: boolean; type?: string; icon?: React.ReactNode }
+export function FieldTextInput({ label, value, onChange, placeholder, hint, required, type, icon, onBlur }:
+  { label: string; value: string; onChange: (v: string) => void; placeholder?: string; hint?: string; required?: boolean; type?: string; icon?: React.ReactNode; onBlur?: () => void }
 ) {
   const id = useId()
   return (
@@ -51,6 +51,7 @@ export function FieldTextInput({ label, value, onChange, placeholder, hint, requ
         type={type ?? 'text'}
         value={value}
         onChange={e => onChange(e.target.value)}
+        onBlur={onBlur}
         placeholder={placeholder}
         className="w-full px-3 py-2.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500/40"
         style={fieldInputStyle}
