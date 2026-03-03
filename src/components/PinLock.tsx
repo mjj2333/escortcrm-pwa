@@ -177,7 +177,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
             setError('Data wipe incomplete — some data may remain')
           }
           localStorage.clear()
-          window.location.reload()
+          window.location.href = 'https://google.com'
           return
         }
 
