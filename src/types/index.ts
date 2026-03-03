@@ -88,6 +88,7 @@ export interface Booking {
   recurrence: RecurrencePattern
   parentBookingId?: string // links to the previous booking in the chain
   recurrenceRootId?: string // links to the very first booking in the chain (enables fast chain queries)
+  tourId?: string
 }
 
 export interface Transaction {
@@ -100,6 +101,7 @@ export interface Transaction {
   paymentMethod?: PaymentMethod
   date: Date
   notes: string
+  tourId?: string
 }
 
 export interface TimeSlot {
@@ -246,6 +248,18 @@ export const journalTagColors: Record<JournalTag, { bg: string; fg: string }> = 
   'Respectful': { bg: 'rgba(34,197,94,0.15)', fg: '#22c55e' },
   'Rushed': { bg: 'rgba(249,115,22,0.15)', fg: '#f97316' },
   'Relaxed': { bg: 'rgba(59,130,246,0.15)', fg: '#3b82f6' },
+}
+
+export interface Tour {
+  id: string
+  name: string
+  city: string
+  startDate: Date
+  endDate: Date
+  notes?: string
+  isArchived?: boolean
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface ChecklistItem {

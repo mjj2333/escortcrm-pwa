@@ -24,6 +24,7 @@ type Screen =
   | { type: 'tab' }
   | { type: 'clientDetail'; clientId: string }
   | { type: 'bookingDetail'; bookingId: string }
+  | { type: 'tourDetail'; tourId: string }
   | { type: 'analytics' }
 
 interface NavState {
@@ -34,6 +35,7 @@ interface NavState {
 function stateToHash({ tab, screen }: NavState): string {
   if (screen.type === 'clientDetail')  return `#client/${screen.clientId}`
   if (screen.type === 'bookingDetail') return `#booking/${screen.bookingId}`
+  if (screen.type === 'tourDetail')    return `#tour/${screen.tourId}`
   if (screen.type === 'analytics')     return '#analytics'
   return TAB_HASHES[tab] ?? '#home'
 }
@@ -48,6 +50,10 @@ export function parseNavHash(hash: string): NavState {
   if (hash.startsWith('#booking/')) {
     const bookingId = hash.slice('#booking/'.length)
     if (bookingId) return { tab: 1, screen: { type: 'bookingDetail', bookingId } }
+  }
+  if (hash.startsWith('#tour/')) {
+    const tourId = hash.slice('#tour/'.length)
+    if (tourId) return { tab: 3, screen: { type: 'tourDetail', tourId } }
   }
   if (hash === '#analytics') return { tab: 3, screen: { type: 'analytics' } }
   const tab = TAB_HASHES.indexOf(hash)

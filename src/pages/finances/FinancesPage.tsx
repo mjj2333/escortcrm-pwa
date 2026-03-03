@@ -20,6 +20,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { SectionLabel, FieldHint, fieldInputStyle } from '../../components/FormFields'
 import { ImportExportModal } from '../../components/ImportExport'
 import { TransactionEditor } from './TransactionEditor'
+import { TourEditor } from './TourEditor'
 import { StatusBadge } from '../../components/StatusBadge'
 import { bookingStatusColors } from '../../types'
 import { useLocalStorage } from '../../hooks/useSettings'
@@ -32,7 +33,7 @@ type TimePeriod = 'Week' | 'Month' | 'Quarter' | 'Year' | 'All' | 'Custom'
 // Card visibility — user can toggle which sections appear
 type CardKey =
   // Financial
-  | 'goal' | 'stats' | 'tax' | 'bookingTypes' | 'paymentMethods' | 'expenses' | 'outstanding' | 'transactions'
+  | 'goal' | 'stats' | 'tax' | 'bookingTypes' | 'paymentMethods' | 'expenses' | 'outstanding' | 'transactions' | 'tours'
   // Trends
   | 'monthOverMonth' | 'weekOverWeek' | 'incomeTrend' | 'bookingVolume' | 'monthlyBreakdown'
   // Timing
@@ -42,7 +43,7 @@ type CardKey =
 
 interface CardGroup { label: string; keys: CardKey[] }
 const CARD_GROUPS: CardGroup[] = [
-  { label: '💰 Financial', keys: ['goal', 'stats', 'tax', 'bookingTypes', 'paymentMethods', 'expenses', 'outstanding', 'transactions'] },
+  { label: '💰 Financial', keys: ['goal', 'stats', 'tax', 'bookingTypes', 'paymentMethods', 'expenses', 'outstanding', 'transactions', 'tours'] },
   { label: '📈 Trends', keys: ['monthOverMonth', 'weekOverWeek', 'incomeTrend', 'bookingVolume', 'monthlyBreakdown'] },
   { label: '🕐 Timing', keys: ['peakTimes', 'heatmap', 'revenueByDay'] },
   { label: '👥 Clients', keys: ['retention', 'repeatRevenue', 'topClients', 'clientLTV', 'reliability', 'clientSources'] },
@@ -56,11 +57,12 @@ const CARD_LABELS: Record<CardKey, string> = {
   peakTimes: 'Peak Times', heatmap: 'Booking Heatmap', revenueByDay: 'Revenue by Day of Week',
   retention: 'Client Retention', repeatRevenue: 'Repeat vs One-time Revenue',
   topClients: 'Top Clients by Revenue', clientLTV: 'Client Lifetime Value', reliability: 'Reliability Concerns', clientSources: 'Client Sources',
+  tours: 'Tours',
 }
 const ALL_CARDS: CardKey[] = CARD_GROUPS.flatMap(g => g.keys)
 const DEFAULT_VISIBLE: CardKey[] = [
   'goal', 'stats', 'tax', 'bookingTypes', 'paymentMethods', 'expenses', 'outstanding', 'transactions',
-  'monthOverMonth', 'weekOverWeek', 'incomeTrend',
+  'monthOverMonth', 'weekOverWeek', 'incomeTrend', 'tours',
 ]
 
 // Location type display config
@@ -111,7 +113,7 @@ function periodEnd(p: TimePeriod, customTo?: string): Date {
 // MAIN FINANCES PAGE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: string) => void }) {
+export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (bookingId: string) => void; onOpenTour?: (tourId: string) => void }) {
   const [period, setPeriod] = useState<TimePeriod>('Month')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
@@ -122,6 +124,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   const [showAllTransactions, setShowAllTransactions] = useState(false)
   const [showImportExport, setShowImportExport] = useState(false)
   const [showCardSettings, setShowCardSettings] = useState(false)
+  const [showTourEditor, setShowTourEditor] = useState(false)
   const [visibleCards, setVisibleCards] = useLocalStorage<CardKey[]>('financeCards_v2', DEFAULT_VISIBLE)
   const [hintDismissed, setHintDismissed] = useLocalStorage('financeHintDismissed', false)
   const isCardVisible = (key: CardKey) => visibleCards.includes(key)
@@ -130,10 +133,12 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
   const rawBookings = useLiveQuery(() => db.bookings.toArray())
   const rawClients = useLiveQuery(() => db.clients.toArray())
   const rawPayments = useLiveQuery(() => db.payments.toArray())
+  const rawTours = useLiveQuery(() => db.tours.toArray())
   const allTransactions = rawTransactions ?? []
   const allBookings = rawBookings ?? []
   const clients = rawClients ?? []
   const allPayments = rawPayments ?? []
+  const allTours = rawTours ?? []
   // Settings — stored in localStorage intentionally: these are user preferences
   // (display settings), not user data, so they don't need to be in IndexedDB.
   const [taxRate] = useLocalStorage('taxRate', 25)
@@ -868,6 +873,69 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
         </Card>
         )}
 
+        {/* Tours */}
+        {isCardVisible('tours') && (
+        <Card>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Tours</p>
+            <button
+              onClick={() => setShowTourEditor(true)}
+              className="flex items-center gap-1 text-xs text-purple-500 font-medium"
+            >
+              <Plus size={12} /> New
+            </button>
+          </div>
+          {(() => {
+            const activeTours = allTours.filter(t => !t.isArchived)
+            if (activeTours.length === 0) {
+              return (
+                <p className="text-sm text-center py-4" style={{ color: 'var(--text-secondary)' }}>
+                  No tours yet. Create one when traveling for work.
+                </p>
+              )
+            }
+            const sorted = [...activeTours].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+            return (
+              <div className="space-y-2">
+                {sorted.map(tour => {
+                  const tourIncome = allTransactions.filter(t => t.tourId === tour.id && t.type === 'income').reduce((s, t) => s + t.amount, 0)
+                    + allBookings.filter(b => b.tourId === tour.id && b.status === 'Completed').reduce((s, b) => s + bookingTotal(b), 0)
+                  // Deduplicate booking income already counted via transactions
+                  const tourBookingIds = new Set(allBookings.filter(b => b.tourId === tour.id).map(b => b.id))
+                  const nonBookingIncome = allTransactions
+                    .filter(t => t.tourId === tour.id && t.type === 'income' && (!t.bookingId || !tourBookingIds.has(t.bookingId)))
+                    .reduce((s, t) => s + t.amount, 0)
+                  const bookingIncome = allBookings.filter(b => b.tourId === tour.id && b.status === 'Completed').reduce((s, b) => s + bookingTotal(b), 0)
+                  const income = bookingIncome + nonBookingIncome
+                  const tourExpenses = allTransactions.filter(t => t.tourId === tour.id && t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+                  const net = income - tourExpenses
+                  return (
+                    <button key={tour.id}
+                      onClick={() => onOpenTour?.(tour.id)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left active:opacity-70"
+                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{tour.name}</p>
+                        <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                          <MapPin size={10} className="inline mr-0.5" style={{ verticalAlign: '-1px' }} />{tour.city} · {fmtShortDate(new Date(tour.startDate))} — {fmtShortDate(new Date(tour.endDate))}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-sm font-semibold ${net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {net >= 0 ? '+' : ''}{formatCurrency(net)}
+                        </span>
+                        <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })()}
+        </Card>
+        )}
+
         {/* ── TRENDS ── */}
 
         {/* Month over Month — always shows month-level comparison, but labels context for shorter periods */}
@@ -1243,6 +1311,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
         onClose={() => { setShowEditor(false); setEditingTransaction(undefined) }}
         transaction={editingTransaction}
       />
+      <TourEditor isOpen={showTourEditor} onClose={() => setShowTourEditor(false)} />
       <GoalEditor isOpen={showGoalEditor} onClose={() => setShowGoalEditor(false)} />
       <TaxSettingsEditor isOpen={showTaxSettings} onClose={() => setShowTaxSettings(false)} />
       <AllTransactionsModal isOpen={showAllTransactions} onClose={() => setShowAllTransactions(false)} />

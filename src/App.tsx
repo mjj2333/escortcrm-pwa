@@ -18,6 +18,7 @@ import { useLocalStorage } from './hooks/useSettings'
 // Lazy-load secondary screens — only fetched when the user navigates to them
 const ClientDetail = lazy(() => retryImport(() => import('./pages/clients/ClientDetail').then(m => ({ default: m.ClientDetail }))))
 const BookingDetail = lazy(() => retryImport(() => import('./pages/schedule/BookingDetail').then(m => ({ default: m.BookingDetail }))))
+const TourDetail = lazy(() => retryImport(() => import('./pages/finances/TourDetail').then(m => ({ default: m.TourDetail }))))
 const SettingsPage = lazy(() => retryImport(() => import('./pages/home/SettingsPage').then(m => ({ default: m.SettingsPage }))))
 const Calculator = lazy(() => retryImport(() => import('./components/Calculator')))
 import { useAutoStatusTransitions } from './hooks/useAutoStatusTransitions'
@@ -44,6 +45,7 @@ type Screen =
   | { type: 'tab' }
   | { type: 'clientDetail'; clientId: string }
   | { type: 'bookingDetail'; bookingId: string }
+  | { type: 'tourDetail'; tourId: string }
   | { type: 'analytics' }
 
 function RouteErrorFallback() {
@@ -185,6 +187,10 @@ export default function App() {
     pushNav(1, { type: 'bookingDetail', bookingId })
   }
 
+  function openTour(tourId: string) {
+    pushNav(3, { type: 'tourDetail', tourId })
+  }
+
   function goBack() {
     // Prefer browser back so the history stack stays consistent
     if (history.length > 1) {
@@ -261,6 +267,17 @@ export default function App() {
         </ErrorBoundary>
       )
     }
+    if (screen.type === 'tourDetail') {
+      return (
+        <ErrorBoundary fallback={<RouteErrorFallback />}>
+          <TourDetail
+            tourId={screen.tourId}
+            onBack={goBack}
+            onOpenBooking={openBooking}
+          />
+        </ErrorBoundary>
+      )
+    }
 
     switch (activeTab) {
       case 0:
@@ -282,7 +299,7 @@ export default function App() {
         return (
           <ErrorBoundary fallback={<RouteErrorFallback />}>
             <ProGate feature="Finances & Analytics" onUpgrade={() => setShowPaywall(true)}>
-              <FinancesPage onOpenBooking={openBooking} />
+              <FinancesPage onOpenBooking={openBooking} onOpenTour={openTour} />
             </ProGate>
           </ErrorBoundary>
         )

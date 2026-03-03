@@ -42,6 +42,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
   const clients = useLiveQuery(() => db.clients.filter(c => !c.isBlocked).sortBy('alias')) ?? []
   const safetyContacts = useLiveQuery(() => db.safetyContacts.filter(c => c.isActive).toArray()) ?? []
   const serviceRates = useLiveQuery(() => db.serviceRates.filter(r => r.isActive).sortBy('sortOrder')) ?? []
+  const tours = useLiveQuery(() => db.tours.filter(t => !t.isArchived).toArray()) ?? []
   const [defaultDepositPct] = useLocalStorage('defaultDepositPercentage', 25)
   const [defaultDepositType] = useLocalStorage<'percent' | 'flat'>('defaultDepositType', 'percent')
   const [defaultDepositFlat] = useLocalStorage('defaultDepositFlat', 0)
@@ -67,6 +68,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
   const [requiresSafetyCheck, setRequiresSafetyCheck] = useState(booking?.requiresSafetyCheck ?? rebookFrom?.requiresSafetyCheck ?? true)
   const [safetyContactId, setSafetyContactId] = useState(booking?.safetyContactId ?? '')
   const [recurrence, setRecurrence] = useState<RecurrencePattern>(booking?.recurrence ?? rebookFrom?.recurrence ?? 'none')
+  const [tourId, setTourId] = useState(booking?.tourId ?? '')
   const [notes, setNotes] = useState(booking?.notes ?? '')
 
   // UI state
@@ -131,6 +133,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
       setRequiresSafetyCheck(booking?.requiresSafetyCheck ?? rebookFrom?.requiresSafetyCheck ?? true)
       setSafetyContactId(booking?.safetyContactId ?? '')
       setRecurrence(booking?.recurrence ?? rebookFrom?.recurrence ?? 'none')
+      setTourId(booking?.tourId ?? '')
       setNotes(booking?.notes ?? '')
       setShowClientPicker(false)
       setClientSearch('')
@@ -270,6 +273,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
         requiresSafetyCheck,
         safetyContactId: requiresSafetyCheck && safetyContactId ? safetyContactId : undefined,
         recurrence,
+        tourId: tourId || undefined,
         notes: notes.trim() || '',
         // Set timestamps when status changes
         ...(status === 'Confirmed' && booking.status !== 'Confirmed' && !booking.confirmedAt ? { confirmedAt: new Date() } : {}),
@@ -328,6 +332,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
         requiresSafetyCheck,
         safetyContactId: requiresSafetyCheck && safetyContactId ? safetyContactId : undefined,
         recurrence,
+        tourId: tourId || undefined,
         notes: notes.trim() || undefined,
         // Set timestamps when creating with an advanced status
         ...(status === 'Confirmed' || status === 'In Progress' || status === 'Completed' ? { confirmedAt: new Date() } : {}),
@@ -776,6 +781,18 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
           <FieldSelect label="Recurrence" value={recurrence} options={recurrenceOptions} onChange={setRecurrence}
             displayFn={(v: string) => v === 'none' ? 'None' : v === 'weekly' ? 'Weekly' : v === 'biweekly' ? 'Every 2 Weeks' : 'Monthly'}
             hint="A new booking will auto-create when this one completes." />
+
+          {tours.length > 0 && (
+            <FieldSelect label="Tour" value={tourId}
+              options={['', ...tours.map(t => t.id)]}
+              onChange={setTourId}
+              displayFn={(v: string) => {
+                if (!v) return 'None'
+                const t = tours.find(tr => tr.id === v)
+                return t ? `${t.name} (${t.city})` : 'Unknown'
+              }}
+              hint="Assign this booking to a travel tour for profitability tracking." />
+          )}
 
           <FieldTextArea label="Booking Notes" value={notes} onChange={setNotes}
             placeholder="General notes about this booking..."

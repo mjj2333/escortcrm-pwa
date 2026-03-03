@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { db, createTransaction } from '../../db'
@@ -22,12 +23,14 @@ interface TransactionEditorProps {
 
 export function TransactionEditor({ isOpen, onClose, initialType, transaction }: TransactionEditorProps) {
   const isEditing = !!transaction
+  const tours = useLiveQuery(() => db.tours.filter(t => !t.isArchived).toArray()) ?? []
   const [type, setType] = useState<TransactionType>(initialType ?? 'income')
   const [amount, setAmount] = useState(0)
   const [category, setCategory] = useState<TransactionCategory>('booking')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash')
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [notes, setNotes] = useState('')
+  const [tourId, setTourId] = useState('')
   const [saving, setSaving] = useState(false)
 
   // Reset form when modal opens — pre-fill if editing
@@ -40,6 +43,7 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
         setPaymentMethod(transaction.paymentMethod ?? 'Cash')
         setDate(format(new Date(transaction.date), 'yyyy-MM-dd'))
         setNotes(transaction.notes ?? '')
+        setTourId(transaction.tourId ?? '')
       } else {
         setType(initialType ?? 'income')
         setAmount(0)
@@ -47,6 +51,7 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
         setPaymentMethod('Cash')
         setDate(format(new Date(), 'yyyy-MM-dd'))
         setNotes('')
+        setTourId('')
       }
       setSaving(false)
     }
@@ -63,6 +68,7 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
           amount, type, category, paymentMethod,
           date: new Date(date + 'T00:00:00'),
           notes: notes.trim(),
+          tourId: tourId || undefined,
         })
         showToast('Transaction updated')
       } else {
@@ -70,6 +76,7 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
           amount, type, category, paymentMethod,
           date: new Date(date + 'T00:00:00'),
           notes: notes.trim(),
+          tourId: tourId || undefined,
         })
         await db.transactions.add(txn)
         showToast(type === 'expense' ? 'Expense recorded' : 'Income recorded')
@@ -116,6 +123,17 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
         <FieldSelect label="Category" value={category} options={type === 'income' ? incomeCategories : expenseCategories} onChange={setCategory} displayFn={titleCase} />
         <FieldSelect label="Payment Method" value={paymentMethod} options={paymentMethods} onChange={setPaymentMethod} />
         <FieldDate label="Date" value={date} onChange={setDate} />
+        {tours.length > 0 && (
+          <FieldSelect label="Tour" value={tourId}
+            options={['', ...tours.map(t => t.id)]}
+            onChange={setTourId}
+            displayFn={(v: string) => {
+              if (!v) return 'None'
+              const t = tours.find(tr => tr.id === v)
+              return t ? `${t.name} (${t.city})` : 'Unknown'
+            }}
+            hint="Assign to a tour for trip profitability tracking." />
+        )}
 
         <SectionLabel label="Notes" optional />
         <FieldTextArea label="Notes" value={notes} onChange={setNotes} placeholder="Optional notes..." />

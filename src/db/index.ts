@@ -3,7 +3,7 @@ import { lsKey } from '../hooks/useSettings'
 import type {
   Client, Booking, Transaction, DayAvailability,
   SafetyContact, SafetyCheck, IncidentLog, ServiceRate, BookingPayment, JournalEntry, ScreeningDoc,
-  IncallVenue, VenueDoc, ChecklistItem
+  IncallVenue, VenueDoc, ChecklistItem, Tour
 } from '../types'
 import type { PaymentLabel, PaymentMethod, ScreeningStatus, BookingStatus } from '../types'
 
@@ -22,6 +22,7 @@ class CompanionDatabase extends Dexie {
   incallVenues!: EntityTable<IncallVenue, 'id'>
   venueDocs!: EntityTable<VenueDoc, 'id'>
   bookingChecklist!: EntityTable<ChecklistItem, 'id'>
+  tours!: EntityTable<Tour, 'id'>
   meta!: Dexie.Table<{ key: string; value: unknown }, string>
 
   constructor() {
@@ -233,6 +234,26 @@ class CompanionDatabase extends Dexie {
       bookingChecklist: 'id, bookingId, sortOrder',
       meta: 'key',
     })
+
+    // v13: Add tours table, add tourId index to bookings and transactions
+    this.version(13).stores({
+      clients: 'id, alias, screeningStatus, riskLevel, isBlocked, isPinned, dateAdded',
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId, tourId',
+      transactions: 'id, bookingId, type, category, date, tourId',
+      availability: 'id, date',
+      safetyContacts: 'id, isPrimary, isActive',
+      safetyChecks: 'id, bookingId, status, scheduledTime',
+      incidents: 'id, clientId, bookingId, date, severity',
+      serviceRates: 'id, sortOrder, isActive',
+      payments: 'id, bookingId, label, date',
+      journalEntries: 'id, bookingId, clientId, date, entryType',
+      screeningDocs: 'id, clientId, uploadedAt',
+      incallVenues: 'id, city, isFavorite, isArchived, createdAt',
+      venueDocs: 'id, venueId, uploadedAt',
+      bookingChecklist: 'id, bookingId, sortOrder',
+      tours: 'id, city, startDate, isArchived',
+      meta: 'key',
+    })
   }
 }
 
@@ -368,6 +389,7 @@ export function createBooking(data: Partial<Booking>): Booking {
     recurrence: data.recurrence ?? 'none',
     parentBookingId: data.parentBookingId,
     recurrenceRootId: data.recurrenceRootId ?? data.parentBookingId,
+    tourId: data.tourId,
   }
 }
 
@@ -382,6 +404,7 @@ export function createTransaction(data: Partial<Transaction> & { amount: number;
     paymentMethod: data.paymentMethod,
     date: data.date ?? new Date(),
     notes: data.notes ?? '',
+    tourId: data.tourId,
   }
 }
 
