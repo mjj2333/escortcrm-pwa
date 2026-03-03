@@ -202,7 +202,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     incidents:      ['id'],
     serviceRates:   ['id'],
     payments:       ['id', 'bookingId'],
-    journalEntries: ['id', 'bookingId', 'clientId'],
+    journalEntries: ['id', 'clientId'],
     incallVenues:   ['id', 'name'],
     screeningDocs:  ['id', 'clientId'],
     venueDocs:      ['id', 'venueId'],
@@ -247,7 +247,6 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     incallVenues:   ['createdAt', 'updatedAt'],
     screeningDocs:  ['uploadedAt'],
     venueDocs:      ['uploadedAt'],
-    bookingChecklist: ['createdAt'],
     tours: ['startDate', 'endDate', 'createdAt', 'updatedAt'],
   }
 
