@@ -209,11 +209,6 @@ export function useAutoStatusTransitions() {
     checkAndUpdate()
     const interval = setInterval(checkAndUpdate, 60_000)
 
-    // Request notification permission early so journal reminders work
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission()
-    }
-
     // Also run immediately when the user returns to the app (tab/window becomes visible).
     // Without this, statuses only catch up on the next 60s tick, so a booking that
     // ended while the app was in the background would stay "In Progress" until the

@@ -111,6 +111,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
     } else {
       setBiometricFailed(true) // fall back to PIN UI
       setBiometricPending(false)
+      navigator.vibrate?.([100, 50, 100])
     }
   }
 
@@ -212,6 +213,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
           }
 
           setShake(true)
+          navigator.vibrate?.([100, 50, 100])
           setTimeout(() => { if (!cancelled) { setShake(false); setPin('') } }, 600)
         }
         verifyingRef.current = false
@@ -241,6 +243,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
       } else {
         setError('PINs don\'t match')
         setShake(true)
+        navigator.vibrate?.([100, 50, 100])
         setTimeout(() => { if (!cancelled) { setShake(false); setConfirmPin(''); setError(''); setPhase('enter'); setPin('') } }, 600)
       }
     }

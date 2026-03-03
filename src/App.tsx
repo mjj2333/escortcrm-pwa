@@ -204,6 +204,7 @@ export default function App() {
   if (pinEnabled && isLocked) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
+        <ToastContainer />
         <PinLock correctPin={pinCode} onUnlock={async (plaintextPin) => {
           try {
             await initFieldEncryption(plaintextPin)
@@ -221,6 +222,7 @@ export default function App() {
   if (showPaywall) {
     return (
       <Suspense fallback={null}>
+        <ToastContainer />
         <Paywall
           onActivated={() => {
             setShowPaywall(false)
@@ -237,6 +239,7 @@ export default function App() {
   if (isStealthMode) {
     return (
       <Suspense fallback={<div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 200 }} />}>
+        <ToastContainer />
         <Calculator onExit={() => setIsStealthMode(false)} pinHash={pinCode} />
       </Suspense>
     )

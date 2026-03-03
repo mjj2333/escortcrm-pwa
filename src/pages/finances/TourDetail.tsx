@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Archive, ArchiveRestore, MapPin, Calendar, ChevronRight
@@ -33,9 +33,17 @@ export function TourDetail({ tourId, onBack, onOpenBooking }: TourDetailProps) {
   const [showEditor, setShowEditor] = useState(false)
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
 
+  // Allow Dexie time to resolve before showing "not found"
+  const [settled, setSettled] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(true), 300)
+    return () => clearTimeout(timer)
+  }, [])
+
   const clientMap = new Map(clients.map(c => [c.id, c]))
 
   if (!tour) {
+    if (!settled) return null
     return (
       <div className="max-w-lg mx-auto px-4 py-20 text-center">
         <p style={{ color: 'var(--text-secondary)' }}>Tour not found.</p>

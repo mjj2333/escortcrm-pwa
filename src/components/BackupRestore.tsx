@@ -325,9 +325,10 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   )
 
   // ─── Restore localStorage profile settings ──────────────────────────
+  const allowedProfileKeys = new Set(PROFILE_LS_KEYS)
   if (payload.profile && typeof payload.profile === 'object') {
     for (const [key, val] of Object.entries(payload.profile)) {
-      if (typeof val === 'string') {
+      if (typeof val === 'string' && allowedProfileKeys.has(key)) {
         localStorage.setItem(lsKey(key), val)
         // Notify mounted useLocalStorage hooks
         try {
