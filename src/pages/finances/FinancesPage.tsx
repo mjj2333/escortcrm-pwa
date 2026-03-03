@@ -1125,7 +1125,7 @@ export function FinancesPage({ onOpenBooking }: { onOpenBooking?: (bookingId: st
               {clientSourceCounts.map(([source, count]) => (
                 <div key={source} className="flex items-center justify-between">
                   <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{source}</span>
-                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{count}</span>
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{count.toLocaleString()}</span>
                 </div>
               ))}
             </div>

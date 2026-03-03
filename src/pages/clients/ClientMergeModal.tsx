@@ -372,14 +372,14 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
                 {sourceBookingCount > 0 && (
                   <div className="flex-1 text-center py-2 rounded-lg"
                     style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
-                    <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{sourceBookingCount}</p>
+                    <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{sourceBookingCount.toLocaleString()}</p>
                     <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>booking{sourceBookingCount !== 1 ? 's' : ''} transferred</p>
                   </div>
                 )}
                 {sourceIncidentCount > 0 && (
                   <div className="flex-1 text-center py-2 rounded-lg"
                     style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
-                    <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{sourceIncidentCount}</p>
+                    <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{sourceIncidentCount.toLocaleString()}</p>
                     <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>incident{sourceIncidentCount !== 1 ? 's' : ''} transferred</p>
                   </div>
                 )}

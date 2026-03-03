@@ -872,7 +872,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               <input
                 type="text"
                 inputMode="decimal"
-                value={payAmount}
+                value={payAmount ? (() => { const p = payAmount.split('.'); const n = parseInt(p[0]); return (isNaN(n) ? p[0] : n.toLocaleString()) + (p.length > 1 ? '.' + p[1] : '') })() : ''}
                 onChange={e => {
                   const raw = e.target.value.replace(/[^0-9.]/g, '')
                   const parts = raw.split('.')

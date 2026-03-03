@@ -290,7 +290,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
                 <input
                   type="text"
                   inputMode="decimal"
-                  value={feeAmount}
+                  value={feeAmount ? (() => { const p = feeAmount.split('.'); const n = parseInt(p[0]); return (isNaN(n) ? p[0] : n.toLocaleString()) + (p.length > 1 ? '.' + p[1] : '') })() : ''}
                   onChange={e => { const v = e.target.value.replace(/[^0-9.]/g, ''); if ((v.match(/\./g) || []).length <= 1) setFeeAmount(v) }}
                   placeholder="0"
                   className="flex-1 bg-transparent text-sm font-bold outline-none"
