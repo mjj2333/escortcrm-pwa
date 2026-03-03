@@ -77,31 +77,32 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const todayAvailability = useLiveQuery(() =>
     db.availability.where('date').between(todayStart, todayEnd, true, true).first()
   )
-  if (allBookings === undefined) return <HomePageSkeleton />
 
   const availForDay = (day: Date) =>
     availability.find(a => isSameDay(new Date(a.date), day))
 
   const showNotificationPrompt = !remindersEnabled && 'Notification' in window && Notification.permission === 'default'
 
-  const todaysBookings = useMemo(() => allBookings.filter(b => {
+  const safeBookings = allBookings ?? []
+
+  const todaysBookings = useMemo(() => safeBookings.filter(b => {
     if (b.status === 'Cancelled' || b.status === 'No Show') return false
     const start = new Date(b.dateTime)
     if (isToday(start)) return true
     // Include overnight sessions that started yesterday but end today
     const endMs = start.getTime() + b.duration * 60_000
     return start < todayStart && endMs > todayStart.getTime()
-  }), [allBookings, todayStart])
+  }), [safeBookings, todayStart])
 
-  const upcoming = useMemo(() => allBookings
+  const upcoming = useMemo(() => safeBookings
     .filter(b => isUpcoming(b, now))
     .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
-    .slice(0, 5), [allBookings, now])
+    .slice(0, 5), [safeBookings, now])
 
   // All bookings not yet completed (for "See All" modal)
-  const allActiveBookings = useMemo(() => allBookings
+  const allActiveBookings = useMemo(() => safeBookings
     .filter(b => !['Completed', 'Cancelled', 'No Show'].includes(b.status))
-    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()), [allBookings])
+    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()), [safeBookings])
 
   const weekIncome = useMemo(() => transactions
     .filter(t => t.type === 'income' && new Date(t.date) >= weekStart)
@@ -140,7 +141,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 
   // Follow-up reminders (overdue clients based on booking frequency)
   const followUpReminders = useMemo(() =>
-    computeFollowUps(clients, allBookings, now).slice(0, 5), [clients, allBookings, now])
+    computeFollowUps(clients, safeBookings, now).slice(0, 5), [clients, safeBookings, now])
 
   const clientMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients])
   const clientForBooking = (clientId?: string) =>
@@ -157,7 +158,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   }, [allPayments])
 
   // Outstanding balances — bookings with unpaid amounts (only Pending Deposit+ stages)
-  const bookingsWithBalance = useMemo(() => allBookings
+  const bookingsWithBalance = useMemo(() => safeBookings
     .filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed')
     .map(b => {
       const total = bookingTotal(b)
@@ -166,9 +167,11 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
       return { booking: b, owing, client: clientForBooking(b.clientId) }
     })
     .filter(x => x.owing > 0)
-    .sort((a, b) => b.owing - a.owing), [allBookings, paymentsByBookingId, clientMap])
+    .sort((a, b) => b.owing - a.owing), [safeBookings, paymentsByBookingId, clientMap])
 
   const totalOutstanding = useMemo(() => bookingsWithBalance.reduce((sum, x) => sum + x.owing, 0), [bookingsWithBalance])
+
+  if (allBookings === undefined) return <HomePageSkeleton />
 
   return (
     <div className="pb-20">
