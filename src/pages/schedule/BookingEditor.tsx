@@ -626,9 +626,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
                 <button key={rate.id} type="button"
                   onClick={() => selectServiceRate(rate.duration, rate.rate)}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    duration === rate.duration && !customDuration ? 'bg-purple-500/20 text-purple-500' : ''
+                    duration === rate.duration && baseRate === rate.rate && !customDuration ? 'bg-purple-500/20 text-purple-500' : ''
                   }`}
-                  style={duration !== rate.duration || customDuration
+                  style={duration !== rate.duration || baseRate !== rate.rate || customDuration
                     ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' } : {}}>
                   <div className="font-bold">
                     {`${Math.round((rate.duration / 60) * 100) / 100}h`}
