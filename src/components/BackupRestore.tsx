@@ -74,7 +74,7 @@ async function decryptData(encoded: string, password: string): Promise<string> {
 // Backups from a NEWER version than this will be rejected to prevent
 // silent data loss (future tables/fields would be silently dropped).
 // Backups from OLDER versions are fine — missing tables are just empty.
-const CURRENT_BACKUP_VERSION = 3
+const CURRENT_BACKUP_VERSION = 4
 
 interface BackupPayload {
   version: number
@@ -91,6 +91,7 @@ interface BackupPayload {
     payments?: unknown[]
     journalEntries?: unknown[]
     incallVenues?: unknown[]
+    tours?: unknown[]
     // screeningDocs and venueDocs have Blob data — encoded as base64
     screeningDocs?: unknown[]
     venueDocs?: unknown[]
@@ -178,6 +179,7 @@ export async function createBackup(): Promise<BackupPayload> {
       screeningDocs,
       venueDocs,
       bookingChecklist: await db.bookingChecklist.toArray(),
+      tours: await db.tours.toArray(),
     },
     profile,
   }
@@ -205,6 +207,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     screeningDocs:  ['id', 'clientId'],
     venueDocs:      ['id', 'venueId'],
     bookingChecklist: ['id', 'bookingId'],
+    tours: ['id', 'name', 'city'],
   }
 
   const t = payload.tables
@@ -245,6 +248,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     screeningDocs:  ['uploadedAt'],
     venueDocs:      ['uploadedAt'],
     bookingChecklist: ['createdAt'],
+    tours: ['startDate', 'endDate', 'createdAt', 'updatedAt'],
   }
 
   for (const [tableName, fields] of Object.entries(dateFields)) {
@@ -285,7 +289,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   await db.transaction('rw',
     [db.clients, db.bookings, db.transactions, db.availability, db.safetyContacts,
      db.safetyChecks, db.incidents, db.serviceRates, db.payments, db.journalEntries,
-     db.incallVenues, db.screeningDocs, db.venueDocs, db.bookingChecklist],
+     db.incallVenues, db.screeningDocs, db.venueDocs, db.bookingChecklist, db.tours],
     async () => {
       await db.clients.clear()
       await db.bookings.clear()
@@ -301,6 +305,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
       await db.screeningDocs.clear()
       await db.venueDocs.clear()
       await db.bookingChecklist.clear()
+      await db.tours.clear()
 
       if (t.clients?.length)          { await db.clients.bulkPut(t.clients as any); total += t.clients.length }
       if (t.bookings?.length)         { await db.bookings.bulkPut(t.bookings as any); total += t.bookings.length }
@@ -316,6 +321,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
       if (t.screeningDocs?.length)    { await db.screeningDocs.bulkPut(t.screeningDocs as any); total += t.screeningDocs.length }
       if (t.venueDocs?.length)        { await db.venueDocs.bulkPut(t.venueDocs as any); total += t.venueDocs.length }
       if (t.bookingChecklist?.length) { await db.bookingChecklist.bulkPut(t.bookingChecklist as any); total += t.bookingChecklist.length }
+      if (t.tours?.length)             { await db.tours.bulkPut(t.tours as any); total += t.tours.length }
     }
   )
 

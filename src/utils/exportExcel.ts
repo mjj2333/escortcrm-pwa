@@ -10,7 +10,7 @@ async function getExcelJS(): Promise<typeof ExcelJS> {
   if (!_ExcelJS) _ExcelJS = (await import('exceljs')).default
   return _ExcelJS
 }
-import type { Client, Booking, Transaction, BookingPayment, IncidentLog } from '../types'
+import type { Client, Booking, Transaction, BookingPayment, IncidentLog, Tour } from '../types'
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -329,16 +329,44 @@ function buildIncidentsSheet(
   styleSheet(ws, ws.columns.length)
 }
 
+function buildToursSheet(wb: ExcelJS.Workbook, tours: Tour[]) {
+  if (tours.length === 0) return
+  const ws = wb.addWorksheet('Tours')
+  ws.columns = [
+    { header: 'Name', key: 'name', width: 22 },
+    { header: 'City', key: 'city', width: 16 },
+    { header: 'Start Date', key: 'startDate', width: 12 },
+    { header: 'End Date', key: 'endDate', width: 12 },
+    { header: 'Notes', key: 'notes', width: 32 },
+    { header: 'Archived', key: 'archived', width: 10 },
+  ]
+  const sorted = [...tours].sort(
+    (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+  )
+  for (const t of sorted) {
+    ws.addRow({
+      name: t.name,
+      city: t.city,
+      startDate: fmtDate(t.startDate),
+      endDate: fmtDate(t.endDate),
+      notes: t.notes ?? '',
+      archived: t.isArchived ? 'Yes' : '',
+    })
+  }
+  styleSheet(ws, ws.columns.length)
+}
+
 // ── Main export ──────────────────────────────────────────────────────────
 
 export async function exportAllToExcel(): Promise<void> {
   // Load all data
-  const [clients, bookings, transactions, payments, incidents] = await Promise.all([
+  const [clients, bookings, transactions, payments, incidents, tours] = await Promise.all([
     db.clients.toArray(),
     db.bookings.toArray(),
     db.transactions.toArray(),
     db.payments.toArray(),
     db.incidents.toArray(),
+    db.tours.toArray(),
   ])
 
   const clientMap = new Map(clients.map(c => [c.id, c.alias]))
@@ -354,6 +382,7 @@ export async function exportAllToExcel(): Promise<void> {
   buildExpensesSheet(wb, transactions)
   buildPaymentsSheet(wb, payments, clientMap, bookings)
   buildIncidentsSheet(wb, incidents, clientMap)
+  buildToursSheet(wb, tours)
 
   // Generate and download
   const buffer = await wb.xlsx.writeBuffer()

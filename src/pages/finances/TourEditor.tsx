@@ -41,7 +41,7 @@ export function TourEditor({ isOpen, onClose, tour }: TourEditorProps) {
     }
   }, [isOpen, tour])
 
-  const isValid = name.trim().length > 0 && city.trim().length > 0
+  const isValid = name.trim().length > 0 && city.trim().length > 0 && endDate >= startDate
 
   async function handleSave() {
     if (!isValid || saving) return
