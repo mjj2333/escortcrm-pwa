@@ -84,6 +84,7 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
       onClose()
     } catch (err) {
       showToast(`Save failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
       setSaving(false)
     }
   }
