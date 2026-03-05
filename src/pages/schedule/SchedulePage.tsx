@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import {
   startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday,
-  startOfWeek, endOfWeek, isSameMonth, isSameWeek, addMonths, subMonths, addWeeks, subWeeks, subDays,
+  startOfWeek, endOfWeek, isSameMonth, isSameWeek, addMonths, subMonths, addWeeks, subWeeks, subDays, addDays,
   parseISO, startOfDay, endOfDay, format
 } from 'date-fns'
 import { fmtMonthYear, fmtMonth, fmtFullDayDate } from '../../utils/dateFormat'
@@ -786,7 +786,7 @@ function WeekView({
       const bStart = new Date(b.dateTime).getTime()
       const bEnd = bStart + (b.duration || 60) * 60_000
       const dStart = startOfDay(weekDays[di]).getTime()
-      const dEnd = dStart + 24 * 60 * 60_000
+      const dEnd = startOfDay(addDays(weekDays[di], 1)).getTime()
       const visS = Math.max(bStart, dStart)
       const visE = Math.min(bEnd, dEnd)
       const h = new Date(visS).getHours() + new Date(visS).getMinutes() / 60
@@ -959,7 +959,7 @@ function WeekView({
                       const bookingStart = dt.getTime()
                       const bookingEnd = bookingStart + (b.duration || 60) * 60_000
                       const dayStartMs = startOfDay(day).getTime()
-                      const dayEndMs = dayStartMs + 24 * 60 * 60_000
+                      const dayEndMs = startOfDay(addDays(day, 1)).getTime()
                       // Clamp visible portion to this day column
                       const visStart = Math.max(bookingStart, dayStartMs)
                       const visEnd = Math.min(bookingEnd, dayEndMs)

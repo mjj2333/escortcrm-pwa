@@ -42,7 +42,7 @@ export function useAutoStatusTransitions() {
       try {
         const now = Date.now()
         const bookings = await db.bookings.where('status').anyOf([
-          'Pending Deposit', 'Confirmed', 'In Progress', 'Completed'
+          'Pending Deposit', 'Confirmed', 'In Progress', 'Completed', 'Cancelled', 'No Show'
         ]).toArray()
 
       // Pre-build set of booking IDs that already have recurring children
@@ -107,9 +107,12 @@ export function useAutoStatusTransitions() {
           sendCompletionNotification(clientAlias, b.duration)
         }
 
-        // Spawn next recurring booking if this one completed
+        // Spawn next recurring booking when this one completes, is cancelled, or is a no-show.
+        // Cancelled/No-Show should NOT break the chain — the user still expects next week's booking.
         const effectiveStatus = (await db.bookings.get(b.id))?.status ?? b.status
-        if (effectiveStatus === 'Completed' && b.recurrence && b.recurrence !== 'none') {
+        const shouldSpawn = (effectiveStatus === 'Completed' || effectiveStatus === 'Cancelled' || effectiveStatus === 'No Show')
+          && b.recurrence && b.recurrence !== 'none'
+        if (shouldSpawn) {
           if (!parentIdsWithChildren.has(b.id)) {
             // Only auto-create if client still exists and is screened
             const recurClient = b.clientId ? await db.clients.get(b.clientId) : null
@@ -128,33 +131,43 @@ export function useAutoStatusTransitions() {
               default: continue
             }
 
-            const needsDeposit = (b.depositAmount ?? 0) > 0
-            const nextBooking = createBooking({
-              clientId: b.clientId,
-              dateTime: nextDate,
-              duration: b.duration,
-              locationType: b.locationType,
-              locationAddress: b.locationAddress,
-              locationNotes: b.locationNotes,
-              venueId: b.venueId,
-              status: needsDeposit ? 'Pending Deposit' : 'Confirmed',
-              confirmedAt: needsDeposit ? undefined : new Date(),
-              baseRate: b.baseRate,
-              extras: b.extras,
-              travelFee: b.travelFee,
-              depositAmount: b.depositAmount,
-              depositMethod: b.depositMethod,
-              paymentMethod: b.paymentMethod,
-              tourId: b.tourId,
-              notes: b.notes,
-              requiresSafetyCheck: b.requiresSafetyCheck,
-              safetyCheckMinutesAfter: b.safetyCheckMinutesAfter,
-              safetyContactId: b.safetyContactId,
-              recurrence: b.recurrence,
-              parentBookingId: b.id,
-              recurrenceRootId: b.recurrenceRootId ?? b.id,
+            // Don't spawn bookings in the past (e.g. recurrence added to an old completed booking)
+            if (nextDate.getTime() < Date.now() - 24 * 60 * 60_000) continue
+
+            // Use a transaction to guard against multi-tab double-spawning
+            await db.transaction('rw', db.bookings, async () => {
+              // Re-check inside the transaction that no child was created by another tab
+              const existingChild = await db.bookings.filter(c => c.parentBookingId === b.id).first()
+              if (existingChild) return
+
+              const needsDeposit = (b.depositAmount ?? 0) > 0
+              const nextBooking = createBooking({
+                clientId: b.clientId,
+                dateTime: nextDate,
+                duration: b.duration,
+                locationType: b.locationType,
+                locationAddress: b.locationAddress,
+                locationNotes: b.locationNotes,
+                venueId: b.venueId,
+                status: needsDeposit ? 'Pending Deposit' : 'Confirmed',
+                confirmedAt: needsDeposit ? undefined : new Date(),
+                baseRate: b.baseRate,
+                extras: b.extras,
+                travelFee: b.travelFee,
+                depositAmount: b.depositAmount,
+                depositMethod: b.depositMethod,
+                paymentMethod: b.paymentMethod,
+                tourId: b.tourId,
+                notes: b.notes,
+                requiresSafetyCheck: b.requiresSafetyCheck,
+                safetyCheckMinutesAfter: b.safetyCheckMinutesAfter,
+                safetyContactId: b.safetyContactId,
+                recurrence: b.recurrence,
+                parentBookingId: b.id,
+                recurrenceRootId: b.recurrenceRootId ?? b.id,
+              })
+              await db.bookings.add(nextBooking)
             })
-            await db.bookings.add(nextBooking)
           }
         }
       }
