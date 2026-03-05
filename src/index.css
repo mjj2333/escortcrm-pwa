@@ -59,9 +59,13 @@ body {
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   font-variant-numeric: tabular-nums;
+  overscroll-behavior: none;
+}
+
+/* Disable text selection on UI chrome, but allow it on content */
+button, a, [role="button"], label, nav, header, .tab-bar, summary {
   user-select: none;
   -webkit-user-select: none;
-  overscroll-behavior: none;
 }
 
 /* Safe area for notched phones */

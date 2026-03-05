@@ -907,7 +907,7 @@ function ContactActionBar({ client }: { client: Client }) {
             </span>
           )}
           {a.fallback && (
-            <span className="text-[8px]" style={{ color: 'var(--text-secondary)', marginTop: '-2px', opacity: 0.7 }}>
+            <span className="text-[8px]" style={{ color: 'var(--text-secondary)', marginTop: '-2px' }}>
               via phone
             </span>
           )}

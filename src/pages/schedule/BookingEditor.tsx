@@ -835,17 +835,17 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
           </div>
           <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>{conflictWarning.reason}</p>
           {conflictWarning.isDoubleBook && (
-            <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+            <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>
               This booking will overlap with another appointment. Are you sure you want to proceed?
             </p>
           )}
           {conflictWarning.isBufferConflict && (
-            <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+            <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>
               There isn't enough buffer time between these bookings. You can adjust this in Settings.
             </p>
           )}
           {!conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict && (
-            <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+            <p className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>
               If you continue, this day will be set to <strong style={{ color: '#f97316' }}>Limited</strong> and
               only this booking's time slot will be open.
             </p>

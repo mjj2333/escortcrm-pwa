@@ -43,12 +43,13 @@ function ActionPill({ label, active, color, onTap }: {
   return (
     <button
       onClick={e => { e.stopPropagation(); onTap() }}
-      className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide shrink-0 transition-all"
+      className="px-2 py-1.5 rounded text-[9px] font-bold uppercase tracking-wide shrink-0 transition-all"
       style={{
         backgroundColor: active ? `${color}` : 'var(--bg-base)',
         color: active ? '#fff' : 'var(--text-secondary)',
         textShadow: active ? '0 1px 2px rgba(0,0,0,0.3)' : 'none',
-        minWidth: '38px',
+        minWidth: '44px',
+        minHeight: '32px',
         textAlign: 'center',
       }}
     >
@@ -61,7 +62,7 @@ function ActionRow({ label, children }: { label: string; children: React.ReactNo
   return (
     <div className="flex items-center gap-1.5 px-2">
       <span className="text-[8px] font-bold uppercase tracking-wider w-[44px] shrink-0"
-        style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
+        style={{ color: 'var(--text-secondary)' }}>
         {label}
       </span>
       <div className="flex gap-1 flex-1 justify-end">
