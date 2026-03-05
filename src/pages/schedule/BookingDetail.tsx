@@ -92,6 +92,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const [payLabel, setPayLabel] = useState<PaymentLabel>('Payment')
   const [payNotes, setPayNotes] = useState('')
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null)
+  const [deletingPayment, setDeletingPayment] = useState(false)
 
   // Allow Dexie time to resolve before showing "not found"
   const [settled, setSettled] = useState(false)
@@ -253,7 +254,6 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
     }
   }
 
-  const [deletingPayment, setDeletingPayment] = useState(false)
   async function confirmDeletePayment() {
     if (!deletePaymentId || deletingPayment) return
     setDeletingPayment(true)
