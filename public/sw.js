@@ -22,6 +22,23 @@ self.addEventListener('message', (event) => {
   }
 })
 
+// When a notification is clicked, focus the app window or open one
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Focus an existing window if one is open
+      for (const client of windowClients) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          return client.focus()
+        }
+      }
+      // Otherwise open a new one
+      return self.clients.openWindow('/')
+    })
+  )
+})
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((names) => {

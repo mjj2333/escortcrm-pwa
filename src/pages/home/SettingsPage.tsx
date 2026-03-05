@@ -68,6 +68,15 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
   const [bufferMinutes, setBufferMinutes] = useLocalStorage('bufferMinutes', 30)
   const [outcallBufferMinutes, setOutcallBufferMinutes] = useLocalStorage('outcallBufferMinutes', 30)
 
+  // Sync reminders toggle with actual browser permission state.
+  // If the user revoked permission via browser settings while toggle was ON,
+  // auto-turn it off so the UI doesn't misleadingly show reminders as enabled.
+  useEffect(() => {
+    if (remindersEnabled && 'Notification' in window && Notification.permission === 'denied') {
+      setRemindersEnabled(false)
+    }
+  }, [remindersEnabled])
+
   /** Apply the resolved dark/light state to the DOM */
   function applyDarkState(isDark: boolean) {
     document.documentElement.classList.toggle('dark', isDark)
@@ -383,7 +392,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
               setRemindersEnabled(val)
             }
           }}
-            hint={remindersEnabled ? "You'll get alerts 1 hour and 15 minutes before bookings, plus birthday reminders." : 'Enable push notification reminders for upcoming bookings.'} />
+            hint={remindersEnabled ? "You'll get alerts 1 hour and 15 minutes before bookings, plus birthday reminders." : 'Enable notification reminders for upcoming bookings.'} />
           {remindersEnabled && 'Notification' in window && Notification.permission === 'denied' && (
             <p className="text-xs text-red-500 mb-3">
               Notifications are blocked by your browser. Enable them in your browser settings.

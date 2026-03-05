@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { db, bookingDurationFormatted } from '../db'
+import { showAppNotification } from '../utils/showNotification'
 
 /**
  * Booking Reminders using the Web Notifications API.
@@ -80,33 +81,33 @@ export function useBookingReminders(enabled: boolean) {
           addNotified(key8h)
           // Look up venue name
           const venue = await db.incallVenues.get(b.venueId)
-          try { new Notification('📍 Send directions to client', {
+          showAppNotification('📍 Send directions to client', {
             body: `${name} — ${venue?.name ?? 'Incall'} · Booking at ${new Date(b.dateTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`,
             icon: '/icon-192.png',
             tag: key8h,
-          }) } catch { /* Notification API unavailable */ }
+          })
         }
 
         // 1 hour reminder — fires once when booking is within 60 min
         const key1h = `${b.id}-1h`
         if (msBefore > 0 && msBefore <= 60 * 60_000 && !notifiedRef.current.has(key1h)) {
           addNotified(key1h)
-          try { new Notification('Booking in 1 hour', {
+          showAppNotification('Booking in 1 hour', {
             body: `${name} — ${bookingDurationFormatted(b.duration)} ${b.locationType}`,
             icon: '/icon-192.png',
             tag: key1h,
-          }) } catch { /* Notification API unavailable */ }
+          })
         }
 
         // 15 minute reminder — fires once when booking is within 15 min
         const key15 = `${b.id}-15m`
         if (msBefore > 0 && msBefore <= 15 * 60_000 && !notifiedRef.current.has(key15)) {
           addNotified(key15)
-          try { new Notification('Booking in 15 minutes', {
+          showAppNotification('Booking in 15 minutes', {
             body: `${name} — ${bookingDurationFormatted(b.duration)} ${b.locationType}`,
             icon: '/icon-192.png',
             tag: key15,
-          }) } catch { /* Notification API unavailable */ }
+          })
         }
       }
 
@@ -126,11 +127,11 @@ export function useBookingReminders(enabled: boolean) {
 
         if (birthdayClients.length > 0) {
           const names = birthdayClients.map(c => c.alias).join(', ')
-          try { new Notification('🎂 Birthday today!', {
+          showAppNotification('🎂 Birthday today!', {
             body: names,
             icon: '/icon-192.png',
             tag: birthdayKey,
-          }) } catch { /* Notification API unavailable */ }
+          })
         }
       }
       } catch (err) {
