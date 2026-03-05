@@ -49,11 +49,18 @@ type Screen =
   | { type: 'analytics' }
 
 function RouteErrorFallback() {
+  const offline = typeof navigator !== 'undefined' && !navigator.onLine
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center" style={{ minHeight: '60vh' }}>
-      <AlertTriangle size={32} color="#ef4444" className="mb-3" />
-      <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Something went wrong</h2>
-      <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>This section hit an unexpected error.</p>
+      <AlertTriangle size={32} color={offline ? '#facc15' : '#ef4444'} className="mb-3" />
+      <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+        {offline ? "You're offline" : 'Something went wrong'}
+      </h2>
+      <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+        {offline
+          ? 'This section needs to be loaded once while online before it can work offline.'
+          : 'This section hit an unexpected error.'}
+      </p>
       <button
         onClick={() => history.back()}
         className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97]"
