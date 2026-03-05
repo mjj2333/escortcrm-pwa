@@ -37,7 +37,7 @@ export function openChannel(method: ContactMethod, contactValue: string, message
     }
     case 'WhatsApp': {
       const phone = contactValue.replace(/[^0-9]/g, '')
-      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank')
+      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank', 'noreferrer,noopener')
       return 'opened'
     }
     case 'Telegram': {
@@ -45,13 +45,13 @@ export function openChannel(method: ContactMethod, contactValue: string, message
         // Sanitize to valid Telegram username characters only
         const username = contactValue.replace('@', '').replace(/[^a-zA-Z0-9_]/g, '')
         if (username) {
-          window.open(`https://t.me/${username}?text=${encoded}`, '_blank')
+          window.open(`https://t.me/${username}?text=${encoded}`, '_blank', 'noreferrer,noopener')
         } else {
           navigator.clipboard.writeText(message).catch(() => {})
           return 'copied'
         }
       } else {
-        window.open(`https://t.me/+${contactValue.replace(/[^0-9]/g, '')}?text=${encoded}`, '_blank')
+        window.open(`https://t.me/+${contactValue.replace(/[^0-9]/g, '')}?text=${encoded}`, '_blank', 'noreferrer,noopener')
       }
       return 'opened'
     }

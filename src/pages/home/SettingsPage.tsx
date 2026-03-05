@@ -63,6 +63,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
   const [showDuressSetup, setShowDuressSetup] = useState(false)
   const [showDuressRemove, setShowDuressRemove] = useState(false)
   const [disablingPin, setDisablingPin] = useState(false)
+  const [pendingPinDisable, setPendingPinDisable] = useState(false)
   const [stealthEnabled, setStealthEnabled] = useLocalStorage('stealthEnabled', false)
   const [bufferMinutes, setBufferMinutes] = useLocalStorage('bufferMinutes', 30)
   const [outcallBufferMinutes, setOutcallBufferMinutes] = useLocalStorage('outcallBufferMinutes', 30)
@@ -117,20 +118,26 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
       setPinChangePhase('setup')
       setShowPinSetup(true)
     } else {
-      try {
-        setDisablingPin(true)
-        // Decrypt all data before disabling PIN — only clear state on success
-        await disableFieldEncryption()
-        clearBiometric()
-        setBiometricOn(false)
-        setPinEnabled(false)
-        setPinCode('')
-        setDuressPin('')
-      } catch (err) {
-        showToast('Failed to disable encryption — PIN kept enabled', 'error')
-      } finally {
-        setDisablingPin(false)
-      }
+      // Require PIN re-entry before disabling security
+      setPendingPinDisable(true)
+    }
+  }
+
+  async function confirmPinDisable() {
+    setPendingPinDisable(false)
+    try {
+      setDisablingPin(true)
+      // Decrypt all data before disabling PIN — only clear state on success
+      await disableFieldEncryption()
+      clearBiometric()
+      setBiometricOn(false)
+      setPinEnabled(false)
+      setPinCode('')
+      setDuressPin('')
+    } catch (err) {
+      showToast('Failed to disable encryption — PIN kept enabled', 'error')
+    } finally {
+      setDisablingPin(false)
     }
   }
 
@@ -681,6 +688,16 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
               showToast('Failed to update encryption — PIN not changed', 'error')
             }
           }}
+        />
+      )}
+
+      {/* PIN Disable Verify Overlay */}
+      {pendingPinDisable && (
+        <PinLock
+          correctPin={localStorage.getItem(lsKey('pinCode'))?.replace(/^"|"$/g, '') || ''}
+          isSetup={false}
+          onCancel={() => setPendingPinDisable(false)}
+          onUnlock={() => confirmPinDisable()}
         />
       )}
 
