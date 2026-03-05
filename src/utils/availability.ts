@@ -257,6 +257,18 @@ export async function adjustAvailabilityForBooking(
     bookingId,
   }
 
+  // Remove any old slots tagged with this bookingId (e.g. when editing a booking's time)
+  if (bookingId) {
+    const allAvail = await db.availability.toArray()
+    for (const day of allAvail) {
+      const slots = day.openSlots ?? []
+      const filtered = slots.filter(s => s.bookingId !== bookingId)
+      if (filtered.length !== slots.length) {
+        await db.availability.update(day.id, { openSlots: filtered })
+      }
+    }
+  }
+
   const existing = await db.availability.where('date').equals(dayStart).first()
 
   if (existing) {
