@@ -273,6 +273,16 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
     }
   }
 
+  // Physical keyboard support
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key >= '0' && e.key <= '9') handleKey(e.key)
+      else if (e.key === 'Backspace' || e.key === 'Delete') handleDelete()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  })
+
   const title = isSetup
     ? phase === 'confirm' ? 'Confirm PIN' : 'Create PIN'
     : 'Enter PIN'

@@ -133,6 +133,26 @@ export default function Calculator({ onExit, pinHash }: CalculatorProps) {
     digitBuffer.current = ''
   }
 
+  // Physical keyboard support
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key >= '0' && e.key <= '9') inputDigit(e.key)
+      else if (e.key === '.') inputDot()
+      else if (e.key === '+') performOperation('+')
+      else if (e.key === '-') performOperation('-')
+      else if (e.key === '*') performOperation('*')
+      else if (e.key === '/') { e.preventDefault(); performOperation('/') }
+      else if (e.key === 'Enter' || e.key === '=') handleEquals()
+      else if (e.key === 'Escape') clear()
+      else if (e.key === 'Backspace') {
+        setDisplay(prev => prev.length > 1 ? prev.slice(0, -1) : '0')
+      }
+      else if (e.key === '%') inputPercent()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  })
+
   // Format display value
   const displayValue = (() => {
     const num = parseFloat(display)
