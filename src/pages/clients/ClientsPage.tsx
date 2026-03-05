@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Search, UserX, Pin, ArrowDownUp } from 'lucide-react'
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react'
 import { db } from '../../db'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -260,7 +260,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   )
 }
 
-function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToastValue }: {
+const ClientRow = memo(function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToastValue }: {
   client: Client; onOpen: () => void; onTogglePin: () => void; onFire: () => void
   showPinToast: boolean; pinToastValue: boolean
 }) {
@@ -459,7 +459,7 @@ function ClientRow({ client, onOpen, onTogglePin, onFire, showPinToast, pinToast
       )}
     </div>
   )
-}
+})
 
 // 🔥 Fire animation keyframes — injected once
 const fireStyleId = 'fire-easter-egg-styles'

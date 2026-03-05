@@ -1,5 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useRef, useState, useCallback, memo } from 'react'
 import { isToday, isTomorrow, differenceInDays, startOfDay, addMinutes } from 'date-fns'
 import { db, newId, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment, removeBookingPayment as removePayment, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../db'
 import { StatusBadge } from './StatusBadge'
@@ -84,9 +83,11 @@ interface Props {
   onCancel?: (booking: Booking) => void
   onNoShow?: (booking: Booking) => void
   availabilityStatus?: AvailabilityStatus
+  /** Total deposit amount already paid — computed by parent from payments table */
+  depositPaid?: number
 }
 
-export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCancel, onNoShow, availabilityStatus }: Props) {
+export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCancel, onNoShow, availabilityStatus, depositPaid = 0 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const startX = useRef(0)
   const currentX = useRef(0)
@@ -94,12 +95,8 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
   const [swiping, setSwiping] = useState(false)
   const isDragging = useRef(false)
 
-  // Live deposit payment tracking
-  const depositPayments = useLiveQuery(
-    () => db.payments.where('bookingId').equals(booking.id).filter(p => p.label === 'Deposit').toArray(),
-    [booking.id]
-  ) ?? []
-  const totalDeposits = depositPayments.reduce((sum, p) => sum + p.amount, 0)
+  // Deposit tracking — derived from parent-provided depositPaid prop
+  const totalDeposits = depositPaid
   const depositRemaining = booking.depositAmount - totalDeposits
   const depositFullyPaid = booking.depositAmount > 0 && depositRemaining <= 0
   const depositPartial = totalDeposits > 0 && depositRemaining > 0
@@ -492,4 +489,4 @@ export function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCa
       </div>
     </div>
   )
-}
+})

@@ -41,9 +41,14 @@ export function useAutoStatusTransitions() {
       running = true
       try {
         const now = Date.now()
-        const bookings = await db.bookings.where('status').anyOf([
-          'Pending Deposit', 'Confirmed', 'In Progress', 'Completed', 'Cancelled', 'No Show'
+        // Status transitions only need active bookings; recurring spawning also needs terminal statuses
+        const activeBookings = await db.bookings.where('status').anyOf([
+          'Pending Deposit', 'Confirmed', 'In Progress'
         ]).toArray()
+        const terminalForRecurrence = await db.bookings.where('status').anyOf([
+          'Completed', 'Cancelled', 'No Show'
+        ]).filter(b => !!b.recurrence && b.recurrence !== 'none').toArray()
+        const bookings = [...activeBookings, ...terminalForRecurrence]
 
       // Pre-build set of booking IDs that already have recurring children
       // Query only bookings with recurrenceRootId (indexed) to avoid full-table scan

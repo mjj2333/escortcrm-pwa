@@ -127,27 +127,52 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const weekEnd   = endOfWeek(currentMonth, { weekStartsOn: 1 })
   const weekDays  = eachDayOfInterval({ start: weekStart, end: weekEnd })
 
-  const bookingsForDay = (day: Date) =>
-    bookings.filter(b => {
-      const start = new Date(b.dateTime)
-      const endMs = start.getTime() + b.duration * 60_000
-      const dayStart = startOfDay(day)
-      const dayEnd = endOfDay(day)
-      // Show booking if it overlaps this day (handles overnight bookings)
-      if (!(start <= dayEnd && endMs > dayStart.getTime())) return false
+  // Pre-build a Map<dateKey, Booking[]> so bookingsForDay is O(1) per cell instead of O(n)
+  const bookingsByDayMap = useMemo(() => {
+    const map = new Map<string, typeof bookings>()
+    const toKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+    for (const b of bookings) {
       const hiddenByDefault = b.status === 'Cancelled' || b.status === 'No Show'
-      if (hiddenByDefault && !activeStatuses.has(b.status)) return false
-      if (!matchesFilters(b)) return false
+      if (hiddenByDefault && !activeStatuses.has(b.status)) continue
+      if (!matchesFilters(b)) continue
       if (isDateRangeActive) {
         const dt = new Date(b.dateTime)
-        if (dateRangeStart && dt < dateRangeStart) return false
-        if (dateRangeEnd   && dt > dateRangeEnd)   return false
+        if (dateRangeStart && dt < dateRangeStart) continue
+        if (dateRangeEnd   && dt > dateRangeEnd)   continue
       }
-      return true
-    })
+      // Add to each day the booking overlaps (handles overnight bookings)
+      const start = new Date(b.dateTime)
+      const endMs = start.getTime() + b.duration * 60_000
+      const dayIter = startOfDay(start)
+      for (let safety = 0; safety < 3; safety++) { // max 3-day span
+        const key = toKey(dayIter)
+        const dayEndMs = startOfDay(addDays(dayIter, 1)).getTime()
+        if (dayIter.getTime() < endMs) {
+          const arr = map.get(key)
+          if (arr) arr.push(b); else map.set(key, [b])
+        }
+        if (dayEndMs >= endMs) break
+        dayIter.setDate(dayIter.getDate() + 1)
+      }
+    }
+    return map
+  }, [bookings, activeStatuses, matchesFilters, isDateRangeActive, dateRangeStart, dateRangeEnd])
+
+  const bookingsForDay = (day: Date) =>
+    bookingsByDayMap.get(`${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`) ?? []
+
+  // Pre-build availability lookup by date key to avoid O(n) .find() per calendar cell
+  const availByDayMap = useMemo(() => {
+    const map = new Map<string, (typeof availability)[0]>()
+    for (const a of availability) {
+      const d = new Date(a.date)
+      map.set(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`, a)
+    }
+    return map
+  }, [availability])
 
   const availForDay = (day: Date) =>
-    availability.find(a => isSameDay(new Date(a.date), day))
+    availByDayMap.get(`${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`)
 
   // ── Monthly summary ──────────────────────────────────────────
   const monthBookings = useMemo(() => {
@@ -162,6 +187,14 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   }, [bookings, clients, activeStatuses, searchQuery, currentMonth])
 
   const allPayments = useLiveQuery(() => db.payments.toArray()) ?? []
+  // Pre-compute deposit totals per booking to avoid per-row useLiveQuery subscriptions
+  const depositByBooking = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const p of allPayments) {
+      if (p.label === 'Deposit') map.set(p.bookingId, (map.get(p.bookingId) ?? 0) + p.amount)
+    }
+    return map
+  }, [allPayments])
   const monthRevenue = useMemo(() => {
     const completedIds = new Set(monthBookings.filter(b => b.status === 'Completed').map(b => b.id))
     return allPayments
@@ -601,6 +634,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                             onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
                             onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
                             availabilityStatus={availForDay(new Date(b.dateTime))?.status}
+                            depositPaid={depositByBooking.get(b.id) ?? 0}
                           />
                         ))}
                     </div>
@@ -652,6 +686,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                             onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
                             onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
                           availabilityStatus={availForDay(new Date(b.dateTime))?.status}
+                          depositPaid={depositByBooking.get(b.id) ?? 0}
                         />
                       ))}
                     </div>
@@ -673,6 +708,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                             onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
                             onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
                           availabilityStatus={availForDay(new Date(b.dateTime))?.status}
+                          depositPaid={depositByBooking.get(b.id) ?? 0}
                         />
                       ))}
                     </div>
@@ -709,6 +745,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           onBookingCompleted={handleBookingCompleted}
           onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
           onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
+          depositByBooking={depositByBooking}
         />
       )}
 
@@ -1027,11 +1064,12 @@ interface DayDetailModalProps {
   onBookingCompleted?: (booking: import('../../types').Booking) => void
   onCancel?: (booking: import('../../types').Booking) => void
   onNoShow?: (booking: import('../../types').Booking) => void
+  depositByBooking?: Map<string, number>
 }
 
 function DayDetailModal({
   date, bookings, clientFor, availForDay, availColor, filtersActive,
-  onClose, onOpenBooking, onSetAvailability, onAddBooking, onBookingCompleted, onCancel, onNoShow,
+  onClose, onOpenBooking, onSetAvailability, onAddBooking, onBookingCompleted, onCancel, onNoShow, depositByBooking,
 }: DayDetailModalProps) {
   useScrollLock(true)
   const backdropRef = useRef<HTMLDivElement>(null)
@@ -1152,6 +1190,7 @@ function DayDetailModal({
                   onCancel={onCancel}
                   onNoShow={onNoShow}
                   availabilityStatus={avail?.status}
+                  depositPaid={depositByBooking?.get(b.id) ?? 0}
                 />
               ))}
             </div>

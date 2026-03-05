@@ -161,6 +161,15 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
     return map
   }, [allPayments])
 
+  // Pre-compute deposit totals per booking to avoid per-row useLiveQuery subscriptions
+  const depositByBooking = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const p of allPayments) {
+      if (p.label === 'Deposit') map.set(p.bookingId, (map.get(p.bookingId) ?? 0) + p.amount)
+    }
+    return map
+  }, [allPayments])
+
   // Outstanding balances — bookings with unpaid amounts (only Pending Deposit+ stages)
   const bookingsWithBalance = useMemo(() => safeBookings
     .filter(b => b.status === 'Pending Deposit' || b.status === 'Confirmed' || b.status === 'In Progress' || b.status === 'Completed')
@@ -344,6 +353,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                     onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
                     onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
                     availabilityStatus={availForDay(new Date(booking.dateTime))?.status}
+                    depositPaid={depositByBooking.get(booking.id) ?? 0}
                   />
                 )
               })}
@@ -612,6 +622,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           onOpenBooking={(id) => { setShowAllActive(false); onOpenBooking(id) }}
           onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
           onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
+          depositByBooking={depositByBooking}
         />
       )}
 
@@ -631,7 +642,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function AllActiveBookingsModal({
-  bookings, clientFor, availForDay, onClose, onOpenBooking, onCancel, onNoShow,
+  bookings, clientFor, availForDay, onClose, onOpenBooking, onCancel, onNoShow, depositByBooking,
 }: {
   bookings: import('../../types').Booking[]
   clientFor: (id?: string) => import('../../types').Client | undefined
@@ -640,6 +651,7 @@ function AllActiveBookingsModal({
   onOpenBooking: (id: string) => void
   onCancel?: (booking: import('../../types').Booking) => void
   onNoShow?: (booking: import('../../types').Booking) => void
+  depositByBooking?: Map<string, number>
 }) {
   useScrollLock(true)
   const backdropRef = useRef<HTMLDivElement>(null)
@@ -719,6 +731,7 @@ function AllActiveBookingsModal({
                   onCancel={onCancel}
                   onNoShow={onNoShow}
                   availabilityStatus={availForDay(new Date(b.dateTime))?.status}
+                  depositPaid={depositByBooking?.get(b.id) ?? 0}
                 />
               ))}
             </div>
