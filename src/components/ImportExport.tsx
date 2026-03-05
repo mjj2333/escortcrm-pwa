@@ -492,8 +492,8 @@ function parseCSV(text: string): Record<string, unknown>[] {
     const obj: Record<string, unknown> = {}
     headers.forEach((h, i) => {
       let v = row[i]?.trim() ?? ''
-      // Strip CSV formula injection characters (same protection as export)
-      if (v.length > 0 && '=+-@\t\r'.includes(v[0])) v = v.slice(1)
+      // Reverse export's formula-injection escape: strip leading ' before a dangerous char
+      if (v.length > 1 && v[0] === "'" && '=+-@\t\r'.includes(v[1])) v = v.slice(1)
       obj[h.trim()] = v
     })
     return obj
