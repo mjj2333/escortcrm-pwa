@@ -34,8 +34,19 @@ function sendCompletionNotification(clientAlias: string, durationMin: number) {
 export function useAutoStatusTransitions() {
   useEffect(() => {
     let running = false
-    // Track which safety checks have already fired an overdue notification this session
-    const overdueNotified = new Set<string>()
+    // Track which safety checks have already fired an overdue notification this session.
+    // Persisted to sessionStorage so reopening the app doesn't re-spam the same alerts.
+    const OVERDUE_KEY = 'safetyOverdue_notified'
+    const overdueNotified: Set<string> = (() => {
+      try {
+        const stored = sessionStorage.getItem(OVERDUE_KEY)
+        return stored ? new Set<string>(JSON.parse(stored)) : new Set<string>()
+      } catch { return new Set<string>() }
+    })()
+    function markOverdueNotified(key: string) {
+      markOverdueNotified(key)
+      try { sessionStorage.setItem(OVERDUE_KEY, JSON.stringify([...overdueNotified])) } catch {}
+    }
 
     async function checkAndUpdate() {
       if (running) return
@@ -186,7 +197,7 @@ export function useAutoStatusTransitions() {
 
         // Nudge: 5 minutes before the grace period expires
         if (now >= fiveBeforeDeadline && now < deadline && !overdueNotified.has(`remind-${check.id}`)) {
-          overdueNotified.add(`remind-${check.id}`)
+          markOverdueNotified(`remind-${check.id}`)
           if ('Notification' in window && Notification.permission === 'granted') {
             const booking = await db.bookings.get(check.bookingId)
             const client = booking?.clientId ? await db.clients.get(booking.clientId) : undefined
@@ -204,7 +215,7 @@ export function useAutoStatusTransitions() {
           await db.safetyChecks.update(check.id, { status: 'overdue' })
           // Fire an urgent notification — this is safety-critical
           if (!overdueNotified.has(check.id) && 'Notification' in window && Notification.permission === 'granted') {
-            overdueNotified.add(check.id)
+            markOverdueNotified(check.id)
             const booking = await db.bookings.get(check.bookingId)
             const client = booking?.clientId ? await db.clients.get(booking.clientId) : undefined
             showAppNotification('🚨 Safety check-in OVERDUE', {

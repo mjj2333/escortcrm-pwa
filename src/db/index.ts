@@ -353,7 +353,7 @@ export async function recordBookingPayment(opts: {
         paymentId,
         amount,
         type: 'income',
-        category: opts.label === 'Tip' ? 'tip' : opts.label === 'Cancellation Fee' ? 'other' : 'booking',
+        category: opts.label === 'Tip' ? 'tip' : 'booking',
         paymentMethod: opts.method,
         date: new Date(),
         notes: opts.label === 'Cancellation Fee'

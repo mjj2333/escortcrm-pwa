@@ -211,20 +211,23 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     }
 
     try {
-      const updates: Partial<Booking> = { status: newStatus }
-      if (newStatus === 'Confirmed') updates.confirmedAt = new Date()
-      if (newStatus === 'Completed') updates.completedAt = new Date()
-      if (newStatus === 'Cancelled') updates.cancelledAt = new Date()
-
-      await db.bookings.update(booking.id, updates)
-
       if (newStatus === 'Completed') {
-        // Re-fetch to get fresh data for payment calculation
-        const freshBooking = await db.bookings.get(booking.id)
-        if (freshBooking) await completeBookingPayment(freshBooking, client?.alias)
-        if (booking.clientId) {
-          await db.clients.update(booking.clientId, { lastSeen: new Date() })
-        }
+        // Wrap completion in a transaction with re-check to prevent double payment
+        // if the auto-status timer fires at the same moment
+        await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
+          const current = await db.bookings.get(booking.id)
+          if (!current || current.status === 'Completed') return
+          await db.bookings.update(booking.id, { status: 'Completed', completedAt: new Date() })
+          await completeBookingPayment(current, client?.alias)
+          if (booking.clientId) {
+            await db.clients.update(booking.clientId, { lastSeen: new Date() })
+          }
+        })
+      } else {
+        const updates: Partial<Booking> = { status: newStatus }
+        if (newStatus === 'Confirmed') updates.confirmedAt = new Date()
+        if (newStatus === 'Cancelled') updates.cancelledAt = new Date()
+        await db.bookings.update(booking.id, updates)
       }
       // Create safety check when manually advancing to In Progress
       if (newStatus === 'In Progress' && booking.requiresSafetyCheck) {

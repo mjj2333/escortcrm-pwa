@@ -134,41 +134,43 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
 
   async function updateStatus(status: BookingStatus) {
     try {
-      const updates: Partial<Booking> = { status }
-      if (status === 'Confirmed') updates.confirmedAt = new Date()
-      if (status === 'Completed') updates.completedAt = new Date()
-      // Write status to DB first so subsequent queries see the latest state
-      await db.bookings.update(bookingId, updates)
-      // Re-fetch from DB to avoid stale closure references
-      const fresh = await db.bookings.get(bookingId)
-      if (!fresh) return
       if (status === 'Completed') {
-        // Record remaining payment via ledger (after status is persisted)
-        const c = fresh.clientId ? await db.clients.get(fresh.clientId) : undefined
-        await completeBookingPayment(fresh, c?.alias)
-        // Update client lastSeen
-        if (fresh.clientId) {
-          await db.clients.update(fresh.clientId, { lastSeen: new Date() })
-        }
-      }
-      // Create safety check when manually advancing to In Progress
-      if (status === 'In Progress' && fresh.requiresSafetyCheck) {
-        const existing = await db.safetyChecks.where('bookingId').equals(bookingId).first()
-        if (!existing) {
-          const sessionStart = Math.max(new Date(fresh.dateTime).getTime(), Date.now())
-          const checkTime = addMinutes(new Date(sessionStart), fresh.safetyCheckMinutesAfter || 15)
-          await db.safetyChecks.add({
-            id: newId(),
-            bookingId,
-            safetyContactId: fresh.safetyContactId,
-            scheduledTime: checkTime,
-            bufferMinutes: 15,
-            status: 'pending',
-          })
-        }
-      }
-      if (status === 'Completed') {
+        // Wrap completion in a transaction with re-check to prevent double payment
+        // if the auto-status timer fires at the same moment
+        await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients, db.safetyChecks], async () => {
+          const current = await db.bookings.get(bookingId)
+          if (!current || current.status === 'Completed') return
+          await db.bookings.update(bookingId, { status: 'Completed', completedAt: new Date() })
+          const c = current.clientId ? await db.clients.get(current.clientId) : undefined
+          await completeBookingPayment(current, c?.alias)
+          if (current.clientId) {
+            await db.clients.update(current.clientId, { lastSeen: new Date() })
+          }
+        })
         setTimeout(() => setShowJournal(true), 400)
+      } else {
+        const updates: Partial<Booking> = { status }
+        if (status === 'Confirmed') updates.confirmedAt = new Date()
+        await db.bookings.update(bookingId, updates)
+        // Create safety check when manually advancing to In Progress
+        if (status === 'In Progress') {
+          const fresh = await db.bookings.get(bookingId)
+          if (fresh?.requiresSafetyCheck) {
+            const existing = await db.safetyChecks.where('bookingId').equals(bookingId).first()
+            if (!existing) {
+              const sessionStart = Math.max(new Date(fresh.dateTime).getTime(), Date.now())
+              const checkTime = addMinutes(new Date(sessionStart), fresh.safetyCheckMinutesAfter || 15)
+              await db.safetyChecks.add({
+                id: newId(),
+                bookingId,
+                safetyContactId: fresh.safetyContactId,
+                scheduledTime: checkTime,
+                bufferMinutes: 15,
+                status: 'pending',
+              })
+            }
+          }
+        }
       }
     } catch (err) {
       showToast(`Status update failed: ${err instanceof Error ? err.message : 'Unknown error'}`)

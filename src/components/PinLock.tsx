@@ -273,15 +273,19 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
     }
   }
 
-  // Physical keyboard support
+  // Physical keyboard support — use refs to avoid re-subscribing on every render
+  const handleKeyRef = useRef(handleKey)
+  const handleDeleteRef = useRef(handleDelete)
+  handleKeyRef.current = handleKey
+  handleDeleteRef.current = handleDelete
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key >= '0' && e.key <= '9') handleKey(e.key)
-      else if (e.key === 'Backspace' || e.key === 'Delete') handleDelete()
+      if (e.key >= '0' && e.key <= '9') handleKeyRef.current(e.key)
+      else if (e.key === 'Backspace' || e.key === 'Delete') handleDeleteRef.current()
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  })
+  }, [])
 
   const title = isSetup
     ? phase === 'confirm' ? 'Confirm PIN' : 'Create PIN'
