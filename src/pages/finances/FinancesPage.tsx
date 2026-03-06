@@ -207,19 +207,32 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
     return map
   }, [clients])
 
-  // Stats
-  const totalIncome = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-  const totalExpenses = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-  const netIncome = totalIncome - totalExpenses
-  const bookingTxns = filtered.filter(t => t.category === 'booking')
-  const uniqueBookingIds = new Set(bookingTxns.map(t => t.bookingId).filter(Boolean))
-  const manualBookingTxns = bookingTxns.filter(t => !t.bookingId).length
-  const bookingCount = uniqueBookingIds.size + manualBookingTxns
-  const avgBooking = bookingCount > 0
-    ? Math.round(bookingTxns.reduce((s, t) => s + t.amount, 0) / bookingCount)
-    : 0
-  const estimatedTax = netIncome > 0 ? Math.round(netIncome * taxRate / 100) : 0
-  const suggestedSetAside = totalIncome > 0 ? Math.round(totalIncome * setAsideRate / 100) : 0
+  // Stats — single pass over filtered transactions
+  const { totalIncome, totalExpenses, netIncome, bookingCount, avgBooking, estimatedTax, suggestedSetAside } = useMemo(() => {
+    let income = 0, expenses = 0, bookingTotal = 0
+    const bookingIds = new Set<string>()
+    let manualBookings = 0
+    for (const t of filtered) {
+      if (t.type === 'income') income += t.amount
+      else if (t.type === 'expense') expenses += t.amount
+      if (t.category === 'booking') {
+        bookingTotal += t.amount
+        if (t.bookingId) bookingIds.add(t.bookingId)
+        else manualBookings++
+      }
+    }
+    const net = income - expenses
+    const count = bookingIds.size + manualBookings
+    return {
+      totalIncome: income,
+      totalExpenses: expenses,
+      netIncome: net,
+      bookingCount: count,
+      avgBooking: count > 0 ? Math.round(bookingTotal / count) : 0,
+      estimatedTax: net > 0 ? Math.round(net * taxRate / 100) : 0,
+      suggestedSetAside: income > 0 ? Math.round(income * setAsideRate / 100) : 0,
+    }
+  }, [filtered, taxRate, setAsideRate])
 
   // Goal — tied to the active period tab
   // On 'All' period, we show the monthly goal with a note about timeframe
@@ -250,7 +263,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
     .filter(x => x.owing > 0)
     .sort((a, b) => b.owing - a.owing),
   [allBookings, paymentsByBookingId, clientMap])
-  const totalOutstanding = bookingsWithBalance.reduce((s, x) => s + x.owing, 0)
+  const totalOutstanding = useMemo(() => bookingsWithBalance.reduce((s, x) => s + x.owing, 0), [bookingsWithBalance])
 
   // Expense breakdown — show all categories; group smallest into "Other" if more than 7
   const expenseBreakdown = useMemo(() => {
@@ -323,12 +336,18 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
     return data
   }, [completedBookings])
 
-  const heatmapMax = Math.max(1, ...heatmap.flat())
-  const dayTotals = heatmap.map(d => d.reduce((a: number, b: number) => a + b, 0))
-  const bestDayIdx = dayTotals.indexOf(Math.max(...dayTotals))
-  const hourTotals = Array(24).fill(0) as number[]
-  heatmap.forEach(d => d.forEach((c: number, h: number) => { hourTotals[h] += c }))
-  const bestHourIdx = hourTotals.indexOf(Math.max(...hourTotals))
+  const { heatmapMax, dayTotals, bestDayIdx, hourTotals, bestHourIdx } = useMemo(() => {
+    const dTotals = heatmap.map(d => d.reduce((a: number, b: number) => a + b, 0))
+    const hTotals = Array(24).fill(0) as number[]
+    heatmap.forEach(d => d.forEach((c: number, h: number) => { hTotals[h] += c }))
+    return {
+      heatmapMax: Math.max(1, ...heatmap.flat()),
+      dayTotals: dTotals,
+      bestDayIdx: dTotals.indexOf(Math.max(...dTotals)),
+      hourTotals: hTotals,
+      bestHourIdx: hTotals.indexOf(Math.max(...hTotals)),
+    }
+  }, [heatmap])
 
   const dayRevenue = useMemo(() => {
     const data = Array(7).fill(0) as number[]
@@ -338,7 +357,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
     })
     return data
   }, [completedBookings, incomeByBookingId])
-  const maxDayRev = Math.max(1, ...dayRevenue)
+  const maxDayRev = useMemo(() => Math.max(1, ...dayRevenue), [dayRevenue])
 
   // Trends: 12-month data (pre-bucket by YYYY-MM to avoid O(months × items))
   const monthly = useMemo(() => {
@@ -368,26 +387,37 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
     })
   }, [allTransactions, allBookings])
 
-  const currentMonth = monthly[monthly.length - 1]
-  const prevMonth = monthly.length >= 2 ? monthly[monthly.length - 2] : null
-  const momChange = prevMonth && prevMonth.income > 0
-    ? Math.round(((currentMonth.income - prevMonth.income) / prevMonth.income) * 100)
-    : null
-  const maxMonthlyIncome = Math.max(1, ...monthly.map(m => m.income))
-  const maxMonthlyBookings = Math.max(1, ...monthly.map(m => m.bookings))
+  const { currentMonth, prevMonth, momChange, maxMonthlyIncome, maxMonthlyBookings } = useMemo(() => {
+    const cur = monthly[monthly.length - 1]
+    const prev = monthly.length >= 2 ? monthly[monthly.length - 2] : null
+    return {
+      currentMonth: cur,
+      prevMonth: prev,
+      momChange: prev && prev.income > 0
+        ? Math.round(((cur.income - prev.income) / prev.income) * 100)
+        : null,
+      maxMonthlyIncome: Math.max(1, ...monthly.map(m => m.income)),
+      maxMonthlyBookings: Math.max(1, ...monthly.map(m => m.bookings)),
+    }
+  }, [monthly])
 
-  // Week over Week
-  const wowCurrentStart = startOfWeek(new Date(), { weekStartsOn: 1 })
-  const wowPrevStart = subWeeks(wowCurrentStart, 1)
-  const wowCurrentIncome = allTransactions
-    .filter(t => t.type === 'income' && new Date(t.date) >= wowCurrentStart)
-    .reduce((s, t) => s + t.amount, 0)
-  const wowPrevIncome = allTransactions
-    .filter(t => t.type === 'income' && new Date(t.date) >= wowPrevStart && new Date(t.date) < wowCurrentStart)
-    .reduce((s, t) => s + t.amount, 0)
-  const wowChange = wowPrevIncome > 0
-    ? Math.round(((wowCurrentIncome - wowPrevIncome) / wowPrevIncome) * 100)
-    : null
+  // Week over Week — single pass
+  const { wowCurrentIncome, wowPrevIncome, wowChange } = useMemo(() => {
+    const currentStart = startOfWeek(new Date(), { weekStartsOn: 1 }).getTime()
+    const prevStart = subWeeks(new Date(currentStart), 1).getTime()
+    let current = 0, prev = 0
+    for (const t of allTransactions) {
+      if (t.type !== 'income') continue
+      const td = new Date(t.date).getTime()
+      if (td >= currentStart) current += t.amount
+      else if (td >= prevStart) prev += t.amount
+    }
+    return {
+      wowCurrentIncome: current,
+      wowPrevIncome: prev,
+      wowChange: prev > 0 ? Math.round(((current - prev) / prev) * 100) : null,
+    }
+  }, [allTransactions])
 
   // Client analytics (filtered by period)
   const clientStats = useMemo(() => {
@@ -476,6 +506,59 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
       newThisMonth, returningThisMonth, avgRepeatRevenue: revOf(repeatClients), avgOneTimeRevenue: revOf(oneTimeClients),
     }
   }, [clients, completedBookings, bookingsByClientId, incomeByBookingId])
+
+  // Tour financial summaries — pre-computed so we don't scan all bookings/transactions per-tour in JSX
+  const tourSummaries = useMemo(() => {
+    const activeTours = allTours.filter(t => !t.isArchived)
+    if (activeTours.length === 0) return []
+
+    // Build per-tour booking ID sets in one pass
+    const bookingIdsByTour = new Map<string, Set<string>>()
+    for (const b of allBookings) {
+      if (!b.tourId) continue
+      const set = bookingIdsByTour.get(b.tourId)
+      if (set) set.add(b.id)
+      else bookingIdsByTour.set(b.tourId, new Set([b.id]))
+    }
+
+    // Aggregate transaction income/expenses per tour in one pass
+    const txnIncomeByTour = new Map<string, number>()
+    const txnExpensesByTour = new Map<string, number>()
+    for (const t of allTransactions) {
+      if (!t.tourId) continue
+      if (t.type === 'income') {
+        // Only count non-booking income (booking income comes from payments)
+        const tourBIds = bookingIdsByTour.get(t.tourId)
+        if (!t.bookingId || !tourBIds?.has(t.bookingId)) {
+          txnIncomeByTour.set(t.tourId, (txnIncomeByTour.get(t.tourId) ?? 0) + t.amount)
+        }
+      } else if (t.type === 'expense') {
+        txnExpensesByTour.set(t.tourId, (txnExpensesByTour.get(t.tourId) ?? 0) + t.amount)
+      }
+    }
+
+    // Aggregate booking payments per tour in one pass
+    const bookingPaymentByTour = new Map<string, number>()
+    for (const p of allPayments) {
+      if (p.label === 'Tip') continue
+      // Find which tour this payment's booking belongs to
+      for (const [tourId, bIds] of bookingIdsByTour) {
+        if (bIds.has(p.bookingId)) {
+          bookingPaymentByTour.set(tourId, (bookingPaymentByTour.get(tourId) ?? 0) + p.amount)
+          break
+        }
+      }
+    }
+
+    return activeTours
+      .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+      .map(tour => {
+        const bookingIncome = bookingPaymentByTour.get(tour.id) ?? 0
+        const nonBookingIncome = txnIncomeByTour.get(tour.id) ?? 0
+        const expenses = txnExpensesByTour.get(tour.id) ?? 0
+        return { tour, income: bookingIncome + nonBookingIncome, expenses, net: bookingIncome + nonBookingIncome - expenses }
+      })
+  }, [allTours, allBookings, allTransactions, allPayments])
 
   const clientSourceCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -885,54 +968,34 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
               <Plus size={12} /> New
             </button>
           </div>
-          {(() => {
-            const activeTours = allTours.filter(t => !t.isArchived)
-            if (activeTours.length === 0) {
-              return (
-                <p className="text-sm text-center py-4" style={{ color: 'var(--text-secondary)' }}>
-                  No tours yet. Create one when traveling for work.
-                </p>
-              )
-            }
-            const sorted = [...activeTours].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
-            return (
-              <div className="space-y-2">
-                {sorted.map(tour => {
-                  // Deduplicate booking income already counted via transactions
-                  const tourBookingIds = new Set(allBookings.filter(b => b.tourId === tour.id).map(b => b.id))
-                  const nonBookingIncome = allTransactions
-                    .filter(t => t.tourId === tour.id && t.type === 'income' && (!t.bookingId || !tourBookingIds.has(t.bookingId)))
-                    .reduce((s, t) => s + t.amount, 0)
-                  const bookingIncome = allPayments
-                    .filter(p => tourBookingIds.has(p.bookingId) && p.label !== 'Tip')
-                    .reduce((s, p) => s + p.amount, 0)
-                  const income = bookingIncome + nonBookingIncome
-                  const tourExpenses = allTransactions.filter(t => t.tourId === tour.id && t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-                  const net = income - tourExpenses
-                  return (
-                    <button key={tour.id}
-                      onClick={() => onOpenTour?.(tour.id)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left active:opacity-70"
-                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{tour.name}</p>
-                        <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                          <MapPin size={10} className="inline mr-0.5" style={{ verticalAlign: '-1px' }} />{tour.city} · {fmtShortDate(new Date(tour.startDate))} — {fmtShortDate(new Date(tour.endDate))}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`text-sm font-semibold ${net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                          {net >= 0 ? '+' : ''}{formatCurrency(net)}
-                        </span>
-                        <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )
-          })()}
+          {tourSummaries.length === 0 ? (
+            <p className="text-sm text-center py-4" style={{ color: 'var(--text-secondary)' }}>
+              No tours yet. Create one when traveling for work.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {tourSummaries.map(({ tour, net }) => (
+                <button key={tour.id}
+                  onClick={() => onOpenTour?.(tour.id)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left active:opacity-70"
+                  style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{tour.name}</p>
+                    <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                      <MapPin size={10} className="inline mr-0.5" style={{ verticalAlign: '-1px' }} />{tour.city} · {fmtShortDate(new Date(tour.startDate))} — {fmtShortDate(new Date(tour.endDate))}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-sm font-semibold ${net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {net >= 0 ? '+' : ''}{formatCurrency(net)}
+                    </span>
+                    <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </Card>
         )}
 
