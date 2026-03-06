@@ -285,13 +285,15 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
       // Side effects when status changes via editor
       if (status !== booking.status) {
         if (status === 'Completed') {
-          const updatedBooking = await db.bookings.get(booking.id)
-          if (updatedBooking) {
-            await completeBookingPayment(updatedBooking, selectedClient?.alias)
-          }
-          if (clientId) {
-            await db.clients.update(clientId, { lastSeen: new Date() })
-          }
+          await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
+            const updatedBooking = await db.bookings.get(booking.id)
+            if (updatedBooking) {
+              await completeBookingPayment(updatedBooking, selectedClient?.alias)
+            }
+            if (clientId) {
+              await db.clients.update(clientId, { lastSeen: new Date() })
+            }
+          })
         }
         // Escalate client risk level on No Show (matches BookingDetail & SwipeableBookingRow logic)
         if (status === 'No Show' && clientId) {
@@ -353,13 +355,15 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
 
       // Side effects when creating with an advanced status
       if (status === 'Completed') {
-        const updatedBooking = await db.bookings.get(newBooking.id)
-        if (updatedBooking) {
-          await completeBookingPayment(updatedBooking, selectedClient?.alias)
-        }
-        if (clientId) {
-          await db.clients.update(clientId, { lastSeen: new Date() })
-        }
+        await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
+          const updatedBooking = await db.bookings.get(newBooking.id)
+          if (updatedBooking) {
+            await completeBookingPayment(updatedBooking, selectedClient?.alias)
+          }
+          if (clientId) {
+            await db.clients.update(clientId, { lastSeen: new Date() })
+          }
+        })
       }
 
       if (overrideAvailability) {

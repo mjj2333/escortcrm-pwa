@@ -394,8 +394,10 @@ export async function removeBookingPayment(paymentId: string): Promise<void> {
     const txns = await db.transactions.where('bookingId').equals(payment.bookingId).toArray()
     const paymentTime = new Date(payment.date).getTime()
     const matching = txns.find(t => t.paymentId === paymentId)
+      // Legacy fallback: match by amount, time, and notes pattern to avoid hitting the wrong transaction
       ?? txns.find(t => t.type === 'income' && Math.abs(t.amount - payment.amount) < 0.01
-        && Math.abs(new Date(t.date).getTime() - paymentTime) < 60_000)
+        && Math.abs(new Date(t.date).getTime() - paymentTime) < 5_000
+        && (t.notes ?? '').includes(payment.label))
     if (matching) await db.transactions.delete(matching.id)
     // Sync convenience booleans
     if (payment.label === 'Deposit') {
@@ -432,25 +434,30 @@ export async function getBookingTotalPaid(bookingId: string): Promise<number> {
   return payments.filter(p => p.label !== 'Tip').reduce((sum, p) => sum + p.amount, 0)
 }
 
-/** Complete a booking's payment: record a payment for any remaining balance. */
+/**
+ * Complete a booking's payment: record a payment for any remaining balance.
+ *
+ * This function does NOT create its own transaction — callers must wrap it in
+ * a transaction that includes [db.bookings, db.payments, db.transactions] so
+ * the reads and writes are atomic. (recordBookingPayment's inner transaction
+ * will participate in the caller's outer transaction.)
+ */
 export async function completeBookingPayment(booking: Booking, clientAlias?: string): Promise<void> {
-  await db.transaction('rw', [db.payments, db.transactions, db.bookings], async () => {
-    const total = bookingTotal(booking)
-    const paid = await getBookingTotalPaid(booking.id)
-    const remaining = total - paid
-    if (remaining > 0) {
-      await recordBookingPayment({
-        bookingId: booking.id,
-        amount: remaining,
-        method: booking.paymentMethod,
-        label: 'Payment',
-        clientAlias,
-      })
-    } else {
-      // No payment needed but ensure the boolean is set
-      await db.bookings.update(booking.id, { paymentReceived: true })
-    }
-  })
+  const total = bookingTotal(booking)
+  const paid = await getBookingTotalPaid(booking.id)
+  const remaining = total - paid
+  if (remaining > 0) {
+    await recordBookingPayment({
+      bookingId: booking.id,
+      amount: remaining,
+      method: booking.paymentMethod,
+      label: 'Payment',
+      clientAlias,
+    })
+  } else {
+    // No payment needed but ensure the boolean is set
+    await db.bookings.update(booking.id, { paymentReceived: true })
+  }
 }
 
 /**
