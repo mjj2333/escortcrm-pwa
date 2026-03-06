@@ -708,6 +708,13 @@ export function SafetyPage() {
         confirmLabel="Remove"
         onConfirm={async () => {
           if (deleteContactConfirm) {
+            // Warn if contact is assigned to active (pending/overdue) safety checks
+            const activeChecks = safetyChecks.filter(c =>
+              c.safetyContactId === deleteContactConfirm.id && (c.status === 'pending' || c.status === 'overdue')
+            )
+            if (activeChecks.length > 0) {
+              showToast(`Warning: ${activeChecks.length} active check(s) used this contact — they'll fall back to your primary contact`, 'info')
+            }
             const snap = await db.safetyContacts.get(deleteContactConfirm.id)
             await db.safetyContacts.delete(deleteContactConfirm.id)
             showUndoToast(`Removed ${deleteContactConfirm.name}`, async () => {

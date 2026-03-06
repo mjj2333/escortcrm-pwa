@@ -44,7 +44,7 @@ export function useAutoStatusTransitions() {
       } catch { return new Set<string>() }
     })()
     function markOverdueNotified(key: string) {
-      markOverdueNotified(key)
+      overdueNotified.add(key)
       try { sessionStorage.setItem(OVERDUE_KEY, JSON.stringify([...overdueNotified])) } catch {}
     }
 

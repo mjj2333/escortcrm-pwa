@@ -536,15 +536,17 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
     }
 
     // Aggregate booking payments per tour in one pass
+    // Invert bookingIdsByTour to a bookingId → tourId lookup for O(1) access
+    const bookingToTour = new Map<string, string>()
+    for (const [tourId, bIds] of bookingIdsByTour) {
+      for (const bid of bIds) bookingToTour.set(bid, tourId)
+    }
     const bookingPaymentByTour = new Map<string, number>()
     for (const p of allPayments) {
       if (p.label === 'Tip') continue
-      // Find which tour this payment's booking belongs to
-      for (const [tourId, bIds] of bookingIdsByTour) {
-        if (bIds.has(p.bookingId)) {
-          bookingPaymentByTour.set(tourId, (bookingPaymentByTour.get(tourId) ?? 0) + p.amount)
-          break
-        }
+      const tourId = bookingToTour.get(p.bookingId)
+      if (tourId) {
+        bookingPaymentByTour.set(tourId, (bookingPaymentByTour.get(tourId) ?? 0) + p.amount)
       }
     }
 
