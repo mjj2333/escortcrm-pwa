@@ -208,7 +208,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
   }, [clients])
 
   // Stats — single pass over filtered transactions
-  const { totalIncome, totalExpenses, netIncome, bookingCount, avgBooking, estimatedTax, suggestedSetAside } = useMemo(() => {
+  const { totalIncome, totalExpenses, netIncome, avgBooking, estimatedTax, suggestedSetAside } = useMemo(() => {
     let income = 0, expenses = 0, bookingTotal = 0
     const bookingIds = new Set<string>()
     let manualBookings = 0
@@ -387,12 +387,11 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
     })
   }, [allTransactions, allBookings])
 
-  const { currentMonth, prevMonth, momChange, maxMonthlyIncome, maxMonthlyBookings } = useMemo(() => {
+  const { currentMonth, momChange, maxMonthlyIncome, maxMonthlyBookings } = useMemo(() => {
     const cur = monthly[monthly.length - 1]
     const prev = monthly.length >= 2 ? monthly[monthly.length - 2] : null
     return {
       currentMonth: cur,
-      prevMonth: prev,
       momChange: prev && prev.income > 0
         ? Math.round(((cur.income - prev.income) / prev.income) * 100)
         : null,
@@ -402,7 +401,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
   }, [monthly])
 
   // Week over Week — single pass
-  const { wowCurrentIncome, wowPrevIncome, wowChange } = useMemo(() => {
+  const { wowCurrentIncome, wowChange } = useMemo(() => {
     const currentStart = startOfWeek(new Date(), { weekStartsOn: 1 }).getTime()
     const prevStart = subWeeks(new Date(currentStart), 1).getTime()
     let current = 0, prev = 0
@@ -414,7 +413,6 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
     }
     return {
       wowCurrentIncome: current,
-      wowPrevIncome: prev,
       wowChange: prev > 0 ? Math.round(((current - prev) / prev) * 100) : null,
     }
   }, [allTransactions])

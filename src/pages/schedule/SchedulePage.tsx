@@ -3,7 +3,7 @@ import { Plus, CalendarDays, CalendarRange, List, SlidersHorizontal, X, ChevronR
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import {
-  startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday,
+  startOfMonth, endOfMonth, eachDayOfInterval, isToday,
   startOfWeek, endOfWeek, isSameMonth, isSameWeek, addMonths, subMonths, addWeeks, subWeeks, subDays, addDays,
   parseISO, startOfDay, endOfDay, format
 } from 'date-fns'
