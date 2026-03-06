@@ -1377,7 +1377,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
       <TourEditor isOpen={showTourEditor} onClose={() => setShowTourEditor(false)} />
       <GoalEditor isOpen={showGoalEditor} onClose={() => setShowGoalEditor(false)} />
       <TaxSettingsEditor isOpen={showTaxSettings} onClose={() => setShowTaxSettings(false)} />
-      <AllTransactionsModal isOpen={showAllTransactions} onClose={() => setShowAllTransactions(false)} />
+      <AllTransactionsModal isOpen={showAllTransactions} onClose={() => setShowAllTransactions(false)} transactions={allTransactions} />
       <ImportExportModal isOpen={showImportExport} onClose={() => setShowImportExport(false)} initialTab="transactions" />
       <CardSettingsModal
         isOpen={showCardSettings}
@@ -1779,8 +1779,8 @@ function TaxSettingsEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 // ALL TRANSACTIONS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function AllTransactionsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const allTransactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray()) ?? []
+function AllTransactionsModal({ isOpen, onClose, transactions }: { isOpen: boolean; onClose: () => void; transactions: Transaction[] }) {
+  const allTransactions = transactions
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
   const [search, setSearch] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
