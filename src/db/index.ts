@@ -254,6 +254,11 @@ class CompanionDatabase extends Dexie {
       tours: 'id, city, startDate, isArchived',
       meta: 'key',
     })
+
+    // v14: Index parentBookingId on bookings for efficient recurring-chain lookups
+    this.version(14).stores({
+      bookings: 'id, clientId, dateTime, status, createdAt, recurrenceRootId, tourId, parentBookingId',
+    })
   }
 }
 

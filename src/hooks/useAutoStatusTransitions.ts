@@ -143,7 +143,7 @@ export function useAutoStatusTransitions() {
             // Use a transaction to guard against multi-tab double-spawning
             await db.transaction('rw', db.bookings, async () => {
               // Re-check inside the transaction that no child was created by another tab
-              const existingChild = await db.bookings.filter(c => c.parentBookingId === b.id).first()
+              const existingChild = await db.bookings.where('parentBookingId').equals(b.id).first()
               if (existingChild) return
 
               const needsDeposit = (b.depositAmount ?? 0) > 0
