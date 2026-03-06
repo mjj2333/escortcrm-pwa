@@ -29,12 +29,12 @@ const Paywall = lazy(() => import('./components/Paywall').then(m => ({ default: 
 import { ProGate } from './components/ProGate'
 import { ToastContainer, showToast } from './components/Toast'
 
-import { initFieldEncryption } from './db/fieldCrypto'
+import { initFieldEncryption, hasOrphanedEncryptedData, disableFieldEncryption } from './db/fieldCrypto'
 import { useServiceWorker } from './hooks/useServiceWorker'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { useHashNav, parseNavHash } from './hooks/useHashNav'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Shield } from 'lucide-react'
 
 // Theme is applied in index.html inline script (before any JS modules load) to prevent FOUC.
 // Do NOT duplicate that logic here — the inline script is the single source of truth for the
@@ -70,6 +70,75 @@ function RouteErrorFallback() {
   )
 }
 
+function EncryptionRecovery({ onDone }: { onDone: () => void }) {
+  const [pin, setPin] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleDecrypt() {
+    if (pin.length < 4 || busy) return
+    setBusy(true)
+    setError('')
+    try {
+      await initFieldEncryption(pin)
+      await disableFieldEncryption()
+      showToast('Data decrypted successfully')
+      onDone()
+    } catch {
+      setError('Wrong PIN — please try again')
+      setBusy(false)
+    }
+  }
+
+  async function handleSkip() {
+    try {
+      const { db } = await import('./db')
+      await db.meta.delete('field_encryption_key')
+      await db.meta.delete('encrypt_schema_version')
+      showToast('Encryption cleared — encrypted fields cannot be recovered', 'info')
+    } catch {}
+    onDone()
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }} className="flex flex-col items-center justify-center p-6">
+      <ToastContainer />
+      <Shield size={32} className="text-purple-500 mb-4" />
+      <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Encrypted Data Found</h2>
+      <p className="text-xs text-center mb-6" style={{ color: 'var(--text-secondary)' }}>
+        Your data is encrypted but no PIN is set. Enter your previous PIN to decrypt.
+      </p>
+      <input
+        type="password"
+        inputMode="numeric"
+        maxLength={6}
+        value={pin}
+        onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
+        placeholder="Enter PIN"
+        className="w-48 text-center text-2xl tracking-[0.5em] py-3 px-4 rounded-xl mb-3 outline-none focus:ring-2 focus:ring-purple-500/40"
+        style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+        autoFocus
+        onKeyDown={e => { if (e.key === 'Enter') handleDecrypt() }}
+      />
+      {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
+      <button
+        onClick={handleDecrypt}
+        disabled={pin.length < 4 || busy}
+        className={`w-48 py-3 rounded-xl font-semibold text-sm mb-3 ${pin.length >= 4 && !busy ? 'bg-purple-600 text-white' : 'opacity-40 bg-purple-600 text-white'}`}
+      >
+        {busy ? 'Decrypting…' : 'Decrypt Data'}
+      </button>
+      <button
+        onClick={handleSkip}
+        className="text-xs py-2"
+        style={{ color: 'var(--text-secondary)' }}
+      >
+        Skip — discard encrypted data
+      </button>
+    </div>
+  )
+}
+
 export default function App() {
   // Initialize nav state directly from hash — avoids a post-mount setState
   // which would trigger React error #310 (Suspense boundary reactivation)
@@ -87,6 +156,9 @@ export default function App() {
   const [pinEnabled] = useLocalStorage('pinEnabled', false)
   const [pinCode, setPinCode] = useLocalStorage('pinCode', '')
   const [isLocked, setIsLocked] = useState(true)
+
+  // Orphaned encryption recovery
+  const [showEncryptionRecovery, setShowEncryptionRecovery] = useState(false)
 
   // Stealth mode
   const [stealthEnabled] = useLocalStorage('stealthEnabled', false)
@@ -152,6 +224,14 @@ export default function App() {
   // Skip PIN if not enabled
   useEffect(() => {
     if (!pinEnabled) setIsLocked(false)
+  }, [pinEnabled])
+
+  // Detect orphaned encrypted data (PIN disabled but enc: values remain)
+  useEffect(() => {
+    if (pinEnabled) return
+    hasOrphanedEncryptedData().then(has => {
+      if (has) setShowEncryptionRecovery(true)
+    }).catch(() => {})
   }, [pinEnabled])
 
   // Re-lock when app is backgrounded (tab hidden / screen off) with grace period
@@ -229,6 +309,11 @@ export default function App() {
         }} />
       </div>
     )
+  }
+
+  // Encryption recovery — PIN was disabled but encrypted data remains
+  if (showEncryptionRecovery) {
+    return <EncryptionRecovery onDone={() => setShowEncryptionRecovery(false)} />
   }
 
   // Paywall — shown when user requests upgrade (never blocks app)

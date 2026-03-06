@@ -250,6 +250,30 @@ export async function disableFieldEncryption(): Promise<void> {
   clearFieldEncryption()
 }
 
+/**
+ * Detect orphaned encrypted data: PIN is disabled but enc: values remain in DB.
+ * Returns true if a master key exists in meta AND any table has enc: prefixed fields.
+ */
+export async function hasOrphanedEncryptedData(): Promise<boolean> {
+  const { db } = await import('./index')
+  const record = await db.meta.get('field_encryption_key')
+  if (!record?.value) return false // no master key → data is unrecoverable anyway
+
+  // Spot-check first record of each encrypted table
+  for (const [tableName, fields] of Object.entries(SENSITIVE_FIELDS)) {
+    const table = (db as any)[tableName] as import('dexie').Table | undefined
+    if (!table) continue
+    const first = await table.limit(1).first()
+    if (!first) continue
+    for (const f of fields) {
+      if (typeof (first as any)[f] === 'string' && (first as any)[f].startsWith(ENC_PREFIX)) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
 // ── Migration helpers ──────────────────────────────────────────────────
 
 const ENCRYPTED_TABLES = Object.keys(SENSITIVE_FIELDS)
