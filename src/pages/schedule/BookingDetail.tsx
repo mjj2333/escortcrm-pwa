@@ -239,7 +239,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
     if (!amount || amount <= 0 || submittingPayment) return
     setSubmittingPayment(true)
     try {
-      await recordBookingPayment({
+      const pid = await recordBookingPayment({
         bookingId,
         amount,
         method: payMethod || undefined,
@@ -248,7 +248,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         notes: payNotes.trim() || undefined,
       })
       setShowPaymentForm(false)
-      showToast(`${payLabel} of ${formatCurrency(amount)} recorded`)
+      if (pid) {
+        showToast(`${payLabel} of ${formatCurrency(amount)} recorded`)
+      } else {
+        showToast('Already fully paid — no payment recorded', 'info')
+      }
     } catch (err) {
       showToast(`Payment failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {

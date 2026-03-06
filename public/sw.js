@@ -65,7 +65,7 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           if (response.status === 200) {
             const clone = response.clone()
-            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone))
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone)).catch(() => {})
           }
           return response
         })
@@ -89,7 +89,7 @@ self.addEventListener('fetch', (event) => {
           // Cache successful responses for static assets
           if (response.status === 200) {
             const clone = response.clone()
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {})
           }
           return response
         })

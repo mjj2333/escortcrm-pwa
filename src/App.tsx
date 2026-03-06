@@ -29,7 +29,6 @@ const Paywall = lazy(() => import('./components/Paywall').then(m => ({ default: 
 import { ProGate } from './components/ProGate'
 import { ToastContainer, showToast } from './components/Toast'
 
-import { migrateToPaymentLedger } from './db'
 import { initFieldEncryption } from './db/fieldCrypto'
 import { useServiceWorker } from './hooks/useServiceWorker'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
@@ -173,11 +172,6 @@ export default function App() {
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [pinEnabled])
-
-  // Migrate existing bookings to payment ledger (one-time)
-  useEffect(() => {
-    migrateToPaymentLedger().catch(err => console.error('Payment ledger migration failed:', err))
-  }, [])
 
   const { pushNav, replaceNav } = useHashNav(activeTab, screen, setActiveTab, setScreen)
 

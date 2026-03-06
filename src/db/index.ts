@@ -330,7 +330,7 @@ export async function recordBookingPayment(opts: {
         const remaining = opts.label === 'Deposit'
           ? bk.depositAmount - (await db.payments.where('bookingId').equals(opts.bookingId).filter(p => p.label === 'Deposit').toArray()).reduce((s, p) => s + p.amount, 0)
           : bookingTotal(bk) - await getBookingTotalPaid(opts.bookingId)
-        if (remaining <= 0) return
+        if (remaining <= 0) return  // paymentId stays null — caller can check
         amount = Math.min(amount, remaining)
       }
     }
@@ -460,45 +460,3 @@ export async function completeBookingPayment(booking: Booking, clientAlias?: str
   }
 }
 
-/**
- * One-time migration: backfill BookingPayment records from legacy boolean flags
- * so existing completed/deposited bookings show correct balances.
- */
-export async function migrateToPaymentLedger(): Promise<void> {
-  const migrated = await db.meta.get('paymentsLedgerMigrated')
-  if (migrated) return
-  await db.transaction('rw', [db.bookings, db.payments, db.meta], async () => {
-    const bookings = await db.bookings.toArray()
-    for (const b of bookings) {
-      const existing = await db.payments.where('bookingId').equals(b.id).count()
-      if (existing > 0) continue
-      // Deposit received → create deposit payment (no transaction — old system already has it)
-      if (b.depositReceived && b.depositAmount > 0) {
-        await db.payments.add({
-          id: newId(),
-          bookingId: b.id,
-          amount: b.depositAmount,
-          method: b.depositMethod,
-          label: 'Deposit',
-          date: b.confirmedAt ?? b.createdAt,
-        })
-      }
-      // Payment received → create balance payment for the remainder
-      if (b.paymentReceived && (b.status === 'Completed' || b.status === 'In Progress')) {
-        const depositPaid = b.depositReceived ? b.depositAmount : 0
-        const remaining = bookingTotal(b) - depositPaid
-        if (remaining > 0) {
-          await db.payments.add({
-            id: newId(),
-            bookingId: b.id,
-            amount: remaining,
-            method: b.paymentMethod,
-            label: 'Payment',
-            date: b.completedAt ?? new Date(),
-          })
-        }
-      }
-    }
-    await db.meta.put({ key: 'paymentsLedgerMigrated', value: '1' })
-  })
-}
