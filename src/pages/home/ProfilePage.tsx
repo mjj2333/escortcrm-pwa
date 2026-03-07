@@ -464,8 +464,8 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
 }
 
 const SUPPORTED_CURRENCIES: { code: string; label: string }[] = [
-  { code: 'USD', label: 'USD — US Dollar ($)' },
   { code: 'CAD', label: 'CAD — Canadian Dollar ($)' },
+  { code: 'USD', label: 'USD — US Dollar ($)' },
   { code: 'AUD', label: 'AUD — Australian Dollar ($)' },
   { code: 'NZD', label: 'NZD — New Zealand Dollar ($)' },
   { code: 'GBP', label: 'GBP — British Pound (£)' },

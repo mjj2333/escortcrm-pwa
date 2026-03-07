@@ -276,7 +276,7 @@ export async function advanceBookingsOnScreen(
 
 // Helper: currency setting
 export const CURRENCY_KEY = 'currency'
-export const DEFAULT_CURRENCY = 'USD'
+export const DEFAULT_CURRENCY = 'CAD'
 
 export function getCurrency(): string {
   try {
