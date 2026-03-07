@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { FileText, Clock, Edit3, ChevronDown, ChevronUp, Phone, MessageSquare, StickyNote, Plus } from 'lucide-react'
+import { FileText, Clock, Edit3, ChevronDown, ChevronUp, Phone, MessageSquare, StickyNote } from 'lucide-react'
 import { fmtMediumDate } from '../utils/dateFormat'
 import { db } from '../db'
 import type { JournalEntry, JournalEntryType, Booking } from '../types'
@@ -27,10 +27,9 @@ function entryTypeLabel(type?: JournalEntryType) {
 interface JournalLogProps {
   clientId: string
   onEditEntry: (entry: JournalEntry, booking?: Booking) => void
-  onAddNew?: () => void
 }
 
-export function JournalLog({ clientId, onEditEntry, onAddNew }: JournalLogProps) {
+export function JournalLog({ clientId, onEditEntry }: JournalLogProps) {
   const entries = useLiveQuery(
     () => db.journalEntries.where('clientId').equals(clientId).reverse().sortBy('date'),
     [clientId]
@@ -56,20 +55,6 @@ export function JournalLog({ clientId, onEditEntry, onAddNew }: JournalLogProps)
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold uppercase" style={{ color: 'var(--text-secondary)' }}>
-          Activity {entries.length > 0 && `(${entries.length})`}
-        </p>
-        {onAddNew && (
-          <button type="button"
-            onClick={onAddNew}
-            className="flex items-center gap-1 text-xs font-medium text-purple-500 active:opacity-70"
-          >
-            <Plus size={12} /> Add
-          </button>
-        )}
-      </div>
-
       {entries.length === 0 ? (
         <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
           No activity logged yet.

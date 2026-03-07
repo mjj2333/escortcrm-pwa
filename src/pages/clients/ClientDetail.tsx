@@ -662,12 +662,19 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         )}
 
         {/* Activity */}
-        <CollapsibleCard label="Activity" id="journal" expanded={expanded} toggle={toggle}>
+        <CollapsibleCard label="Activity" id="journal" expanded={expanded} toggle={toggle}
+          badge={isPro() ? (
+            <button type="button"
+              onClick={(e) => { e.stopPropagation(); setShowNewActivity(true) }}
+              className="text-[10px] font-medium text-purple-500 active:opacity-70 ml-auto"
+            >
+              + Add
+            </button>
+          ) : undefined}>
           {isPro() ? (
             <JournalLog
               clientId={clientId}
               onEditEntry={(entry, booking) => setJournalEditEntry({ entry, booking })}
-              onAddNew={() => setShowNewActivity(true)}
             />
           ) : (
             <ProGate feature="Activity Log" onUpgrade={onShowPaywall} inline />
