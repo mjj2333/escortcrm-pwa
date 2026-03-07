@@ -121,10 +121,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const endTime = bookingEndTime(booking)
   const isTerminal = ['Completed', 'Cancelled', 'No Show'].includes(booking.status)
   const clientIsScreened = client?.screeningStatus === 'Screened'
-  // Block advancement past "To Be Confirmed" until client is screened
-  const next = (booking.status === 'To Be Confirmed' && !clientIsScreened)
-    ? undefined
-    : nextStatus[booking.status]
+  const next = nextStatus[booking.status]
 
   const totalPaid = (payments ?? []).filter(p => p.label !== 'Tip').reduce((sum, p) => sum + p.amount, 0)
   const balance = total - totalPaid
@@ -133,9 +130,19 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const depositRemaining = booking.depositAmount - totalDeposits
 
   const [earlyStartConfirmed, setEarlyStartConfirmed] = useState(false)
+  const [unscreenedConfirmed, setUnscreenedConfirmed] = useState(false)
 
   async function updateStatus(status: BookingStatus) {
     try {
+      // Warn when confirming a booking for an unscreened client
+      if (status === 'Confirmed' && !clientIsScreened && !unscreenedConfirmed) {
+        showToast('Client is not screened — tap again to confirm anyway', 'info')
+        setUnscreenedConfirmed(true)
+        setTimeout(() => setUnscreenedConfirmed(false), 5000)
+        return
+      }
+      setUnscreenedConfirmed(false)
+
       // Warn if setting In Progress more than 1 hour before booking start
       if (status === 'In Progress' && booking && !earlyStartConfirmed) {
         const msUntilStart = new Date(booking.dateTime).getTime() - Date.now()

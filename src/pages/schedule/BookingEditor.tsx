@@ -159,7 +159,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
   const selectedClient = clients.find(c => c.id === clientId)
   const total = baseRate + extras + ((locationType === 'Outcall' || locationType === 'Travel') ? travelFee : 0)
   const clientIsScreened = selectedClient?.screeningStatus === 'Screened'
-  const isValid = clientId && baseRate > 0 && duration > 0 && (isEditing || clientIsScreened)
+  const isValid = clientId && baseRate > 0 && duration > 0
 
   // Filter client list
   const filteredClients = clients.filter(c =>
@@ -597,17 +597,12 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
           )}
         </div>
 
-        {/* Unscreened client warning */}
+        {/* Unscreened client notice */}
         {selectedClient && !clientIsScreened && (
           <div className="flex items-center gap-2.5 p-3 rounded-xl mb-2"
             style={{ backgroundColor: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
             <AlertTriangle size={16} className="text-orange-500 shrink-0" />
-            <div className="flex-1">
-              <p className="text-xs font-semibold text-orange-500">Screening required</p>
-              <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                Go to Clients → {selectedClient.alias} → set Screening to "Screened" before creating a booking.
-              </p>
-            </div>
+            <p className="text-xs font-medium text-orange-500">Client is not yet screened</p>
           </div>
         )}
 
@@ -815,7 +810,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
           </button>
           {!isValid && !isEditing && (
             <p className="text-xs text-center mt-2" style={{ color: 'var(--text-secondary)' }}>
-              {!clientId ? 'Select a client' : baseRate <= 0 ? 'Set a rate' : duration <= 0 ? 'Set a duration' : !clientIsScreened ? 'Client must be screened' : ''}
+              {!clientId ? 'Select a client' : baseRate <= 0 ? 'Set a rate' : duration <= 0 ? 'Set a duration' : ''}
             </p>
           )}
         </div>
