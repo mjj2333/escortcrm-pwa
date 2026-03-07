@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, CalendarDays, CalendarRange, List, SlidersHorizontal, X, ChevronRight } from 'lucide-react'
+import { Plus, CalendarDays, CalendarRange, List, SlidersHorizontal, X, ChevronRight, Upload } from 'lucide-react'
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import {
@@ -20,6 +20,7 @@ import { formatTime12 } from '../../utils/availability'
 import type { Booking, BookingStatus } from '../../types'
 import { bookingStatusColors } from '../../types'
 import { SchedulePageSkeleton } from '../../components/Skeleton'
+import { IcsImportSheet } from '../../components/IcsImportSheet'
 import { isPro, usePlanLimits } from '../../components/planLimits'
 
 interface SchedulePageProps {
@@ -62,6 +63,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const [showEditor, setShowEditor]     = useState(false)
   const [editorPreDate, setEditorPreDate] = useState<Date | undefined>()
   const [showAvailPicker, setShowAvailPicker] = useState(false)
+  const [showIcsImport, setShowIcsImport] = useState(false)
 
   // Day detail modal
   const [dayDetailDate, setDayDetailDate] = useState<Date | null>(null)
@@ -350,6 +352,15 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
             <List size={14} />
           </button>
         </div>
+
+        {isPro() && (
+          <button type="button" onClick={() => setShowIcsImport(true)}
+            aria-label="Import calendar"
+            className="p-2 rounded-lg"
+            style={{ color: 'var(--text-secondary)' }}>
+            <Upload size={18} />
+          </button>
+        )}
 
         <button type="button" onClick={() => setShowEditor(true)}
           aria-label="Add booking"
@@ -774,6 +785,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           clientAlias={clientFor(journalBooking.clientId)?.alias}
         />
       )}
+
+      <IcsImportSheet isOpen={showIcsImport} onClose={() => setShowIcsImport(false)} />
     </div>
   )
 }
