@@ -169,7 +169,7 @@ export interface ServiceRate {
 }
 
 export type VenueType = 'Apartment' | 'Hotel' | 'Studio' | 'Airbnb' | 'Other'
-export type AccessMethod = 'Key Cafe' | 'Lockbox' | 'Front Desk' | 'Doorman' | 'Code' | 'Key Handoff' | 'App' | 'Other'
+export type AccessMethod = 'Key Cafe' | 'Lockbox' | 'Front Desk' | 'Doorman' | 'Code' | 'Key Handoff' | 'Keys Available' | 'App' | 'Other'
 
 export interface IncallVenue {
   id: string

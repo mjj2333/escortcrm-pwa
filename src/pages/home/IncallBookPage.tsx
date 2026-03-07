@@ -26,7 +26,7 @@ const contactMethodIcons: Record<ContactMethod, typeof Phone> = {
 }
 
 const venueTypes: VenueType[] = ['Apartment', 'Hotel', 'Studio', 'Airbnb', 'Other']
-const accessMethods: AccessMethod[] = ['Key Cafe', 'Lockbox', 'Front Desk', 'Doorman', 'Code', 'Key Handoff', 'App', 'Other']
+const accessMethods: AccessMethod[] = ['Key Cafe', 'Lockbox', 'Front Desk', 'Doorman', 'Code', 'Key Handoff', 'Keys Available', 'App', 'Other']
 const venueTypeIcons: Record<VenueType, typeof Building2> = {
   'Apartment': Building2, 'Hotel': Hotel, 'Studio': Warehouse, 'Airbnb': Home, 'Other': HelpCircle,
 }
