@@ -187,8 +187,8 @@ export function FieldToggle({ label, value, onChange, hint, disabled }:
 ) {
   return (
     <div className="mb-3">
-      <button
-        type="button"
+      <button type="button"
+        
         role="switch"
         aria-checked={value}
         onClick={() => !disabled && onChange(!value)}

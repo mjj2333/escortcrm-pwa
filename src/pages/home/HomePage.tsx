@@ -189,7 +189,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   return (
     <div className="pb-20">
       <PageHeader title="Home">
-        <button
+        <button type="button"
           onClick={() => setShowIncallBook(true)}
           className="p-2 rounded-lg active:opacity-60 transition-colors"
           style={{ color: 'var(--text-secondary)' }}
@@ -197,7 +197,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
         >
           <Building2 size={20} />
         </button>
-        <button
+        <button type="button"
           onClick={() => setShowProfile(true)}
           className="p-2 rounded-lg active:opacity-60 transition-colors relative"
           style={{ color: 'var(--text-secondary)' }}
@@ -208,7 +208,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
             <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-purple-500" />
           )}
         </button>
-        <button
+        <button type="button"
           onClick={onOpenSettings}
           className="p-2 rounded-lg active:opacity-60 transition-colors"
           style={{ color: 'var(--text-secondary)' }}
@@ -242,7 +242,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
             <p className="text-sm font-semibold" style={{ color: '#a855f7' }}>
               {daysSince === null ? 'You haven\'t backed up yet' : `Last backup ${daysSince} day${daysSince !== 1 ? 's' : ''} ago`}
             </p>
-            <button
+            <button type="button"
               onClick={() => setShowBackup(true)}
               className="text-xs font-medium underline mt-0.5"
               style={{ color: '#a855f7' }}
@@ -250,7 +250,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
               Back up now
             </button>
           </div>
-          <button
+          <button type="button"
             onClick={dismissReminder}
             className="p-1 opacity-50 active:opacity-100 shrink-0"
             style={{ color: '#a855f7' }}
@@ -264,7 +264,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
       <div className="px-4 py-4 space-y-4 max-w-lg mx-auto">
         {/* Safety Alert Banner */}
         {safetyChecks.length > 0 && (
-          <button
+          <button type="button"
             className="w-full rounded-xl p-4 flex items-center gap-3 text-left"
             style={{ backgroundColor: 'rgba(239,68,68,0.15)' }}
             onClick={() => onNavigateTab(4)}
@@ -325,7 +325,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
             icon={<CalendarDays size={16} className="text-purple-500" />}
             action={
               allActiveBookings.length > 0 ? (
-                <button
+                <button type="button"
                   onClick={() => setShowAllActive(true)}
                   className="text-xs text-purple-500 font-medium"
                 >
@@ -422,7 +422,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
             />
             <div className="space-y-2 mt-2">
               {(showAllBalances ? bookingsWithBalance : bookingsWithBalance.slice(0, 4)).map(({ booking, owing, client: c }) => (
-                <button
+                <button type="button"
                   key={booking.id}
                   onClick={() => onOpenBooking(booking.id)}
                   className="flex items-center justify-between w-full py-1.5 text-left"
@@ -447,7 +447,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                 </button>
               ))}
               {bookingsWithBalance.length > 4 && !showAllBalances && (
-                <button
+                <button type="button"
                   onClick={() => setShowAllBalances(true)}
                   className="text-[10px] text-center w-full py-1 font-medium"
                   style={{ color: '#a855f7' }}
@@ -471,7 +471,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                 const c = clientMap.get(clientId)
                 if (!c) return null
                 return (
-                  <button
+                  <button type="button"
                     key={clientId}
                     onClick={() => onOpenClient(clientId)}
                     className="flex items-center gap-3 w-full text-left py-1.5"
@@ -497,7 +497,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                         {daysOverdue}d overdue
                       </span>
                       {c.screeningStatus === 'Screened' && (
-                        <button
+                        <button type="button"
                           onClick={(e) => { e.stopPropagation(); setBookClientId(c.id) }}
                           className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                           style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
@@ -530,7 +530,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
               <p className="text-xs mt-0.5 mb-2" style={{ color: 'var(--text-secondary)' }}>
                 Get reminders 1 hour and 15 minutes before appointments, plus birthday alerts.
               </p>
-              <button
+              <button type="button"
                 onClick={() => onOpenSettings()}
                 className="text-xs font-semibold px-3 py-1.5 rounded-full"
                 style={{ backgroundColor: '#a855f7', color: '#fff' }}
@@ -550,7 +550,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
             />
             <div className="space-y-2">
               {upcomingBirthdays.map(({ client: c, daysUntil }) => (
-                <button
+                <button type="button"
                   key={c.id}
                   onClick={() => onOpenClient(c.id)}
                   className="flex items-center gap-3 w-full text-left py-1.5"
@@ -575,7 +575,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                       {daysUntil === 0 ? '🎂 Today!' : daysUntil === 1 ? 'Tomorrow' : `${daysUntil} days`}
                     </span>
                     {c.screeningStatus === 'Screened' && (
-                      <button
+                      <button type="button"
                         onClick={(e) => { e.stopPropagation(); setBookClientId(c.id) }}
                         className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                         style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#a855f7' }}
@@ -704,7 +704,7 @@ function AllActiveBookingsModal({
           <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
             Active Bookings ({bookings.length})
           </h2>
-          <button
+          <button type="button"
             onClick={handleClose}
             className="p-2 rounded-lg"
             style={{ color: 'var(--text-secondary)' }}

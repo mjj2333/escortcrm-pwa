@@ -95,7 +95,7 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
       onClose={onClose}
       title={isEditing ? 'Edit Transaction' : 'New Transaction'}
       actions={
-        <button onClick={handleSave} disabled={!isValid || saving}
+        <button type="button" onClick={handleSave} disabled={!isValid || saving}
           className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}
           aria-label="Save transaction">
           <Check size={20} />

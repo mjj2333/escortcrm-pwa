@@ -78,7 +78,7 @@ export function IncidentEditor({ isOpen, onClose, incident }: IncidentEditorProp
       onClose={onClose}
       title={isEditing ? 'Edit Incident' : 'Log Incident'}
       actions={
-        <button onClick={handleSave} disabled={!isValid || saving}
+        <button type="button" onClick={handleSave} disabled={!isValid || saving}
           className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}
           aria-label="Save incident">
           <Check size={20} />

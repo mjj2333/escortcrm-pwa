@@ -125,7 +125,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
       <div className="flex flex-col items-center justify-center p-8 text-center" style={{ minHeight: '60vh' }}>
         <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Client not found</h2>
         <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>This client may have been deleted.</p>
-        <button
+        <button type="button"
           onClick={onBack}
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97]"
         >
@@ -233,16 +233,16 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         style={{ borderColor: 'var(--border)' }}
       >
         <div className="flex items-center justify-between px-4 h-12 max-w-lg mx-auto">
-          <button onClick={onBack} className="flex items-center gap-1 text-purple-500">
+          <button type="button" onClick={onBack} className="flex items-center gap-1 text-purple-500">
             <ArrowLeft size={18} />
             <span className="text-sm">Back</span>
           </button>
           <div className="flex items-center gap-2">
-            <button onClick={togglePin} className="p-2" style={{ color: client.isPinned ? '#a855f7' : 'var(--text-secondary)' }}
+            <button type="button" onClick={togglePin} className="p-2" style={{ color: client.isPinned ? '#a855f7' : 'var(--text-secondary)' }}
               aria-label={client.isPinned ? 'Unpin client' : 'Pin client'}>
               {client.isPinned ? <PinOff size={18} /> : <Pin size={18} />}
             </button>
-            <button onClick={() => setShowEditor(true)} className="p-2 text-purple-500"
+            <button type="button" onClick={() => setShowEditor(true)} className="p-2 text-purple-500"
               aria-label="Edit client">
               <Edit size={18} />
             </button>
@@ -415,7 +415,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                   {forcedOn && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-500 font-medium">Required</span>
                   )}
-                  <button
+                  <button type="button"
                     role="switch"
                     aria-checked={client.requiresSafetyCheck || forcedOn}
                     aria-label="Safety check-in"
@@ -444,14 +444,14 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         {/* ── BOOKING ACTIONS (always visible) ── */}
         {client.screeningStatus === 'Screened' ? (
           <div className="flex gap-2">
-            <button
+            <button type="button"
               onClick={() => setShowBookingEditor(true)}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white active:opacity-80 bg-purple-600"
             >
               <Plus size={16} /> New Booking
             </button>
             {lastCompletedBooking && (
-              <button
+              <button type="button"
                 onClick={() => setShowRebook(true)}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
                 style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}
@@ -474,7 +474,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         )}
 
         {/* Message Client */}
-        <button
+        <button type="button"
           onClick={() => setShowMessageSheet(true)}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold active:opacity-80"
           style={{ backgroundColor: 'rgba(59,130,246,0.12)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)' }}
@@ -487,7 +487,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
           <Card>
             <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Upcoming</p>
             {upcomingBookings.map(b => (
-              <button key={b.id} onClick={() => onOpenBooking(b.id)}
+              <button type="button" key={b.id} onClick={() => onOpenBooking(b.id)}
                 className="flex items-center justify-between py-2 w-full text-left">
                 <div>
                   <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
@@ -636,7 +636,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
         {pastBookings.length > 0 && (
           <CollapsibleCard label={`History (${pastBookings.length})`} id="history" expanded={expanded} toggle={toggle}>
             {pastBookings.slice(0, historyLimit).map(b => (
-              <button key={b.id} onClick={() => onOpenBooking(b.id)}
+              <button type="button" key={b.id} onClick={() => onOpenBooking(b.id)}
                 className="flex items-center justify-between py-2 w-full text-left">
                 <div>
                   <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{fmtMediumDate(new Date(b.dateTime))} · {fmtTime(new Date(b.dateTime))}</p>
@@ -651,7 +651,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
               </button>
             ))}
             {pastBookings.length > historyLimit && (
-              <button
+              <button type="button"
                 onClick={() => setHistoryLimit(l => l + 50)}
                 className="w-full text-center py-2 text-xs font-medium text-purple-500"
               >
@@ -676,18 +676,18 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
 
         {/* Actions */}
         <CollapsibleCard label="Actions" id="actions" expanded={expanded} toggle={toggle}>
-          <button onClick={toggleBlock}
+          <button type="button" onClick={toggleBlock}
             className={`w-full py-2 text-sm font-medium text-center ${client.isBlocked ? 'text-green-500' : 'text-red-500'}`}>
             {client.isBlocked ? 'Remove from Blacklist' : 'Blacklist Client'}
           </button>
           <div style={{ borderTop: '1px solid var(--border)' }} />
-          <button onClick={() => setShowMerge(true)}
+          <button type="button" onClick={() => setShowMerge(true)}
             className="w-full py-2 text-sm font-medium text-center flex items-center justify-center gap-2"
             style={{ color: '#a855f7' }}>
             <Merge size={14} /> Merge with Duplicate
           </button>
           <div style={{ borderTop: '1px solid var(--border)' }} />
-          <button onClick={() => setShowDeleteConfirm(true)}
+          <button type="button" onClick={() => setShowDeleteConfirm(true)}
             aria-label="Delete client"
             className="w-full py-2 text-sm font-medium text-center flex items-center justify-center gap-2"
             style={{ color: '#ef4444' }}>
@@ -771,7 +771,7 @@ function CopyRow({ icon, text, field, copiedField, onCopy }: {
     <div className="flex items-center gap-3 py-1.5">
       <span style={{ color: 'var(--text-secondary)' }}>{icon}</span>
       <span className="text-sm flex-1" style={{ color: 'var(--text-primary)' }}>{text}</span>
-      <button onClick={() => onCopy(text, field)} className="p-1.5 rounded-lg"
+      <button type="button" onClick={() => onCopy(text, field)} className="p-1.5 rounded-lg"
         aria-label={`Copy ${field}`}
         style={{ color: copiedField === field ? '#22c55e' : 'var(--text-secondary)' }}>
         {copiedField === field ? <Check size={14} /> : <Copy size={14} />}

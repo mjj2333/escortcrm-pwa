@@ -58,7 +58,7 @@ export function SampleDataBanner() {
             Tap around to see how everything works
           </p>
         </div>
-        <button
+        <button type="button"
           onClick={() => setShowConfirm(true)}
           className="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0"
           style={{
@@ -102,7 +102,7 @@ export function SampleDataBanner() {
               This removes all sample clients, bookings, and transactions so you can start fresh with your own data.
             </p>
             <div className="flex gap-3">
-              <button
+              <button type="button"
                 onClick={() => setShowConfirm(false)}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold"
                 style={{
@@ -112,7 +112,7 @@ export function SampleDataBanner() {
               >
                 Keep exploring
               </button>
-              <button
+              <button type="button"
                 onClick={handleClear}
                 disabled={clearing}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"

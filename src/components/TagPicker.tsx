@@ -107,13 +107,13 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
           >
             {tag.icon && <span>{tag.icon}</span>}
             {tag.name}
-            <button onClick={() => removeTag(tag.id)} className="ml-0.5 opacity-70 hover:opacity-100"
+            <button type="button" onClick={() => removeTag(tag.id)} className="ml-0.5 opacity-70 hover:opacity-100"
               aria-label={`Remove ${tag.name} tag`}>
               <X size={10} />
             </button>
           </span>
         ))}
-        <button
+        <button type="button"
           onClick={() => setShowPicker(!showPicker)}
           className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
           style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
@@ -136,7 +136,7 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
             {PRESET_TAGS.map(preset => {
               const sel = isSelected(preset.name)
               return (
-                <button
+                <button type="button"
                   key={preset.name}
                   onClick={() => toggleTag(preset)}
                   className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium transition-all"
@@ -163,7 +163,7 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
                 {allCustom.map(ct => {
                   const sel = isSelected(ct.name)
                   return (
-                    <button
+                    <button type="button"
                       key={ct.id}
                       onClick={() => toggleTag(ct)}
                       className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium"
@@ -184,7 +184,7 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
 
           {/* Create custom tag */}
           {!showCustom ? (
-            <button
+            <button type="button"
               onClick={() => setShowCustom(true)}
               className="text-xs font-medium text-purple-500"
             >
@@ -218,7 +218,7 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
               </div>
               <div className="flex gap-1.5">
                 {TAG_COLORS.map(c => (
-                  <button
+                  <button type="button"
                     key={c}
                     onClick={() => setCustomColor(c)}
                     className="w-6 h-6 rounded-full"
@@ -231,14 +231,14 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
                 ))}
               </div>
               <div className="flex gap-2 pt-1">
-                <button
+                <button type="button"
                   onClick={addCustomTag}
                   disabled={!customName.trim()}
                   className="text-xs font-medium px-3 py-1.5 rounded-lg bg-purple-600 text-white disabled:opacity-40"
                 >
                   Add
                 </button>
-                <button
+                <button type="button"
                   onClick={() => { setShowCustom(false); setCustomName(''); setCustomIcon('') }}
                   className="text-xs font-medium px-3 py-1.5 rounded-lg"
                   style={{ color: 'var(--text-secondary)' }}

@@ -187,7 +187,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
           <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
             {mode === 'noshow' ? 'Mark as No-Show' : 'Cancel Booking'}
           </h3>
-          <button onClick={onClose} className="p-1 rounded-lg" style={{ color: 'var(--text-secondary)' }} aria-label="Close">
+          <button type="button" onClick={onClose} className="p-1 rounded-lg" style={{ color: 'var(--text-secondary)' }} aria-label="Close">
             <X size={18} />
           </button>
         </div>
@@ -200,7 +200,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
             </label>
             <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
               {(['client', 'provider'] as CancelledBy[]).map(who => (
-                <button
+                <button type="button"
                   key={who}
                   aria-pressed={cancelledBy === who}
                   onClick={() => setCancelledBy(who)}
@@ -252,7 +252,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
                 { value: 'returned', label: 'Returned', color: '#f59e0b' },
                 { value: 'credit', label: 'Credit', color: '#3b82f6' },
               ] as { value: DepositOutcome; label: string; color: string }[]).map(opt => (
-                <button
+                <button type="button"
                   key={opt.value}
                   aria-pressed={depositOutcome === opt.value}
                   onClick={() => setDepositOutcome(prev => prev === opt.value ? '' : opt.value)}
@@ -321,7 +321,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
         </div>
 
         {/* Confirm button */}
-        <button
+        <button type="button"
           onClick={handleConfirm}
           disabled={saving}
           className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50"

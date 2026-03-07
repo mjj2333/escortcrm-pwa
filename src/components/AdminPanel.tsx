@@ -135,7 +135,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
             <Shield size={18} style={{ color: '#a855f7' }} />
             <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Admin — Gift Codes</h2>
           </div>
-          <button onClick={onClose} style={{ color: 'var(--text-secondary)' }} aria-label="Close">✕</button>
+          <button type="button" onClick={onClose} style={{ color: 'var(--text-secondary)' }} aria-label="Close">✕</button>
         </div>
 
         <div className="overflow-y-auto p-4 space-y-4" style={{ maxHeight: 'calc(90vh - 64px)' }}>
@@ -159,7 +159,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                 />
               </div>
               {authError && <p className="text-xs text-red-500">{authError}</p>}
-              <button
+              <button type="button"
                 onClick={handleAuth}
                 disabled={authLoading || !password.trim()}
                 className="w-full py-2.5 rounded-lg text-sm font-semibold text-white bg-purple-600 disabled:opacity-40 flex items-center justify-center gap-2"
@@ -177,7 +177,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                     <code className="flex-1 text-sm font-mono font-bold" style={{ color: 'var(--text-primary)' }}>
                       {newCode.plaintext}
                     </code>
-                    <button
+                    <button type="button"
                       onClick={() => copyToClipboard(newCode.plaintext, 'new')}
                       className="p-1.5 rounded-lg"
                       style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}
@@ -187,7 +187,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                     </button>
                   </div>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{newCode.record.label}</p>
-                  <button onClick={() => setNewCode(null)} className="text-xs text-green-600">Dismiss</button>
+                  <button type="button" onClick={() => setNewCode(null)} className="text-xs text-green-600">Dismiss</button>
                 </div>
               )}
 
@@ -196,13 +196,13 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
 
               {/* Actions */}
               <div className="flex items-center gap-2">
-                <button
+                <button type="button"
                   onClick={() => setShowGenerate(!showGenerate)}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white bg-purple-600"
                 >
                   <Plus size={14} /> New Code
                 </button>
-                <button
+                <button type="button"
                   onClick={loadCodes}
                   disabled={loading}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium"
@@ -235,7 +235,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                     />
                     <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Expiry (optional)</span>
                   </div>
-                  <button
+                  <button type="button"
                     onClick={handleGenerate}
                     disabled={generating}
                     className="w-full py-2.5 rounded-lg text-sm font-semibold text-white bg-purple-600 disabled:opacity-40 flex items-center justify-center gap-2"
@@ -278,7 +278,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
                             Revoked
                           </span>
                         ) : (
-                          <button
+                          <button type="button"
                             onClick={() => handleRevoke(code.id)}
                             className="p-1.5 rounded-lg"
                             style={{ backgroundColor: 'rgba(239,68,68,0.1)' }}

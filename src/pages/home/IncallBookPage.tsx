@@ -110,7 +110,7 @@ export function IncallBookPage({ isOpen, onClose }: IncallBookPageProps) {
           className="flex items-center justify-between px-4 py-3 border-b shrink-0"
           style={{ borderColor: 'var(--border)' }}
         >
-          <button onClick={handleBack} className="p-2 -ml-1" style={{ color: 'var(--text-secondary)' }}
+          <button type="button" onClick={handleBack} className="p-2 -ml-1" style={{ color: 'var(--text-secondary)' }}
             aria-label={screen.view === 'list' ? 'Close' : 'Back'}>
             {screen.view === 'list' ? <X size={20} /> : <ArrowLeft size={20} />}
           </button>
@@ -119,12 +119,12 @@ export function IncallBookPage({ isOpen, onClose }: IncallBookPageProps) {
           </h2>
           <div className="w-7">
             {screen.view === 'list' && (
-              <button onClick={() => setScreen({ view: 'editor' })} className="p-2 text-purple-500" aria-label="Add venue">
+              <button type="button" onClick={() => setScreen({ view: 'editor' })} className="p-2 text-purple-500" aria-label="Add venue">
                 <Plus size={20} />
               </button>
             )}
             {screen.view === 'detail' && (
-              <button onClick={() => setScreen({ view: 'editor', venueId: (screen as any).venueId })} className="p-2 text-purple-500" aria-label="Edit venue">
+              <button type="button" onClick={() => setScreen({ view: 'editor', venueId: (screen as any).venueId })} className="p-2 text-purple-500" aria-label="Edit venue">
                 <Edit size={18} />
               </button>
             )}
@@ -207,7 +207,7 @@ function VenueList({ cities, grouped, search, onSearchChange, activeCount, archi
           style={{ color: 'var(--text-primary)', fontSize: '16px' }}
         />
         {search && (
-          <button onClick={() => onSearchChange('')} aria-label="Clear search">
+          <button type="button" onClick={() => onSearchChange('')} aria-label="Clear search">
             <X size={14} style={{ color: 'var(--text-secondary)' }} />
           </button>
         )}
@@ -216,7 +216,7 @@ function VenueList({ cities, grouped, search, onSearchChange, activeCount, archi
       {/* Active/Archived toggle */}
       {archivedCount > 0 && (
         <div className="flex gap-2">
-          <button
+          <button type="button"
             onClick={() => showArchived && onToggleArchived()}
             aria-pressed={!showArchived}
             className="text-xs font-medium px-3 py-1 rounded-full"
@@ -228,7 +228,7 @@ function VenueList({ cities, grouped, search, onSearchChange, activeCount, archi
           >
             Active ({activeCount})
           </button>
-          <button
+          <button type="button"
             onClick={() => !showArchived && onToggleArchived()}
             aria-pressed={showArchived}
             className="text-xs font-medium px-3 py-1 rounded-full"
@@ -251,7 +251,7 @@ function VenueList({ cities, grouped, search, onSearchChange, activeCount, archi
             {search ? 'No venues match your search' : 'No venues yet'}
           </p>
           {!search && (
-            <button onClick={onNew} className="text-sm font-medium text-purple-500 mt-2">
+            <button type="button" onClick={onNew} className="text-sm font-medium text-purple-500 mt-2">
               + Add your first venue
             </button>
           )}
@@ -266,7 +266,7 @@ function VenueList({ cities, grouped, search, onSearchChange, activeCount, archi
               {grouped[city].map(v => {
                 const Icon = venueTypeIcons[v.venueType] ?? Building2
                 return (
-                  <button
+                  <button type="button"
                     key={v.id}
                     onClick={() => onOpen(v.id)}
                     className="w-full text-left rounded-xl p-3 active:opacity-70 transition-opacity"
@@ -336,7 +336,7 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
   if (!venue) return (
     <div className="flex flex-col items-center justify-center p-8 text-center" style={{ minHeight: '40vh' }}>
       <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Venue not found or loading...</p>
-      <button onClick={onBack} className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97]">
+      <button type="button" onClick={onBack} className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97]">
         Go back
       </button>
     </div>
@@ -395,7 +395,7 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{venue.name}</h3>
-              <button onClick={toggleFavorite} className="shrink-0" aria-label={venue.isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
+              <button type="button" onClick={toggleFavorite} className="shrink-0" aria-label={venue.isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
                 <Star size={16} fill={venue.isFavorite ? '#f59e0b' : 'none'} stroke={venue.isFavorite ? '#f59e0b' : 'var(--text-secondary)'} />
               </button>
             </div>
@@ -424,7 +424,7 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
               Directions for Client
             </p>
             <div className="flex gap-1.5 shrink-0">
-              <button
+              <button type="button"
                 onClick={() => copyText(venue.directions!, 'directions')}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
                 style={{
@@ -436,7 +436,7 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
                 {copiedField === 'directions' ? <Check size={11} /> : <Copy size={11} />}
                 {copiedField === 'directions' ? 'Copied' : 'Copy'}
               </button>
-              <button
+              <button type="button"
                 onClick={() => setShowSendDirections(true)}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
                 style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}
@@ -560,19 +560,19 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
 
       {/* Actions */}
       <Card>
-        <button onClick={onEdit} className="flex items-center gap-3 py-3 w-full text-left">
+        <button type="button" onClick={onEdit} className="flex items-center gap-3 py-3 w-full text-left">
           <Edit size={18} className="text-purple-500" />
           <span className="text-sm font-medium text-purple-500">Edit Venue</span>
         </button>
         <div style={{ borderTop: '1px solid var(--border)' }} />
-        <button onClick={toggleArchive} className="flex items-center gap-3 py-3 w-full text-left">
+        <button type="button" onClick={toggleArchive} className="flex items-center gap-3 py-3 w-full text-left">
           {venue.isArchived
             ? <><ArchiveRestore size={18} style={{ color: 'var(--text-secondary)' }} /><span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Restore from Archive</span></>
             : <><Archive size={18} style={{ color: 'var(--text-secondary)' }} /><span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Archive Venue</span></>
           }
         </button>
         <div style={{ borderTop: '1px solid var(--border)' }} />
-        <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-3 py-3 w-full text-left">
+        <button type="button" onClick={() => setConfirmDelete(true)} className="flex items-center gap-3 py-3 w-full text-left">
           <Trash2 size={18} className="text-red-500" />
           <span className="text-sm font-medium text-red-500">Delete Venue</span>
         </button>
@@ -609,7 +609,7 @@ function CopyRow({ icon, label: _label, text, copied, onCopy }: {
         <span style={{ color: 'var(--text-secondary)' }}>{icon}</span>
         <span className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>{text}</span>
       </div>
-      <button onClick={onCopy} className="shrink-0 p-1.5 rounded-lg active:opacity-60">
+      <button type="button" onClick={onCopy} className="shrink-0 p-1.5 rounded-lg active:opacity-60">
         {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} style={{ color: 'var(--text-secondary)' }} />}
       </button>
     </div>
@@ -718,9 +718,9 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
             {selectedClient ? 'Send Directions' : 'Choose Client'}
           </h3>
           {selectedClient && !sent ? (
-            <button onClick={() => setSelectedClient(null)} className="text-sm text-purple-500">Back</button>
+            <button type="button" onClick={() => setSelectedClient(null)} className="text-sm text-purple-500">Back</button>
           ) : (
-            <button onClick={onClose} className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <button type="button" onClick={onClose} className="text-sm" style={{ color: 'var(--text-secondary)' }}>
               {sent ? 'Done' : 'Cancel'}
             </button>
           )}
@@ -753,7 +753,7 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
                     const cm = contactMethodMeta[c.preferredContact]
                     const CmIcon = contactMethodIcons[c.preferredContact]
                     return (
-                      <button
+                      <button type="button"
                         key={c.id}
                         onClick={() => setSelectedClient(c)}
                         className="w-full text-left flex items-center gap-3 py-2.5 px-2 rounded-lg active:opacity-70"
@@ -832,7 +832,7 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
 
               {/* Send button */}
               {!sent ? (
-                <button
+                <button type="button"
                   onClick={handleSend}
                   className="w-full py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
                   style={{ backgroundColor: methodInfo?.color || '#a855f7' }}
@@ -845,7 +845,7 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
                 </button>
               ) : (
                 <div className="flex gap-3">
-                  <button
+                  <button type="button"
                     onClick={() => {
                       navigator.clipboard.writeText(message)
                         .then(() => showToast('Message copied'))
@@ -857,7 +857,7 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
                     <Copy size={14} />
                     Copy
                   </button>
-                  <button
+                  <button type="button"
                     onClick={handleSend}
                     className="flex-1 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
                     style={{ backgroundColor: methodInfo?.color || '#a855f7' }}
@@ -1046,14 +1046,14 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
 
       {/* Save / Cancel */}
       <div className="flex gap-3 pt-4">
-        <button
+        <button type="button"
           onClick={onCancel}
           className="flex-1 py-3 rounded-xl text-sm font-semibold"
           style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
         >
           Cancel
         </button>
-        <button
+        <button type="button"
           onClick={handleSave}
           disabled={saving}
           className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
@@ -1113,7 +1113,7 @@ export function VenuePicker({ isOpen, onClose, onSelect }: {
       >
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
           <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Choose Venue</h3>
-          <button onClick={onClose} className="text-sm" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
+          <button type="button" onClick={onClose} className="text-sm" style={{ color: 'var(--text-secondary)' }}>Cancel</button>
         </div>
 
         <div className="px-4 py-2 shrink-0">
@@ -1144,7 +1144,7 @@ export function VenuePicker({ isOpen, onClose, onSelect }: {
                 {grouped[city].map(v => {
                   const Icon = venueTypeIcons[v.venueType] ?? Building2
                   return (
-                    <button
+                    <button type="button"
                       key={v.id}
                       onClick={() => { onSelect(v); onClose() }}
                       className="w-full text-left flex items-center gap-3 py-2.5 px-2 rounded-lg active:opacity-70"

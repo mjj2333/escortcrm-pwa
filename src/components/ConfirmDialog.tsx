@@ -95,14 +95,14 @@ export function ConfirmDialog({
           />
         )}
         <div className="flex gap-3">
-          <button
+          <button type="button"
             onClick={onCancel}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium border"
             style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
           >
             Cancel
           </button>
-          <button
+          <button type="button"
             onClick={() => onConfirm(inputPlaceholder ? inputValue : undefined)}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
             style={{ backgroundColor: confirmColor }}

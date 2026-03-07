@@ -112,7 +112,7 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
     <>
       <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
         {docs.map(doc => (
-          <button
+          <button type="button"
             key={doc.id}
             onClick={() => setPreviewDoc(doc)}
             className="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden"
@@ -129,7 +129,7 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
               </div>
             )}
             {editable && (
-              <button
+              <button type="button"
                 onClick={e => { e.stopPropagation(); handleDelete(doc.id) }}
                 className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center"
               >
@@ -139,7 +139,7 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
           </button>
         ))}
         {editable && (
-          <button
+          <button type="button"
             onClick={() => fileInput.current?.click()}
             className="shrink-0 w-16 h-16 rounded-lg flex items-center justify-center"
             style={{ border: '2px dashed var(--border)' }}
@@ -161,14 +161,14 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
       {previewDoc && previewUrl && (
         <div className="fixed inset-0 z-[60] flex flex-col" role="dialog" aria-modal="true" aria-label="Document preview" style={{ backgroundColor: 'rgba(0,0,0,0.95)' }}>
           <div className="flex items-center justify-between px-4 py-3 shrink-0">
-            <button onClick={() => setPreviewDoc(null)} style={{ color: '#fff' }}>
+            <button type="button" onClick={() => setPreviewDoc(null)} style={{ color: '#fff' }}>
               <X size={22} />
             </button>
             <span className="text-xs text-white/60">
               {previewIdx + 1} of {docs.length}
             </span>
             {editable && (
-              <button onClick={() => handleDelete(previewDoc.id)}>
+              <button type="button" onClick={() => handleDelete(previewDoc.id)}>
                 <Trash2 size={18} className="text-red-500" />
               </button>
             )}
@@ -182,13 +182,13 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
           </div>
           {docs.length > 1 && (
             <div className="flex justify-between px-8 pb-6">
-              <button
+              <button type="button"
                 onClick={() => setPreviewDoc(docs[(previewIdx - 1 + docs.length) % docs.length])}
                 className="p-3 rounded-full bg-white/10"
               >
                 <ChevronLeft size={20} className="text-white" />
               </button>
-              <button
+              <button type="button"
                 onClick={() => setPreviewDoc(docs[(previewIdx + 1) % docs.length])}
                 className="p-3 rounded-full bg-white/10"
               >

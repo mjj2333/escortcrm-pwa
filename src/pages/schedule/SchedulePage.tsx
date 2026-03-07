@@ -308,7 +308,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
     <div className="pb-20">
       <PageHeader title="Schedule">
         {/* Filter toggle with dot indicator */}
-        <button
+        <button type="button"
           onClick={() => setFiltersOpen(v => !v)}
           className="relative p-2 rounded-lg"
           style={{ color: filtersActive ? '#a855f7' : 'var(--text-secondary)' }}
@@ -325,7 +325,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
 
         {/* View toggle */}
         <div className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-          <button
+          <button type="button"
             onClick={() => setViewMode('calendar')}
             aria-label="Calendar view" aria-pressed={viewMode === 'calendar'}
             className={`px-3 py-1.5 rounded-md text-xs font-medium ${viewMode === 'calendar' ? 'bg-purple-600 text-white' : ''}`}
@@ -333,7 +333,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           >
             <CalendarDays size={14} />
           </button>
-          <button
+          <button type="button"
             onClick={() => setViewMode('week')}
             aria-label="Week view" aria-pressed={viewMode === 'week'}
             className={`px-3 py-1.5 rounded-md text-xs font-medium ${viewMode === 'week' ? 'bg-purple-600 text-white' : ''}`}
@@ -341,7 +341,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           >
             <CalendarRange size={14} />
           </button>
-          <button
+          <button type="button"
             onClick={() => setViewMode('list')}
             aria-label="List view" aria-pressed={viewMode === 'list'}
             className={`px-3 py-1.5 rounded-md text-xs font-medium ${viewMode === 'list' ? 'bg-purple-600 text-white' : ''}`}
@@ -351,7 +351,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
           </button>
         </div>
 
-        <button onClick={() => setShowEditor(true)}
+        <button type="button" onClick={() => setShowEditor(true)}
           aria-label="Add booking"
           className={`p-2 rounded-lg ${limits.canAddBooking ? 'text-purple-500' : ''}`}
           style={!limits.canAddBooking ? { color: 'var(--text-secondary)', opacity: 0.5 } : {}}>
@@ -384,7 +384,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
             {ALL_STATUSES.map(s => {
               const active = activeStatuses.has(s)
               return (
-                <button
+                <button type="button"
                   key={s}
                   onClick={() => toggleStatus(s)}
                   className="text-xs font-semibold px-2.5 py-1 rounded-full transition-all"
@@ -406,7 +406,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
             </div>
           </div>
           {filtersActive && (
-            <button onClick={clearFilters} className="flex items-center gap-1 text-xs font-medium" style={{ color: '#a855f7' }}>
+            <button type="button" onClick={clearFilters} className="flex items-center gap-1 text-xs font-medium" style={{ color: '#a855f7' }}>
               <X size={12} /> Clear all filters
             </button>
           )}
@@ -419,7 +419,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
 
             {/* Month navigation */}
             <div className="flex items-center justify-between mb-4">
-              <button
+              <button type="button"
                 onClick={() => { setCurrentMonth(subMonths(currentMonth, 1)); setSummaryFilter(null) }}
                 className="text-sm font-medium px-3 py-1 rounded-lg"
                 style={{ color: 'var(--text-secondary)' }}
@@ -431,7 +431,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                   {fmtMonthYear(currentMonth)}
                 </h2>
                 {!isViewingCurrentMonth && (
-                  <button
+                  <button type="button"
                     onClick={goToToday}
                     className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                     style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}
@@ -440,7 +440,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                   </button>
                 )}
               </div>
-              <button
+              <button type="button"
                 onClick={() => { setCurrentMonth(addMonths(currentMonth, 1)); setSummaryFilter(null) }}
                 className="text-sm font-medium px-3 py-1 rounded-lg"
                 style={{ color: 'var(--text-secondary)' }}
@@ -470,7 +470,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                 const overflow    = sorted.length - MAX_BARS
 
                 return (
-                  <button
+                  <button type="button"
                     key={i}
                     onClick={() => setDayDetailDate(day)}
                     className={`relative flex flex-col items-stretch rounded-lg text-sm transition-colors overflow-hidden ${!inMonth ? 'opacity-30' : ''}`}
@@ -589,7 +589,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                         const color = statusHex[bookingStatusColors[status as BookingStatus]] ?? '#6b7280'
                         const isActive = summaryFilter === status
                         return (
-                          <button
+                          <button type="button"
                             key={status}
                             onClick={() => setSummaryFilter(isActive ? null : status as BookingStatus)}
                             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all"
@@ -613,7 +613,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                         <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
                           {summaryFilter} ({monthStatusCounts[summaryFilter]})
                         </p>
-                        <button
+                        <button type="button"
                           onClick={() => setSummaryFilter(null)}
                           className="text-xs font-medium flex items-center gap-1"
                           style={{ color: 'var(--text-secondary)' }}
@@ -715,7 +715,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
                   </div>
                 )}
                 {olderHiddenCount > 0 && (
-                  <button
+                  <button type="button"
                     onClick={() => setListDaysBack(d => d + 60)}
                     className="w-full py-3 text-sm font-medium rounded-xl active:scale-[0.98] mt-3"
                     style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)' }}
@@ -871,7 +871,7 @@ function WeekView({
     <div className="px-2 py-3">
       {/* Week navigation */}
       <div className="flex items-center justify-between mb-3 px-2">
-        <button
+        <button type="button"
           onClick={() => setCurrentMonth(subWeeks(currentMonth, 1))}
           className="text-sm font-medium px-3 py-1 rounded-lg"
           style={{ color: 'var(--text-secondary)' }}
@@ -883,7 +883,7 @@ function WeekView({
             {weekRangeLabel}
           </h2>
           {!isViewingCurrentWeek && (
-            <button
+            <button type="button"
               onClick={() => setCurrentMonth(new Date())}
               className="text-[10px] font-bold px-2 py-0.5 rounded-full"
               style={{ backgroundColor: 'rgba(168,85,247,0.15)', color: '#c084fc' }}
@@ -892,7 +892,7 @@ function WeekView({
             </button>
           )}
         </div>
-        <button
+        <button type="button"
           onClick={() => setCurrentMonth(addWeeks(currentMonth, 1))}
           className="text-sm font-medium px-3 py-1 rounded-lg"
           style={{ color: 'var(--text-secondary)' }}
@@ -907,7 +907,7 @@ function WeekView({
           const today = isToday(day)
           const avail = availColor(day)
           return (
-            <button
+            <button type="button"
               key={i}
               onClick={() => onDayClick(day)}
               className="flex-1 flex flex-col items-center py-1.5 rounded-lg"
@@ -1133,14 +1133,14 @@ function DayDetailModal({
             )}
           </div>
           <div className="flex items-center gap-1">
-            <button
+            <button type="button"
               onClick={onAddBooking}
               aria-label="Add booking"
               className="p-2 rounded-lg text-purple-500"
             >
               <Plus size={20} />
             </button>
-            <button
+            <button type="button"
               onClick={handleClose}
               aria-label="Close"
               className="p-2 rounded-lg"
@@ -1153,7 +1153,7 @@ function DayDetailModal({
 
         {/* Availability button */}
         <div className="px-4 pb-3">
-          <button
+          <button type="button"
             onClick={onSetAvailability}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium"
             style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}

@@ -273,7 +273,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
       title={step === 'pick' ? 'Merge Client' : 'Review Merge'}
       actions={
         step === 'review' && targetClient ? (
-          <button
+          <button type="button"
             onClick={executeMerge}
             disabled={working}
             className={`p-2 ${working ? 'opacity-40' : 'text-purple-500'}`}
@@ -320,7 +320,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
             {searchResults.length > 0 && (
               <div className="space-y-2">
                 {searchResults.map(c => (
-                  <button
+                  <button type="button"
                     key={c.id}
                     onClick={() => handleSelectTarget(c)}
                     className="w-full flex items-center gap-3 p-3 rounded-xl text-left active:scale-[0.98] transition-transform"
@@ -424,7 +424,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
                   ))}
                 </div>
                 {diffFields.length > 5 && (
-                  <button
+                  <button type="button"
                     onClick={() => setShowAllFields(v => !v)}
                     className="flex items-center gap-1 text-xs mb-3 active:opacity-70"
                     style={{ color: '#a855f7' }}
@@ -438,14 +438,14 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
 
             {/* Action buttons */}
             <div className="flex gap-2 mt-2">
-              <button
+              <button type="button"
                 onClick={() => setStep('pick')}
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium border"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
               >
                 Back
               </button>
-              <button
+              <button type="button"
                 onClick={executeMerge}
                 disabled={working}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-purple-600 ${working ? 'opacity-40' : 'active:opacity-90'}`}
@@ -479,7 +479,7 @@ function FieldChooser({ field, choice, onChange }: {
           const val = side === 'source' ? field.sourceVal : field.targetVal
           const isChosen = choice === side
           return (
-            <button
+            <button type="button"
               key={side}
               onClick={() => onChange(side)}
               className="px-3 pb-2.5 pt-1.5 text-left transition-colors"

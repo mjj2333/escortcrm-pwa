@@ -40,7 +40,7 @@ function ActionPill({ label, active, color, onTap }: {
   label: string; active: boolean; color: string; onTap: () => void
 }) {
   return (
-    <button
+    <button type="button"
       onClick={e => { e.stopPropagation(); onTap() }}
       className="px-2 py-1.5 rounded text-[9px] font-bold uppercase tracking-wide shrink-0 transition-all"
       style={{

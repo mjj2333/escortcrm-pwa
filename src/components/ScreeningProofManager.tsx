@@ -147,7 +147,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
           {/* Upload button */}
           {editable && (
-            <button
+            <button type="button"
               onClick={() => fileInput.current?.click()}
               className="shrink-0 w-20 h-20 rounded-xl flex flex-col items-center justify-center gap-1 active:opacity-70"
               style={{ border: '2px dashed var(--border)', color: 'var(--text-secondary)' }}
@@ -160,7 +160,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
           {/* Thumbnails */}
           {docs.map(doc => (
             <div key={doc.id} className="relative shrink-0 group">
-              <button
+              <button type="button"
                 onClick={() => setPreviewDoc(doc)}
                 className="w-20 h-20 rounded-xl overflow-hidden flex items-center justify-center active:opacity-70"
                 style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}
@@ -186,7 +186,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
 
               {/* Delete badge */}
               {editable && (
-                <button
+                <button type="button"
                   onClick={(e) => { e.stopPropagation(); handleDelete(doc) }}
                   aria-label={`Delete ${doc.filename}`}
                   className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center bg-red-500 text-white shadow-md active:opacity-70"
@@ -223,7 +223,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
           style={{ backgroundColor: 'rgba(0,0,0,0.95)' }}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 safe-top">
-            <button onClick={() => setPreviewDoc(null)} className="text-white/80 active:text-white" aria-label="Close preview">
+            <button type="button" onClick={() => setPreviewDoc(null)} className="text-white/80 active:text-white" aria-label="Close preview">
               <X size={24} />
             </button>
             <div className="text-center">
@@ -233,7 +233,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
               </p>
             </div>
             {editable ? (
-              <button
+              <button type="button"
                 onClick={() => handleDelete(previewDoc)}
                 aria-label="Delete document"
                 className="text-red-500 active:text-red-300"
@@ -251,7 +251,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
             {docs.length > 1 && (
               <>
                 {docs.findIndex(d => d.id === previewDoc.id) > 0 && (
-                  <button
+                  <button type="button"
                     onClick={() => navigatePreview(-1)}
                     aria-label="Previous document"
                     className="absolute left-2 z-10 w-10 h-10 rounded-full flex items-center justify-center active:opacity-70"
@@ -261,7 +261,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
                   </button>
                 )}
                 {docs.findIndex(d => d.id === previewDoc.id) < docs.length - 1 && (
-                  <button
+                  <button type="button"
                     onClick={() => navigatePreview(1)}
                     aria-label="Next document"
                     className="absolute right-2 z-10 w-10 h-10 rounded-full flex items-center justify-center active:opacity-70"

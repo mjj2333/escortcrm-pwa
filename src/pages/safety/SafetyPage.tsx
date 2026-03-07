@@ -219,17 +219,17 @@ export function SafetyPage() {
     <div className="pb-20">
       <PageHeader title="Safety">
         {tab === 'contacts' && (
-          <button onClick={() => { setEditingContact(undefined); setShowContactEditor(true) }} className="p-2 rounded-lg text-purple-500" aria-label="Add safety contact">
+          <button type="button" onClick={() => { setEditingContact(undefined); setShowContactEditor(true) }} className="p-2 rounded-lg text-purple-500" aria-label="Add safety contact">
             <Plus size={20} />
           </button>
         )}
         {tab === 'incidents' && (
-          <button onClick={() => { setEditingIncident(undefined); setShowIncidentEditor(true) }} className="p-2 rounded-lg text-purple-500" aria-label="Log incident">
+          <button type="button" onClick={() => { setEditingIncident(undefined); setShowIncidentEditor(true) }} className="p-2 rounded-lg text-purple-500" aria-label="Log incident">
             <Plus size={20} />
           </button>
         )}
         {tab === 'blacklist' && blacklistedClients.length > 0 && (
-          <button onClick={exportBlacklist} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }} aria-label="Export blacklist">
+          <button type="button" onClick={exportBlacklist} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }} aria-label="Export blacklist">
             <Download size={18} />
           </button>
         )}
@@ -246,13 +246,13 @@ export function SafetyPage() {
               </span>
             </div>
             <div className="flex gap-2">
-              <button
+              <button type="button"
                 onClick={checkInAll}
                 className="flex-1 py-2 px-3 rounded-lg bg-green-600 text-white font-semibold text-sm flex items-center justify-center gap-2"
               >
                 <CheckCircle size={16} /> I'm OK
               </button>
-              <button
+              <button type="button"
                 onClick={openAlertAllSms}
                 className="flex-1 py-2 px-3 rounded-lg bg-red-600 text-white font-semibold text-sm flex items-center justify-center gap-2"
               >
@@ -275,7 +275,7 @@ export function SafetyPage() {
         {/* Tab Selector */}
         <div className="flex gap-1 mx-4 mt-3 p-1 rounded-lg" role="tablist" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           {tabs.map(t => (
-            <button
+            <button type="button"
               key={t.id}
               role="tab"
               onClick={() => setTab(t.id)}
@@ -324,7 +324,7 @@ export function SafetyPage() {
                             <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                               {fmtDateAndTime(new Date(check.scheduledTime))}
                             </span>
-                            <button
+                            <button type="button"
                               onClick={() => setEditingCheck(check)}
                               className="ml-auto p-1 rounded opacity-50 active:opacity-100"
                               style={{ color: 'var(--text-secondary)' }}
@@ -356,13 +356,13 @@ export function SafetyPage() {
                           {/* Actions for pending/overdue */}
                           {isPending && (
                             <div className="flex gap-2 mt-2 flex-wrap">
-                              <button
+                              <button type="button"
                                 onClick={() => checkIn(check.id)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 text-white"
                               >
                                 <CheckCircle size={12} /> I'm Safe
                               </button>
-                              <button
+                              <button type="button"
                                 onClick={() => openAlertSms(check.id)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white"
                               >
@@ -385,7 +385,7 @@ export function SafetyPage() {
                   )
                 })}
                 {safetyChecks.length > checkinsLimit && (
-                  <button
+                  <button type="button"
                     onClick={() => setCheckinsLimit(prev => prev + 30)}
                     className="w-full py-2.5 rounded-xl text-sm font-medium"
                     style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)' }}
@@ -441,7 +441,7 @@ export function SafetyPage() {
                       <a href={`tel:${contact.phone}`} aria-label={`Call ${contact.name}`}>
                         <Phone size={18} className="text-green-500" />
                       </a>
-                      <button
+                      <button type="button"
                         onClick={() => { setEditingContact(contact); setShowContactEditor(true) }}
                         className="p-1"
                         style={{ color: 'var(--text-secondary)' }}
@@ -449,7 +449,7 @@ export function SafetyPage() {
                       >
                         <Edit2 size={14} />
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => setDeleteContactConfirm({ id: contact.id, name: contact.name })}
                         className="p-1"
                         style={{ color: 'var(--text-secondary)' }}
@@ -539,7 +539,7 @@ export function SafetyPage() {
                           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                             {fmtMediumDate(new Date(incident.date))}
                           </span>
-                          <button
+                          <button type="button"
                             onClick={() => { setEditingIncident(incident); setShowIncidentEditor(true) }}
                             className="p-1"
                             style={{ color: 'var(--text-secondary)' }}
@@ -547,7 +547,7 @@ export function SafetyPage() {
                           >
                             <Edit2 size={13} />
                           </button>
-                          <button
+                          <button type="button"
                             onClick={() => setDeleteIncidentConfirm(incident)}
                             className="p-1"
                             style={{ color: 'var(--text-secondary)' }}
@@ -570,7 +570,7 @@ export function SafetyPage() {
                               Blacklisted
                             </span>
                           ) : (
-                            <button
+                            <button type="button"
                               onClick={() => setBlacklistConfirm({ clientId: linkedClient.id, alias: linkedClient.alias })}
                               className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full active:opacity-70"
                               style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
@@ -642,7 +642,7 @@ export function SafetyPage() {
                             </p>
                           )}
                         </div>
-                        <button
+                        <button type="button"
                           onClick={() => setUnblacklistConfirm({ clientId: client.id, alias: client.alias })}
                           className="text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 active:opacity-70"
                           style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}

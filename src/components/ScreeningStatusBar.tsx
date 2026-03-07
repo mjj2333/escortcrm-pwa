@@ -97,7 +97,7 @@ export function ScreeningStatusBar({ value, onChange, disabled, compact }: Scree
         {/* Segment labels */}
         <div className="absolute inset-0 flex">
           {segments.map((s, i) => (
-            <button
+            <button type="button"
               key={s.status}
               onClick={() => !disabled && onChange(s.status)}
               aria-label={`Set screening to ${s.label}`}
@@ -130,7 +130,7 @@ export function ScreeningStatusBar({ value, onChange, disabled, compact }: Scree
 
       {/* "In Progress" option - hide in compact mode */}
       {!compact && !disabled && value !== 'In Progress' && (
-        <button
+        <button type="button"
           onClick={() => onChange('In Progress')}
           className="mt-1.5 text-[11px] font-medium"
           style={{ color: 'var(--text-secondary)' }}
@@ -139,7 +139,7 @@ export function ScreeningStatusBar({ value, onChange, disabled, compact }: Scree
         </button>
       )}
       {!compact && !disabled && value === 'In Progress' && (
-        <button
+        <button type="button"
           onClick={() => onChange('Unscreened')}
           className="mt-1.5 text-[11px] font-medium"
           style={{ color: 'var(--text-secondary)' }}

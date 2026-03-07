@@ -61,7 +61,7 @@ export function JournalLog({ clientId, onEditEntry, onAddNew }: JournalLogProps)
           Activity {entries.length > 0 && `(${entries.length})`}
         </p>
         {onAddNew && (
-          <button
+          <button type="button"
             onClick={onAddNew}
             className="flex items-center gap-1 text-xs font-medium text-purple-500 active:opacity-70"
           >
@@ -87,7 +87,7 @@ export function JournalLog({ clientId, onEditEntry, onAddNew }: JournalLogProps)
                 style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
 
                 {/* Header — always visible */}
-                <button
+                <button type="button"
                   onClick={() => toggleExpand(entry.id)}
                   className="w-full flex items-start gap-3 px-3 py-2.5 text-left active:opacity-70"
                 >
@@ -172,7 +172,7 @@ export function JournalLog({ clientId, onEditEntry, onAddNew }: JournalLogProps)
                     )}
 
                     {/* Edit button */}
-                    <button
+                    <button type="button"
                       onClick={(e) => { e.stopPropagation(); onEditEntry(entry, booking) }}
                       className="flex items-center gap-1.5 mt-3 text-xs font-medium text-purple-500 active:opacity-70"
                     >

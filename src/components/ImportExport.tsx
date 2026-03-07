@@ -622,7 +622,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Import / Export</h2>
-          <button onClick={onClose} className="p-2" style={{ color: 'var(--text-secondary)' }}>
+          <button type="button" onClick={onClose} className="p-2" style={{ color: 'var(--text-secondary)' }}>
             <X size={20} />
           </button>
         </div>
@@ -634,7 +634,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
             style={{ scrollbarWidth: 'none' }}
           >
             {DATA_TABS.map(dt => (
-              <button
+              <button type="button"
                 key={dt.key}
                 onClick={() => { setDataType(dt.key); setStatus(null) }}
                 className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
@@ -654,7 +654,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
               Export {dataType.replace('_', ' ')}
             </p>
             <div className="grid grid-cols-2 gap-3">
-              <button
+              <button type="button"
                 onClick={() => handleExport('csv')}
                 className="flex items-center justify-center gap-2 p-3 rounded-xl border transition-colors active:scale-[0.98]"
                 style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
@@ -665,7 +665,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
                   <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Universal format</p>
                 </div>
               </button>
-              <button
+              <button type="button"
                 onClick={() => handleExport('xlsx')}
                 className="flex items-center justify-center gap-2 p-3 rounded-xl border transition-colors active:scale-[0.98]"
                 style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
@@ -697,7 +697,7 @@ export function ImportExportModal({ isOpen, onClose, initialTab = 'clients' }: I
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                <button
+                <button type="button"
                   onClick={() => fileRef.current?.click()}
                   disabled={importing}
                   className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed transition-colors active:scale-[0.98]"

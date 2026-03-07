@@ -571,10 +571,10 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
   return (
     <div className="pb-20">
       <PageHeader title="Finances">
-        <button onClick={() => setShowCardSettings(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }} aria-label="Customize reports">
+        <button type="button" onClick={() => setShowCardSettings(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }} aria-label="Customize reports">
           <Settings2 size={18} />
         </button>
-        <button onClick={() => setShowEditor(true)} className="p-2 rounded-lg text-purple-500" aria-label="Add transaction">
+        <button type="button" onClick={() => setShowEditor(true)} className="p-2 rounded-lg text-purple-500" aria-label="Add transaction">
           <Plus size={20} />
         </button>
       </PageHeader>
@@ -583,7 +583,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
         {/* Period Selector */}
         <div className="flex gap-1 p-1 rounded-lg overflow-x-auto" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           {(['Week', 'Month', 'Quarter', 'Year', 'All', 'Custom'] as TimePeriod[]).map(p => (
-            <button
+            <button type="button"
               key={p}
               onClick={() => setPeriod(p)}
               aria-pressed={period === p}
@@ -621,7 +621,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
               />
             </div>
             {(customFrom || customTo) && (
-              <button
+              <button type="button"
                 onClick={() => { setCustomFrom(''); setCustomTo('') }}
                 className="p-2 rounded-lg"
                 style={{ color: 'var(--text-secondary)' }}
@@ -635,7 +635,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
 
         {/* Customization hint — shown once */}
         {!hintDismissed && (
-          <button
+          <button type="button"
             onClick={() => { setHintDismissed(true); setShowCardSettings(true) }}
             className="flex items-center gap-3 w-full p-3 rounded-xl text-left active:opacity-70"
             style={{ backgroundColor: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}
@@ -698,7 +698,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
             )}
           </Card>
         ) : (
-          <button
+          <button type="button"
             onClick={() => setShowGoalEditor(true)}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-medium text-purple-500"
             style={{ backgroundColor: 'rgba(168,85,247,0.1)' }}
@@ -883,7 +883,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
             </div>
             <div className="space-y-2">
               {bookingsWithBalance.slice(0, 5).map(({ booking, owing, client }) => (
-                  <button
+                  <button type="button"
                     key={booking.id}
                     className="flex items-center justify-between w-full text-left active:opacity-70"
                     onClick={() => onOpenBooking?.(booking.id)}
@@ -911,7 +911,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
         <Card>
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Recent Transactions</p>
-            <button
+            <button type="button"
               onClick={() => setShowAllTransactions(true)}
               className="text-xs text-purple-500 font-medium"
             >
@@ -946,7 +946,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
             </div>
           )}
           {/* Import / Export link */}
-          <button
+          <button type="button"
             onClick={() => setShowImportExport(true)}
             className="flex items-center justify-center gap-2 w-full mt-3 pt-3 text-xs font-semibold active:opacity-70"
             style={{ borderTop: '1px solid var(--border)', color: '#a855f7' }}
@@ -961,7 +961,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
         <Card>
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Tours</p>
-            <button
+            <button type="button"
               onClick={() => setShowTourEditor(true)}
               className="flex items-center gap-1 text-xs text-purple-500 font-medium"
             >
@@ -975,7 +975,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
           ) : (
             <div className="space-y-2">
               {tourSummaries.map(({ tour, net }) => (
-                <button key={tour.id}
+                <button type="button" key={tour.id}
                   onClick={() => onOpenTour?.(tour.id)}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left active:opacity-70"
                   style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
@@ -1511,7 +1511,7 @@ function CardSettingsModal({ isOpen, onClose, visible, onChange }: {
             const groupOn = group.keys.filter(k => visible.includes(k)).length
             return (
               <div key={group.label}>
-                <button
+                <button type="button"
                   onClick={() => toggleGroup(group)}
                   className="flex items-center justify-between w-full mb-1.5"
                 >
@@ -1522,7 +1522,7 @@ function CardSettingsModal({ isOpen, onClose, visible, onChange }: {
                 </button>
                 <div className="space-y-0.5">
                   {group.keys.map(key => (
-                    <button
+                    <button type="button"
                       key={key}
                       onClick={() => toggle(key)}
                       role="checkbox"
@@ -1550,21 +1550,21 @@ function CardSettingsModal({ isOpen, onClose, visible, onChange }: {
           })}
         </div>
         <div className="flex gap-2 mt-4 pb-4">
-          <button
+          <button type="button"
             onClick={() => onChange([...ALL_CARDS])}
             className="flex-1 py-2.5 rounded-lg text-sm font-medium"
             style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
           >
             Show All
           </button>
-          <button
+          <button type="button"
             onClick={() => onChange([...DEFAULT_VISIBLE])}
             className="flex-1 py-2.5 rounded-lg text-sm font-medium"
             style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
           >
             Defaults
           </button>
-          <button
+          <button type="button"
             onClick={onClose}
             className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-purple-600 text-white"
           >
@@ -1634,7 +1634,7 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
       onClose={onClose}
       title="Income Goals"
       actions={
-        <button onClick={save} className="p-2 text-purple-500" aria-label="Save goals">
+        <button type="button" onClick={save} className="p-2 text-purple-500" aria-label="Save goals">
           <Check size={20} />
         </button>
       }
@@ -1657,12 +1657,12 @@ function GoalEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
         </div>
 
         <div className="py-4 space-y-3">
-          <button onClick={save}
+          <button type="button" onClick={save}
             className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 text-white active:bg-purple-700">
             Save Goals
           </button>
           {hasAny && (
-            <button onClick={clearAll} className="w-full py-2 text-sm text-red-500 font-medium">
+            <button type="button" onClick={clearAll} className="w-full py-2 text-sm text-red-500 font-medium">
               Clear All Goals
             </button>
           )}
@@ -1701,7 +1701,7 @@ function TaxSettingsEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
       onClose={onClose}
       title="Tax Settings"
       actions={
-        <button onClick={save} className="p-2 text-purple-500" aria-label="Save tax settings">
+        <button type="button" onClick={save} className="p-2 text-purple-500" aria-label="Save tax settings">
           <Check size={20} />
         </button>
       }
@@ -1764,7 +1764,7 @@ function TaxSettingsEditor({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         </div>
 
         <div className="py-4">
-          <button onClick={save}
+          <button type="button" onClick={save}
             className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 text-white active:bg-purple-700">
             Save Settings
           </button>
@@ -1869,7 +1869,7 @@ function AllTransactionsModal({ isOpen, onClose, transactions }: { isOpen: boole
         <div className="px-4 pt-3 pb-2">
           <div className="flex gap-1 p-1 rounded-lg mb-3" style={{ backgroundColor: 'var(--bg-primary)' }}>
             {(['all', 'income', 'expense'] as const).map(f => (
-              <button
+              <button type="button"
                 key={f}
                 onClick={() => setFilterType(f)}
                 aria-pressed={filterType === f}
@@ -1896,7 +1896,7 @@ function AllTransactionsModal({ isOpen, onClose, transactions }: { isOpen: boole
               style={{ color: 'var(--text-primary)', fontSize: '16px' }}
             />
             {search && (
-              <button onClick={() => setSearch('')} className="p-1" aria-label="Clear search">
+              <button type="button" onClick={() => setSearch('')} className="p-1" aria-label="Clear search">
                 <X size={14} style={{ color: 'var(--text-secondary)' }} />
               </button>
             )}
@@ -1922,7 +1922,7 @@ function AllTransactionsModal({ isOpen, onClose, transactions }: { isOpen: boole
                 ) : (
                   <ArrowUpCircle size={18} className="text-red-500 shrink-0" />
                 )}
-                <button
+                <button type="button"
                   className="flex-1 min-w-0 text-left"
                   onClick={() => { setEditingTxn(t); setShowEditModal(true) }}
                 >
@@ -1938,7 +1938,7 @@ function AllTransactionsModal({ isOpen, onClose, transactions }: { isOpen: boole
                 <p className={`text-sm font-semibold ${t.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
                   {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                 </p>
-                <button
+                <button type="button"
                   onClick={() => { setEditingTxn(t); setShowEditModal(true) }}
                   className="p-1 opacity-40 active:opacity-100"
                   style={{ color: 'var(--text-secondary)' }}
@@ -1946,7 +1946,7 @@ function AllTransactionsModal({ isOpen, onClose, transactions }: { isOpen: boole
                 >
                   <Edit2 size={14} />
                 </button>
-                <button
+                <button type="button"
                   disabled={deletingId === t.id}
                   onClick={() => setConfirmDeleteTxn(t)}
                   className="p-1 opacity-40 active:opacity-100"
@@ -1958,7 +1958,7 @@ function AllTransactionsModal({ isOpen, onClose, transactions }: { isOpen: boole
               </div>
             ))}
             {hasMore && (
-              <button
+              <button type="button"
                 onClick={() => setRenderLimit(prev => prev + 30)}
                 className="w-full py-3 text-center text-sm font-medium text-purple-500 active:opacity-70"
               >

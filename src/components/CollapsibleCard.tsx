@@ -16,7 +16,8 @@ export function CollapsibleCard({ label, id, expanded, toggle, children, badge, 
   const isOpen = expanded.has(id)
   return (
     <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-      <button
+      <button type="button"
+        
         onClick={() => toggle(id)}
         aria-expanded={isOpen}
         aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${label}`}

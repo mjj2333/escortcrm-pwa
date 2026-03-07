@@ -55,7 +55,7 @@ export function TourDetail({ tourId, onBack, onOpenBooking }: TourDetailProps) {
     return (
       <div className="max-w-lg mx-auto px-4 py-20 text-center">
         <p style={{ color: 'var(--text-secondary)' }}>Tour not found.</p>
-        <button onClick={onBack} className="mt-4 text-purple-500 text-sm font-medium">Go back</button>
+        <button type="button" onClick={onBack} className="mt-4 text-purple-500 text-sm font-medium">Go back</button>
       </div>
     )
   }
@@ -88,16 +88,16 @@ export function TourDetail({ tourId, onBack, onOpenBooking }: TourDetailProps) {
         style={{ borderColor: 'var(--border)' }}
       >
         <div className="flex items-center justify-between px-4 h-12 max-w-lg mx-auto">
-          <button onClick={onBack} className="flex items-center gap-1 text-purple-500">
+          <button type="button" onClick={onBack} className="flex items-center gap-1 text-purple-500">
             <ArrowLeft size={18} />
             <span className="text-sm">Back</span>
           </button>
           <div className="flex items-center gap-1">
-            <button onClick={() => setShowArchiveConfirm(true)} aria-label={tour.isArchived ? 'Restore tour' : 'Archive tour'}
+            <button type="button" onClick={() => setShowArchiveConfirm(true)} aria-label={tour.isArchived ? 'Restore tour' : 'Archive tour'}
               className="p-2" style={{ color: 'var(--text-secondary)' }}>
               {tour.isArchived ? <ArchiveRestore size={18} /> : <Archive size={18} />}
             </button>
-            <button onClick={() => setShowEditor(true)} aria-label="Edit tour" className="p-2 text-purple-500">
+            <button type="button" onClick={() => setShowEditor(true)} aria-label="Edit tour" className="p-2 text-purple-500">
               <Edit size={18} />
             </button>
           </div>
@@ -178,7 +178,7 @@ export function TourDetail({ tourId, onBack, onOpenBooking }: TourDetailProps) {
               {sortedBookings.map(b => {
                 const client = b.clientId ? clientMap.get(b.clientId) : undefined
                 return (
-                  <button key={b.id}
+                  <button type="button" key={b.id}
                     onClick={() => onOpenBooking?.(b.id)}
                     className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left active:opacity-70"
                     style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}

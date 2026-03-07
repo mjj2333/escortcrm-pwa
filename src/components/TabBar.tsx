@@ -47,7 +47,7 @@ export const TabBar = memo(function TabBar({ activeTab, onTabChange, onStealthTr
           const Icon = tab.icon
           const isActive = activeTab === index
           return (
-            <button
+            <button type="button"
               key={tab.label}
               role="tab"
               aria-selected={isActive}

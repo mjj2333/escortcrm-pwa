@@ -10,7 +10,7 @@ export function FreeBanner({ onUpgrade }: { onUpgrade: () => void }) {
   if (isActivated()) return null
 
   return (
-    <button
+    <button type="button"
       onClick={onUpgrade}
       className="w-full px-4 text-center text-xs font-semibold flex items-center justify-center gap-1.5"
       style={{

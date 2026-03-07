@@ -144,7 +144,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
         <div className="max-w-md mx-auto px-5 py-8">
           {/* Close button — only shown when opened voluntarily */}
           {onClose && (
-            <button
+            <button type="button"
               onClick={onClose}
               className="flex items-center gap-1 text-sm mb-4 -ml-1"
               style={{ color: 'var(--text-secondary)' }}
@@ -261,7 +261,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
           {/* Verify / Restore purchase */}
           {!showVerify ? (
             <div className="flex items-center justify-center gap-3">
-              <button
+              <button type="button"
                 onClick={() => {
                   setShowVerify(true)
                   setIsGiftMode(false)
@@ -274,7 +274,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
                 Already purchased?
               </button>
               <span style={{ color: 'var(--text-secondary)' }}>·</span>
-              <button
+              <button type="button"
                 onClick={() => {
                   setShowVerify(true)
                   setIsGiftMode(true)
@@ -298,7 +298,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
                 >
                   {isGiftMode ? 'Promo Code' : 'Verify Purchase'}
                 </span>
-                <button
+                <button type="button"
                   onClick={() => {
                     setShowVerify(false)
                     setError('')
@@ -334,7 +334,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
                 }}
               />
               {error && <p className="text-xs text-red-500">{error}</p>}
-              <button
+              <button type="button"
                 onClick={handleVerify}
                 disabled={validating || !verifyInput.trim()}
                 className="w-full py-2.5 rounded-lg text-sm font-semibold text-white bg-purple-600 disabled:opacity-40 flex items-center justify-center gap-2"
@@ -350,7 +350,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
                 )}
               </button>
 
-              <button
+              <button type="button"
                 onClick={() => {
                   setIsGiftMode(!isGiftMode)
                   setError('')
@@ -366,7 +366,7 @@ export function Paywall({ onActivated, onClose, initialCode }: PaywallProps) {
 
           {/* Dismiss — always available since app is never fully locked */}
           {onClose && (
-            <button
+            <button type="button"
               onClick={onClose}
               className="w-full text-center text-sm py-4 mt-2 font-medium"
               style={{ color: 'var(--text-secondary)' }}

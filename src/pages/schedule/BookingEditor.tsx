@@ -392,7 +392,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
       onClose={onClose}
       title={isEditing ? 'Edit Booking' : 'New Booking'}
       actions={
-        <button onClick={handleSave} disabled={!isValid || saving}
+        <button type="button" onClick={handleSave} disabled={!isValid || saving}
           aria-label="Save booking"
           title={!isValid && !isEditing ? (!clientId ? 'Select a client' : baseRate <= 0 ? 'Set a rate' : !clientIsScreened ? 'Client must be screened' : '') : undefined}
           className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}>
@@ -404,8 +404,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
         {/* ━━━ Client ━━━ */}
         <p className="text-xs font-semibold uppercase mb-1.5" style={{ color: 'var(--text-secondary)' }}>Client</p>
         <div className="mb-3">
-          <button
-            type="button"
+          <button type="button"
+            
             onClick={() => setShowClientPicker(!showClientPicker)}
             className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left"
             style={fieldInputStyle}
@@ -449,7 +449,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
               {/* Client list */}
               <div className="max-h-40 overflow-y-auto">
                 {filteredClients.map(c => (
-                  <button key={c.id} type="button"
+                  <button type="button" key={c.id} 
                     onClick={() => { setClientId(c.id); setShowClientPicker(false); setClientSearch('') }}
                     className="flex items-center gap-2 px-3 py-2.5 w-full text-left active:opacity-70"
                     style={{ borderTop: '1px solid var(--border)' }}>
@@ -473,8 +473,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
               </div>
 
               {/* New Client button */}
-              <button
-                type="button"
+              <button type="button"
+                
                 onClick={() => {
                   setShowNewClient(true)
                   if (clientSearch.trim() && !filteredClients.length) setNewClientAlias(clientSearch.trim())
@@ -630,7 +630,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
           {serviceRates.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
               {serviceRates.map(rate => (
-                <button key={rate.id} type="button"
+                <button type="button" key={rate.id} 
                   onClick={() => selectServiceRate(rate.duration, rate.rate)}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     duration === rate.duration && baseRate === rate.rate && !customDuration ? 'bg-purple-500/20 text-purple-500' : ''
@@ -692,8 +692,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
             hint="Incall = your place. Outcall = their place. Travel = out of town. Virtual = online." />
           {locationType === 'Incall' && (
             <>
-              <button
-                type="button"
+              <button type="button"
+                
                 onClick={() => setShowVenuePicker(true)}
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg mb-1"
                 style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
@@ -704,8 +704,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
                 <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
               </button>
               {venueId && (
-                <button
-                  type="button"
+                <button type="button"
+                  
                   onClick={() => { setVenueId(''); setVenueName(''); setLocationAddress('') }}
                   className="text-xs text-purple-500 mb-1 px-1 py-2"
                 >
@@ -858,10 +858,10 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
             </p>
           )}
           <div className="flex gap-3">
-            <button onClick={() => setConflictWarning(null)}
+            <button type="button" onClick={() => setConflictWarning(null)}
               className="flex-1 py-3 rounded-xl text-sm font-semibold"
               style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Go Back</button>
-            <button onClick={() => saveBooking(!conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict)}
+            <button type="button" onClick={() => saveBooking(!conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict)}
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
               style={{ background: conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict
                 ? 'linear-gradient(135deg, #ef4444, #dc2626)'

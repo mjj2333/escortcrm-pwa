@@ -178,9 +178,9 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
           {/* Status grid */}
           <div className="grid grid-cols-2 gap-2 mb-4">
             {statuses.map(s => (
-              <button
+              <button type="button"
                 key={s.status}
-                type="button"
+                
                 aria-pressed={selectedStatus === s.status}
                 onClick={() => handleStatusTap(s.status)}
                 className="flex items-center gap-3 p-3.5 rounded-xl border active:scale-[0.97] transition-transform"
@@ -318,8 +318,8 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
 
           {/* Save button */}
           {showSaveButton && (
-            <button
-              type="button"
+            <button type="button"
+              
               onClick={handleSave}
               className="w-full py-3.5 rounded-xl font-bold text-sm text-white active:opacity-80 mb-2"
               style={{ backgroundColor: '#a855f7' }}
@@ -337,8 +337,8 @@ export function AvailabilityPicker({ date, current, onClose }: AvailabilityPicke
 
           {/* Clear button */}
           {current && (
-            <button
-              type="button"
+            <button type="button"
+              
               onClick={handleClear}
               className="w-full py-2.5 text-sm text-center active:opacity-70"
               style={{ color: 'var(--text-secondary)' }}

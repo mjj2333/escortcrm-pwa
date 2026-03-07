@@ -134,7 +134,7 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientId, clientA
       onClose={onClose}
       title={modalTitle}
       actions={
-        <button onClick={handleSave} disabled={saving} aria-label="Save entry" className="p-2 text-purple-500 disabled:opacity-50">
+        <button type="button" onClick={handleSave} disabled={saving} aria-label="Save entry" className="p-2 text-purple-500 disabled:opacity-50">
           <Check size={20} />
         </button>
       }
@@ -164,7 +164,7 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientId, clientA
                 const selected = tags.includes(tag)
                 const colors = journalTagColors[tag]
                 return (
-                  <button
+                  <button type="button"
                     key={tag}
                     aria-pressed={selected}
                     onClick={() => toggleTag(tag)}
@@ -234,9 +234,9 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientId, clientA
               {ACTIVITY_TYPES.map(at => {
                 const selected = entryType === at.type
                 return (
-                  <button
+                  <button type="button"
                     key={at.type}
-                    type="button"
+                    
                     onClick={() => setEntryType(at.type)}
                     aria-pressed={selected}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold transition-colors"
@@ -273,12 +273,12 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientId, clientA
 
         {/* Save button */}
         <div className="py-4">
-          <button onClick={handleSave} disabled={saving}
+          <button type="button" onClick={handleSave} disabled={saving}
             className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 text-white active:bg-purple-700 disabled:opacity-50">
             {existingEntry ? 'Update Entry' : 'Save Entry'}
           </button>
           {!existingEntry && isSessionMode && (
-            <button onClick={onClose}
+            <button type="button" onClick={onClose}
               className="w-full py-2 mt-2 rounded-xl text-sm font-medium"
               style={{ color: 'var(--text-secondary)' }}>
               Skip for Now

@@ -307,7 +307,7 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
           <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Message Client</h3>
-          <button onClick={onClose} className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          <button type="button" onClick={onClose} className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             {sent ? 'Done' : 'Cancel'}
           </button>
         </div>
@@ -316,7 +316,7 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
           {/* Template type pills — wrapping layout */}
           <div className="flex flex-wrap gap-2">
             {availableTemplates.map(t => (
-              <button
+              <button type="button"
                 key={t.key}
                 aria-pressed={selectedType === t.key}
                 onClick={() => { setSelectedType(t.key); setSent(false) }}
@@ -381,7 +381,7 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
 
           {/* Send button */}
           {!sent ? (
-            <button
+            <button type="button"
               onClick={handleSend}
               className="w-full py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
               style={{ backgroundColor: meta.color }}
@@ -391,7 +391,7 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
             </button>
           ) : (
             <div className="flex gap-3">
-              <button
+              <button type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(message)
                     .then(() => showToast('Message copied'))
@@ -403,7 +403,7 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
                 <Copy size={14} />
                 Copy
               </button>
-              <button
+              <button type="button"
                 onClick={handleSend}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
                 style={{ backgroundColor: meta.color }}

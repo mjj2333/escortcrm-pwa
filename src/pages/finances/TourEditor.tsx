@@ -85,7 +85,7 @@ export function TourEditor({ isOpen, onClose, tour }: TourEditorProps) {
       onClose={onClose}
       title={isEditing ? 'Edit Tour' : 'New Tour'}
       actions={
-        <button onClick={handleSave} disabled={!isValid || saving}
+        <button type="button" onClick={handleSave} disabled={!isValid || saving}
           className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}
           aria-label="Save tour">
           <Check size={20} />

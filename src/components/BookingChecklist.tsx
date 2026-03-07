@@ -112,7 +112,7 @@ export function BookingChecklist({ bookingId }: BookingChecklistProps) {
       <div className="space-y-1">
         {items.map(item => (
           <div key={item.id} className="flex items-center gap-2 py-1.5 group">
-            <button
+            <button type="button"
               onClick={() => toggleItem(item.id, item.completed)}
               className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors"
               style={{
@@ -135,7 +135,7 @@ export function BookingChecklist({ bookingId }: BookingChecklistProps) {
             >
               {item.text}
             </span>
-            <button
+            <button type="button"
               onClick={() => deleteItem(item.id)}
               className="p-1 opacity-40"
               style={{ color: 'var(--text-secondary)' }}
@@ -157,7 +157,7 @@ export function BookingChecklist({ bookingId }: BookingChecklistProps) {
           className="flex-1 text-sm py-1.5 px-2 rounded-lg border-0 outline-none"
           style={{ backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)', fontSize: '16px' }}
         />
-        <button
+        <button type="button"
           onClick={addItem}
           disabled={!newText.trim()}
           className="p-1.5 rounded-lg disabled:opacity-30"

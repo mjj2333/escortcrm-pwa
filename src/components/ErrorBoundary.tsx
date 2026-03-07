@@ -68,7 +68,7 @@ export class ErrorBoundary extends Component<Props, State> {
             Companion ran into an unexpected error. Your data is safe — this is a display issue only.
           </p>
 
-          <button
+          <button type="button"
             onClick={this.handleReset}
             className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97] mb-3"
           >
@@ -76,7 +76,7 @@ export class ErrorBoundary extends Component<Props, State> {
             Try again
           </button>
 
-          <button
+          <button type="button"
             onClick={() => window.location.reload()}
             className="text-sm py-2"
             style={{ color: 'var(--text-secondary, #888)' }}
@@ -105,7 +105,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 {this.state.error.message}
                 {this.state.errorInfo}
               </pre>
-              <button
+              <button type="button"
                 onClick={() => {
                   const text = `Error: ${this.state.error?.message}\n\nStack: ${this.state.errorInfo}`
                   navigator.clipboard?.writeText(text)

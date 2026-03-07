@@ -62,7 +62,7 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
       onClose={onClose}
       title="Edit Safety Check"
       actions={
-        <button
+        <button type="button"
           onClick={handleSave}
           disabled={!isValid || saving}
           className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}
@@ -96,9 +96,9 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
           </label>
           <div className="flex flex-wrap gap-2">
             {BUFFER_OPTIONS.map(mins => (
-              <button
+              <button type="button"
                 key={mins}
-                type="button"
+                
                 onClick={() => setBufferMinutes(mins)}
                 aria-pressed={bufferMinutes === mins}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
@@ -124,8 +124,8 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
             </p>
           ) : (
             <div className="space-y-2">
-              <button
-                type="button"
+              <button type="button"
+                
                 onClick={() => setSafetyContactId('')}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left"
                 style={{
@@ -137,9 +137,9 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
                 <span className="font-medium">None (use primary contact)</span>
               </button>
               {contacts.map(c => (
-                <button
+                <button type="button"
                   key={c.id}
-                  type="button"
+                  
                   onClick={() => setSafetyContactId(c.id)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left"
                   style={{

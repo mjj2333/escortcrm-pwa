@@ -311,14 +311,14 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
                   )}
                 </div>
                 {duressPin ? (
-                  <button
+                  <button type="button"
                     onClick={() => setShowDuressRemove(true)}
                     className="text-xs font-medium text-red-500 active:opacity-70"
                   >
                     Remove
                   </button>
                 ) : (
-                  <button
+                  <button type="button"
                     onClick={() => setShowDuressSetup(true)}
                     className="text-xs font-medium text-purple-500 active:opacity-70"
                   >
@@ -350,9 +350,9 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
             </label>
             <div className="flex gap-2">
               {(['light', 'dark', 'system'] as const).map(mode => (
-                <button
+                <button type="button"
                   key={mode}
-                  type="button"
+                  
                   onClick={() => handleThemeModeChange(mode)}
                   aria-pressed={themeMode === mode}
                   className="flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
@@ -407,9 +407,9 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
             </label>
             <div className="flex gap-2 flex-wrap">
               {[0, 15, 30, 45, 60].map(mins => (
-                <button
+                <button type="button"
                   key={mins}
-                  type="button"
+                  
                   onClick={() => setBufferMinutes(mins)}
                   aria-pressed={bufferMinutes === mins}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
@@ -433,9 +433,9 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
             </label>
             <div className="flex gap-2 flex-wrap">
               {[0, 15, 30, 45, 60].map(mins => (
-                <button
+                <button type="button"
                   key={mins}
-                  type="button"
+                  
                   onClick={() => setOutcallBufferMinutes(mins)}
                   aria-pressed={outcallBufferMinutes === mins}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
@@ -477,9 +477,9 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
             </label>
             <div className="flex gap-2 flex-wrap">
               {([7, 14, 30, 0] as const).map(days => (
-                <button
+                <button type="button"
                   key={days}
-                  type="button"
+                  
                   onClick={() => setBackupReminderDays(days)}
                   aria-pressed={backupReminderDays === days}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
@@ -512,7 +512,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
             {defaultChecklistItems.map((item, i) => (
               <div key={i} className="flex items-center gap-2 py-1.5 px-2 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)' }}>
                 <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{item}</span>
-                <button
+                <button type="button"
                   onClick={() => setDefaultChecklistItems(prev => prev.filter((_, idx) => idx !== i))}
                   className="p-1"
                   style={{ color: 'var(--text-secondary)' }}
@@ -538,7 +538,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
               className="flex-1 text-sm py-1.5 px-2 rounded-lg border-0 outline-none"
               style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '16px' }}
             />
-            <button
+            <button type="button"
               onClick={() => {
                 if (newChecklistItem.trim()) {
                   setDefaultChecklistItems(prev => [...prev, newChecklistItem.trim()])
@@ -589,7 +589,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
                   <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Bookings this month</span>
                   <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{planLimits.bookingCount} / {planLimits.bookingLimit}</span>
                 </div>
-                <button onClick={onShowPaywall}
+                <button type="button" onClick={onShowPaywall}
                   className="w-full mt-2 py-2 rounded-lg text-xs font-semibold text-white"
                   style={{ background: 'linear-gradient(135deg, #a855f7, #ec4899)' }}>
                   Upgrade to Pro
@@ -630,7 +630,7 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
           <div className="mb-3 rounded-lg px-3 py-2.5" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
             <div className="flex items-center justify-between py-1">
               <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Version</span>
-              <button
+              <button type="button"
                 onClick={() => {
                   clearTimeout(versionTapTimer.current)
                   const next = versionTaps + 1

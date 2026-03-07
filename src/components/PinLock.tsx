@@ -329,7 +329,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
     >
       {/* Cancel button for setup mode */}
       {isSetup && onCancel && (
-        <button
+        <button type="button"
           onClick={onCancel}
           className="absolute top-0 left-0 px-4 text-sm font-medium"
           style={{ color: 'var(--text-secondary)', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
@@ -379,7 +379,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
             if (key === 'bio') {
               if (showBiometric) {
                 return (
-                  <button
+                  <button type="button"
                     key={i}
                     onClick={attemptBiometric}
                     className="h-16 rounded-2xl flex items-center justify-center active:bg-white/10 transition-colors"
@@ -393,7 +393,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
             }
             if (key === 'del') {
               return (
-                <button
+                <button type="button"
                   key={i}
                   onClick={handleDelete}
                   className="h-16 rounded-2xl flex items-center justify-center active:bg-white/10 transition-colors"
@@ -404,7 +404,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
               )
             }
             return (
-              <button
+              <button type="button"
                 key={i}
                 onClick={() => handleKey(key)}
                 className="h-16 rounded-2xl text-2xl font-light active:bg-white/10 transition-colors"

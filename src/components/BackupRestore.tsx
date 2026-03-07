@@ -489,7 +489,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
             <Database size={18} style={{ color: '#a855f7' }} />
             <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Backup & Restore</h2>
           </div>
-          <button onClick={onClose} className="p-2" style={{ color: 'var(--text-secondary)' }}>
+          <button type="button" onClick={onClose} className="p-2" style={{ color: 'var(--text-secondary)' }}>
             <X size={20} />
           </button>
         </div>
@@ -501,7 +501,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
             className="rounded-xl p-3 space-y-3"
             style={{ backgroundColor: 'var(--bg-secondary)' }}
           >
-            <button
+            <button type="button"
               onClick={() => setUseEncryption(!useEncryption)}
               className="flex items-center gap-3 w-full text-left"
             >
@@ -550,7 +550,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
           {/* Backup */}
           <div>
             <p className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Create Backup</p>
-            <button
+            <button type="button"
               onClick={handleBackup}
               disabled={working || (useEncryption && !password.trim())}
               className="w-full flex items-center justify-center gap-2 p-4 rounded-xl font-medium text-sm text-white bg-purple-600 active:scale-[0.98] disabled:opacity-40"
@@ -566,7 +566,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
           {/* Export to Excel */}
           <div>
             <p className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--text-secondary)' }}>Export to Excel</p>
-            <button
+            <button type="button"
               onClick={async () => {
                 setExporting(true)
                 setStatus(null)
@@ -601,7 +601,7 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
               onChange={handleRestore}
               className="hidden"
             />
-            <button
+            <button type="button"
               onClick={() => fileRef.current?.click()}
               disabled={working}
               className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed transition-colors active:scale-[0.98]"

@@ -233,7 +233,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
         <SectionLabel label="Default Deposit" />
         <div className="mb-3">
           <div className="flex rounded-lg overflow-hidden mb-3" style={{ border: '1px solid var(--border)' }}>
-            <button
+            <button type="button"
               onClick={() => setDepositType('percent')}
               aria-pressed={depositType === 'percent'}
               className="flex-1 py-2 text-xs font-semibold transition-colors"
@@ -244,7 +244,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
             >
               Percentage
             </button>
-            <button
+            <button type="button"
               onClick={() => setDepositType('flat')}
               aria-pressed={depositType === 'flat'}
               className="flex-1 py-2 text-xs font-semibold transition-colors"
@@ -255,7 +255,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
             >
               Flat Rate
             </button>
-            <button
+            <button type="button"
               onClick={() => setDepositType('per-hour')}
               aria-pressed={depositType === 'per-hour'}
               className="flex-1 py-2 text-xs font-semibold transition-colors"
@@ -322,7 +322,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
           style={{ ...fieldInputStyle, fontSize: '16px' }}
         />
-        <button
+        <button type="button"
           onClick={() => setDirectionsTemplate('Hi! Here are the directions:\n\n📍 {address}\n\n{directions}\n\n— {name}')}
           className="text-xs text-purple-500 mb-3 px-1"
         >
@@ -340,7 +340,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
           className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
           style={{ ...fieldInputStyle, fontSize: '16px' }}
         />
-        <button
+        <button type="button"
           onClick={() => setIntroTemplate('Hi {client}! Thank you for your inquiry.\n\nHere is some information about my services:\n\n{rates}\n\nA deposit of {deposit} is required to confirm a booking.\n\n{website}\n\nPlease let me know if you have any questions or would like to schedule a time.\n\n— {name}')}
           className="text-xs text-purple-500 mb-3 px-1"
         >
@@ -348,7 +348,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
         </button>
 
         {/* ── Booking Message Templates (collapsible) ── */}
-        <button
+        <button type="button"
           onClick={() => setShowBookingTemplates(!showBookingTemplates)}
           className="w-full flex items-center justify-between mt-4 mb-1 py-2"
         >
@@ -376,7 +376,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
               style={{ ...fieldInputStyle, fontSize: '16px' }}
             />
-            <button
+            <button type="button"
               onClick={() => setTplConfirmation('Hi {client}! Your booking on {date} at {time} is confirmed. See you then!\n\n— {name}')}
               className="text-xs text-purple-500 mb-3 px-1"
             >
@@ -392,7 +392,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
               style={{ ...fieldInputStyle, fontSize: '16px' }}
             />
-            <button
+            <button type="button"
               onClick={() => setTplDepositReminder('Hi {client}, a deposit of {deposit} is needed to confirm your booking on {date} at {time}. Please let me know once sent!\n\n— {name}')}
               className="text-xs text-purple-500 mb-3 px-1"
             >
@@ -408,7 +408,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
               style={{ ...fieldInputStyle, fontSize: '16px' }}
             />
-            <button
+            <button type="button"
               onClick={() => setTplScreening('Hi {client}, before we can meet I\'ll need to verify your identity. Please send a photo of your ID and a selfie, or provide references I can check. Thank you for understanding!\n\n— {name}')}
               className="text-xs text-purple-500 mb-3 px-1"
             >
@@ -424,7 +424,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
               style={{ ...fieldInputStyle, fontSize: '16px' }}
             />
-            <button
+            <button type="button"
               onClick={() => setTplCancellation('Hi {client}, I\'m sorry but I need to cancel our booking on {date} at {time}. I apologize for any inconvenience.\n\n— {name}')}
               className="text-xs text-purple-500 mb-3 px-1"
             >
@@ -440,7 +440,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
               style={{ ...fieldInputStyle, fontSize: '16px' }}
             />
-            <button
+            <button type="button"
               onClick={() => setTplThankYou('Hi {client}, thank you for our time together! I had a wonderful time and hope to see you again soon.\n\n— {name}')}
               className="text-xs text-purple-500 mb-3 px-1"
             >

@@ -107,7 +107,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       <div className="flex flex-col items-center justify-center p-8 text-center" style={{ minHeight: '60vh' }}>
         <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Booking not found</h2>
         <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>This booking may have been deleted.</p>
-        <button
+        <button type="button"
           onClick={onBack}
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97]"
         >
@@ -284,11 +284,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         }}
       >
         <div className="flex items-center justify-between px-4 h-12 max-w-lg mx-auto">
-          <button onClick={onBack} className="flex items-center gap-1 text-purple-500">
+          <button type="button" onClick={onBack} className="flex items-center gap-1 text-purple-500">
             <ArrowLeft size={18} />
             <span className="text-sm">Back</span>
           </button>
-          <button onClick={() => setShowEditor(true)} aria-label="Edit booking" className="p-2 text-purple-500">
+          <button type="button" onClick={() => setShowEditor(true)} aria-label="Edit booking" className="p-2 text-purple-500">
             <Edit size={18} />
           </button>
         </div>
@@ -492,7 +492,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               {(payments ?? [])
                 .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                 .map(p => (
-                <button
+                <button type="button"
                   key={p.id}
                   onClick={() => setDeletePaymentId(p.id)}
                   className="flex items-center justify-between w-full py-2 px-2 rounded-lg text-left"
@@ -522,7 +522,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
           {/* Quick actions */}
           <div className="flex gap-2">
             {booking.depositAmount > 0 && depositRemaining > 0 && (
-              <button
+              <button type="button"
                 onClick={() => openPaymentForm('Deposit', depositRemaining)}
                 className="flex-1 text-xs font-medium py-2 rounded-lg"
                 style={{ backgroundColor: 'rgba(168,85,247,0.1)', color: '#a855f7' }}
@@ -531,7 +531,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               </button>
             )}
             {!isFullyPaid && balance > 0 && (
-              <button
+              <button type="button"
                 onClick={() => openPaymentForm('Payment', balance)}
                 className="flex-1 text-xs font-medium py-2 rounded-lg"
                 style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}
@@ -539,7 +539,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                 Record {booking.depositReceived ? 'Balance' : 'Payment'} ({formatCurrency(balance)})
               </button>
             )}
-            <button
+            <button type="button"
               onClick={() => openPaymentForm()}
               aria-label="Add payment"
               className="text-xs font-medium py-2 px-3 rounded-lg"
@@ -628,7 +628,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             <div className="pt-1">
             <div className="flex items-center justify-end mb-2">
               {(isTerminal || journalEntry) && (
-                <button onClick={() => setShowJournal(true)}
+                <button type="button" onClick={() => setShowJournal(true)}
                   className="text-xs font-medium text-purple-500 active:opacity-70">
                   {journalEntry ? 'Edit' : '+ Add'}
                 </button>
@@ -738,7 +738,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
 
           {/* Message Client */}
           {client && (
-            <button
+            <button type="button"
               onClick={() => setShowMessageSheet(true)}
               className="flex items-center gap-3 py-3 w-full text-left"
             >
@@ -748,7 +748,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
           )}
 
           {/* Export to Calendar */}
-          <button
+          <button type="button"
             onClick={() => downloadICS(booking, client ?? undefined, venue ?? undefined)}
             className="flex items-center gap-3 py-3 w-full text-left"
           >
@@ -758,7 +758,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
 
           {/* Advance Status */}
           {next && (
-            <button
+            <button type="button"
               onClick={() => updateStatus(next)}
               className="flex items-center gap-3 py-3 w-full text-left"
             >
@@ -771,7 +771,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
 
           {/* Book Again */}
           {isTerminal && (
-            <button
+            <button type="button"
               onClick={() => setShowRebook(true)}
               className="flex items-center gap-3 py-3 w-full text-left"
             >
@@ -782,7 +782,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
 
           {/* No Show */}
           {!isTerminal && (
-            <button
+            <button type="button"
               onClick={() => setConfirmAction('noshow')}
               className="flex items-center gap-3 py-3 w-full text-left"
             >
@@ -793,7 +793,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
 
           {/* Cancel */}
           {!isTerminal && (
-            <button
+            <button type="button"
               onClick={() => setConfirmAction('cancel')}
               className="flex items-center gap-3 py-3 w-full text-left"
             >
@@ -804,7 +804,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
 
           {/* Delete */}
           {isTerminal && (
-            <button
+            <button type="button"
               onClick={() => setConfirmAction('delete')}
               className="flex items-center gap-3 py-3 w-full text-left"
             >
@@ -882,13 +882,13 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
           >
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Record Payment</h3>
-              <button onClick={() => setShowPaymentForm(false)} className="text-sm text-purple-500">Cancel</button>
+              <button type="button" onClick={() => setShowPaymentForm(false)} className="text-sm text-purple-500">Cancel</button>
             </div>
 
             {/* Label selector */}
             <div className="flex gap-2">
               {paymentLabels.map(l => (
-                <button
+                <button type="button"
                   key={l}
                   onClick={() => setPayLabel(l)}
                   className="text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
@@ -953,7 +953,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                 This exceeds the remaining balance of {formatCurrency(balance)}
               </p>
             )}
-            <button
+            <button type="button"
               onClick={submitPayment}
               disabled={!payAmount || parseFloat(payAmount) <= 0 || submittingPayment}
               className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-40"

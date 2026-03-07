@@ -206,7 +206,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       onClose={() => onClose()}
       title={isEditing ? 'Edit Client' : 'New Client'}
       actions={
-        <button onClick={handleSave} disabled={!isValid || saving}
+        <button type="button" onClick={handleSave} disabled={!isValid || saving}
           aria-label="Save client"
           className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}>
           <Check size={20} />

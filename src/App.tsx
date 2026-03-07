@@ -60,7 +60,7 @@ function RouteErrorFallback() {
           ? 'This section needs to be loaded once while online before it can work offline.'
           : 'This section hit an unexpected error.'}
       </p>
-      <button
+      <button type="button"
         onClick={() => history.back()}
         className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97]"
       >
@@ -121,14 +121,14 @@ function EncryptionRecovery({ onDone }: { onDone: () => void }) {
         onKeyDown={e => { if (e.key === 'Enter') handleDecrypt() }}
       />
       {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
-      <button
+      <button type="button"
         onClick={handleDecrypt}
         disabled={pin.length < 4 || busy}
         className={`w-48 py-3 rounded-xl font-semibold text-sm mb-3 ${pin.length >= 4 && !busy ? 'bg-purple-600 text-white' : 'opacity-40 bg-purple-600 text-white'}`}
       >
         {busy ? 'Decrypting…' : 'Decrypt Data'}
       </button>
-      <button
+      <button type="button"
         onClick={handleSkip}
         className="text-xs py-2"
         style={{ color: 'var(--text-secondary)' }}
@@ -422,7 +422,7 @@ export default function App() {
           style={{ backgroundColor: '#7c3aed', color: '#fff', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', textAlign: 'center', fontSize: '13px', fontWeight: 500 }}
         >
           A new version is available.{' '}
-          <button
+          <button type="button"
             onClick={applyUpdate}
             style={{ background: 'none', border: 'none', color: '#fff', textDecoration: 'underline', fontWeight: 700, fontSize: '13px', cursor: 'pointer', padding: '8px 12px', margin: '-8px -12px' }}
           >
@@ -481,13 +481,13 @@ export default function App() {
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 Add to your home screen for quick access, offline support, and the full app experience.
               </p>
-              <button
+              <button type="button"
                 onClick={promptInstall}
                 className="w-full py-3 rounded-xl text-sm font-semibold text-white bg-purple-600 active:scale-[0.97] transition-transform"
               >
                 Install
               </button>
-              <button
+              <button type="button"
                 onClick={() => dismissInstall(installNeverAsk)}
                 className="text-sm font-medium py-2"
                 style={{ color: 'var(--text-secondary)' }}

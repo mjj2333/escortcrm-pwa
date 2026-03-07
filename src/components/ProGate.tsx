@@ -24,7 +24,7 @@ export function ProGate({ children, feature, onUpgrade, inline, bypass }: ProGat
 
   if (inline) {
     return (
-      <button
+      <button type="button"
         onClick={onUpgrade}
         className="w-full rounded-xl p-4 text-center active:opacity-80"
         style={{
@@ -56,7 +56,7 @@ export function ProGate({ children, feature, onUpgrade, inline, bypass }: ProGat
 
       {/* Upgrade overlay */}
       <div className="absolute inset-0 flex items-center justify-center z-10">
-        <button
+        <button type="button"
           onClick={onUpgrade}
           className="flex flex-col items-center gap-3 px-6 py-5 rounded-2xl active:scale-[0.97] transition-transform"
           style={{

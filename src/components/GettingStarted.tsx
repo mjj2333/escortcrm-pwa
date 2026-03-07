@@ -63,7 +63,7 @@ export function GettingStarted({ onOpenProfile, onOpenSettings, onNavigateTab }:
           >
             {completed} of {items.length}
           </span>
-          <button
+          <button type="button"
             onClick={() => setShowConfirm(true)}
             className="p-2 -m-1"
             style={{ color: 'var(--text-secondary)' }}
@@ -85,7 +85,7 @@ export function GettingStarted({ onOpenProfile, onOpenSettings, onNavigateTab }:
       {/* Items */}
       <div className="space-y-0.5">
         {items.map((item, i) => (
-          <button
+          <button type="button"
             key={i}
             onClick={item.done ? undefined : item.action}
             disabled={item.done}

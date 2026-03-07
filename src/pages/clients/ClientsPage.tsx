@@ -108,12 +108,12 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
     <div className="pb-20">
       <PageHeader title="Clients">
         {isPro() && (
-          <button onClick={() => setShowImportExport(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}
+          <button type="button" onClick={() => setShowImportExport(true)} className="p-2 rounded-lg" style={{ color: 'var(--text-secondary)' }}
             aria-label="Import or export clients">
             <ArrowDownUp size={18} />
           </button>
         )}
-        <button onClick={() => setShowEditor(true)}
+        <button type="button" onClick={() => setShowEditor(true)}
           aria-label="Add client"
           className={`p-2 rounded-lg ${limits.canAddClient ? 'text-purple-500' : ''}`}
           style={!limits.canAddClient ? { color: 'var(--text-secondary)', opacity: 0.5 } : {}}>
@@ -144,7 +144,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
         {/* Active / Blacklisted filter */}
         {blockedCount > 0 && (
           <div className="flex gap-2 mt-2">
-            <button
+            <button type="button"
               onClick={() => { setShowBlocked(false); setRenderLimit(50) }}
               className="text-xs font-semibold px-3 py-1.5 rounded-full"
               style={{
@@ -154,7 +154,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
             >
               Active ({clients.filter(c => !c.isBlocked).length})
             </button>
-            <button
+            <button type="button"
               onClick={() => { setShowBlocked(true); setRenderLimit(50) }}
               className="text-xs font-semibold px-3 py-1.5 rounded-full"
               style={{
@@ -170,7 +170,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
         {/* Sort options */}
         <div className="flex gap-2 mt-2">
           {([['az', 'A–Z'], ['recent', 'Last Seen'], ['newest', 'Newest']] as [SortMode, string][]).map(([mode, label]) => (
-            <button
+            <button type="button"
               key={mode}
               onClick={() => setSortMode(mode)}
               className="text-[10px] font-semibold px-2.5 py-2 rounded-full"
@@ -234,7 +234,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
               />
             ))}
             {filtered.length > renderLimit && (
-              <button
+              <button type="button"
                 onClick={() => setRenderLimit(l => l + 50)}
                 className="w-full py-3 text-sm font-medium rounded-xl active:scale-[0.98]"
                 style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)' }}

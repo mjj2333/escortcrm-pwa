@@ -92,7 +92,7 @@ export function RiskLevelBar({ value, onChange, disabled }: RiskLevelBarProps) {
         {/* Segment markers */}
         <div className="absolute inset-0 flex">
           {levels.map((l, i) => (
-            <button
+            <button type="button"
               key={l.level}
               onClick={() => !disabled && onChange(l.level)}
               aria-label={`Set risk level to ${l.label}`}
@@ -127,7 +127,7 @@ export function RiskLevelBar({ value, onChange, disabled }: RiskLevelBarProps) {
 
       {/* Clear to Unknown */}
       {!isUnknown && !disabled && (
-        <button
+        <button type="button"
           onClick={() => onChange('Unknown')}
           className="mt-1.5 text-[11px] font-medium"
           style={{ color: 'var(--text-secondary)' }}

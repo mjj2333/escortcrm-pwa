@@ -92,7 +92,7 @@ export function ToastContainer() {
             {iconFor(toast.type)}
             <span className="flex-1">{toast.message}</span>
             {toast.type === 'undo' && toast.onUndo && (
-              <button
+              <button type="button"
                 onClick={() => {
                   Promise.resolve(toast.onUndo!()).catch(() => showToast('Undo failed', 'error'))
                   dismiss(toast.id)

@@ -87,7 +87,7 @@ export function SafetyContactEditor({ isOpen, onClose, contact }: SafetyContactE
       onClose={onClose}
       title={isEditing ? 'Edit Contact' : 'New Safety Contact'}
       actions={
-        <button onClick={handleSave} disabled={!isValid || saving}
+        <button type="button" onClick={handleSave} disabled={!isValid || saving}
           className={`p-2 ${isValid && !saving ? 'text-purple-500' : 'opacity-30'}`}
           aria-label="Save contact">
           <Check size={20} />

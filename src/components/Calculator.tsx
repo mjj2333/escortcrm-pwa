@@ -275,37 +275,37 @@ export default function Calculator({ onExit, pinHash }: CalculatorProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '340px', width: '100%', padding: '0 8px' }}>
         {/* Row 1 */}
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <button onClick={clear} style={btnStyle.function}>{display !== '0' ? 'C' : 'AC'}</button>
-          <button onClick={toggleSign} style={btnStyle.function}>+/-</button>
-          <button onClick={inputPercent} style={btnStyle.function}>%</button>
-          <button onClick={() => performOperation('/')} style={activeOp('/')}>&divide;</button>
+          <button type="button" onClick={clear} style={btnStyle.function}>{display !== '0' ? 'C' : 'AC'}</button>
+          <button type="button" onClick={toggleSign} style={btnStyle.function}>+/-</button>
+          <button type="button" onClick={inputPercent} style={btnStyle.function}>%</button>
+          <button type="button" onClick={() => performOperation('/')} style={activeOp('/')}>&divide;</button>
         </div>
         {/* Row 2 */}
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <button onClick={() => inputDigit('7')} style={btnStyle.number}>7</button>
-          <button onClick={() => inputDigit('8')} style={btnStyle.number}>8</button>
-          <button onClick={() => inputDigit('9')} style={btnStyle.number}>9</button>
-          <button onClick={() => performOperation('*')} style={activeOp('*')}>&times;</button>
+          <button type="button" onClick={() => inputDigit('7')} style={btnStyle.number}>7</button>
+          <button type="button" onClick={() => inputDigit('8')} style={btnStyle.number}>8</button>
+          <button type="button" onClick={() => inputDigit('9')} style={btnStyle.number}>9</button>
+          <button type="button" onClick={() => performOperation('*')} style={activeOp('*')}>&times;</button>
         </div>
         {/* Row 3 */}
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <button onClick={() => inputDigit('4')} style={btnStyle.number}>4</button>
-          <button onClick={() => inputDigit('5')} style={btnStyle.number}>5</button>
-          <button onClick={() => inputDigit('6')} style={btnStyle.number}>6</button>
-          <button onClick={() => performOperation('-')} style={activeOp('-')}>&minus;</button>
+          <button type="button" onClick={() => inputDigit('4')} style={btnStyle.number}>4</button>
+          <button type="button" onClick={() => inputDigit('5')} style={btnStyle.number}>5</button>
+          <button type="button" onClick={() => inputDigit('6')} style={btnStyle.number}>6</button>
+          <button type="button" onClick={() => performOperation('-')} style={activeOp('-')}>&minus;</button>
         </div>
         {/* Row 4 */}
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <button onClick={() => inputDigit('1')} style={btnStyle.number}>1</button>
-          <button onClick={() => inputDigit('2')} style={btnStyle.number}>2</button>
-          <button onClick={() => inputDigit('3')} style={btnStyle.number}>3</button>
-          <button onClick={() => performOperation('+')} style={activeOp('+')}>+</button>
+          <button type="button" onClick={() => inputDigit('1')} style={btnStyle.number}>1</button>
+          <button type="button" onClick={() => inputDigit('2')} style={btnStyle.number}>2</button>
+          <button type="button" onClick={() => inputDigit('3')} style={btnStyle.number}>3</button>
+          <button type="button" onClick={() => performOperation('+')} style={activeOp('+')}>+</button>
         </div>
         {/* Row 5 */}
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <button onClick={() => inputDigit('0')} style={btnStyle.zero}>0</button>
-          <button onClick={inputDot} style={btnStyle.number}>.</button>
-          <button onClick={handleEquals} style={btnStyle.operator}>=</button>
+          <button type="button" onClick={() => inputDigit('0')} style={btnStyle.zero}>0</button>
+          <button type="button" onClick={inputDot} style={btnStyle.number}>.</button>
+          <button type="button" onClick={handleEquals} style={btnStyle.operator}>=</button>
         </div>
       </div>
     </div>

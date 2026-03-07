@@ -91,7 +91,7 @@ export function DidYouKnowTip() {
             {activeTip.text}
           </p>
         </div>
-        <button
+        <button type="button"
           onClick={dismiss}
           className="p-2 -m-1 shrink-0"
           style={{ color: 'var(--text-secondary)' }}
