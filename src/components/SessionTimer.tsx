@@ -8,6 +8,11 @@ interface SessionTimerProps {
 
 function formatTime(ms: number): string {
   const totalSec = Math.floor(Math.abs(ms) / 1000)
+  const days = Math.floor(totalSec / 86400)
+  if (days >= 1) {
+    const h = Math.floor((totalSec % 86400) / 3600)
+    return `${days}d ${h}h`
+  }
   const h = Math.floor(totalSec / 3600)
   const m = Math.floor((totalSec % 3600) / 60)
   const s = totalSec % 60
