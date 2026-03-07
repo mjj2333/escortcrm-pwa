@@ -30,26 +30,28 @@ const availDotColors: Record<AvailabilityStatus, string> = {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// ACTION BUTTON
+// ACTION BLOCK — compact square with icon + label
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function SwipeAction({ label, icon, color, onTap }: {
+interface ActionDef {
   label: string
-  icon: React.ReactNode
+  Icon: typeof Check
   color: string
+  bg: string
   onTap: () => void
-}) {
+}
+
+function ActionBlock({ action }: { action: ActionDef }) {
   return (
     <button type="button"
-      onClick={e => { e.stopPropagation(); onTap() }}
-      className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold w-full active:opacity-70"
-      style={{
-        backgroundColor: `${color}18`,
-        color,
-      }}
+      onClick={e => { e.stopPropagation(); action.onTap() }}
+      className="flex-1 flex flex-col items-center justify-center gap-1 active:opacity-70 h-full"
+      style={{ backgroundColor: action.bg }}
     >
-      {icon}
-      {label}
+      <action.Icon size={18} color={action.color} />
+      <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: action.color }}>
+        {action.label}
+      </span>
     </button>
   )
 }
@@ -66,7 +68,6 @@ interface Props {
   onCancel?: (booking: Booking) => void
   onNoShow?: (booking: Booking) => void
   availabilityStatus?: AvailabilityStatus
-  /** Total deposit amount already paid — computed by parent from payments table */
   depositPaid?: number
 }
 
@@ -82,22 +83,86 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
   const totalDeposits = depositPaid
   const depositRemaining = booking.depositAmount - totalDeposits
   const depositFullyPaid = booking.depositAmount > 0 && depositRemaining <= 0
-  const depositPartial = totalDeposits > 0 && depositRemaining > 0
 
   const isTerminal = booking.status === 'Completed' || booking.status === 'Cancelled' || booking.status === 'No Show'
 
-  // Panel width — narrower now since we have fewer buttons
-  const PANEL_WIDTH = Math.min(180, typeof window !== 'undefined' ? window.innerWidth * 0.48 : 180)
+  // ━━━ Build contextual actions (max 3) ━━━
+  const actions: ActionDef[] = []
+
+  if (!isTerminal) {
+    // Slot 1: Next status (always present for non-terminal)
+    const nextMap: Partial<Record<BookingStatus, { status: BookingStatus; label: string; Icon: typeof Check; color: string; bg: string }>> = {
+      'To Be Confirmed': { status: 'Pending Deposit', label: 'Advance',  Icon: Check,  color: '#fff', bg: '#3b82f6' },
+      'Pending Deposit':  { status: 'Confirmed',      label: 'Confirm',  Icon: Check,  color: '#fff', bg: '#22c55e' },
+      'Confirmed':        { status: 'In Progress',    label: 'Start',    Icon: Play,   color: '#fff', bg: '#14b8a6' },
+      'In Progress':      { status: 'Completed',      label: 'Complete', Icon: Check,  color: '#fff', bg: '#22c55e' },
+    }
+    const next = nextMap[booking.status]
+    if (next) {
+      const targetStatus = next.status
+      actions.push({
+        label: next.label,
+        Icon: next.Icon,
+        color: next.color,
+        bg: next.bg,
+        onTap: () => setBookingStatus(targetStatus),
+      })
+    }
+
+    // Slot 2: Deposit or Screening (contextual middle action)
+    const clientIsScreened = client?.screeningStatus === 'Screened'
+    if (booking.depositAmount > 0 && !depositFullyPaid) {
+      actions.push({
+        label: 'Deposit',
+        Icon: DollarSign,
+        color: '#fff',
+        bg: '#f59e0b',
+        onTap: recordRemainingDeposit,
+      })
+    } else if (client && !clientIsScreened) {
+      actions.push({
+        label: 'Screen',
+        Icon: UserCheck,
+        color: '#fff',
+        bg: '#8b5cf6',
+        onTap: setScreened,
+      })
+    }
+
+    // Slot 3: Cancel or No-Show
+    if (booking.status === 'Confirmed' || booking.status === 'In Progress') {
+      actions.push({
+        label: 'No-Show',
+        Icon: AlertTriangle,
+        color: '#fff',
+        bg: '#ef4444',
+        onTap: markNoShow,
+      })
+    } else {
+      actions.push({
+        label: 'Cancel',
+        Icon: X,
+        color: '#fff',
+        bg: '#ef4444',
+        onTap: () => setBookingStatus('Cancelled'),
+      })
+    }
+  }
+
+  // Panel width: sized to actions (each block ~75px)
+  const BLOCK_WIDTH = 75
+  const PANEL_WIDTH = isTerminal ? 0 : actions.length * BLOCK_WIDTH
   const SNAP_THRESHOLD = 50
 
   // ━━━ Gesture handling ━━━
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (isTerminal) return
     startX.current = e.clientX
     currentX.current = 0
     isDragging.current = false
     setSwiping(true)
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  }, [])
+  }, [isTerminal])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!swiping) return
@@ -106,7 +171,7 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     if (Math.abs(dx) > 5) isDragging.current = true
     currentX.current = clamped
     setOffset(clamped)
-  }, [swiping])
+  }, [swiping, PANEL_WIDTH])
 
   const handlePointerUp = useCallback(() => {
     if (!swiping) return
@@ -116,7 +181,7 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     } else {
       setOffset(0)
     }
-  }, [swiping])
+  }, [swiping, PANEL_WIDTH])
 
   const handlePointerCancel = useCallback(() => {
     setSwiping(false)
@@ -131,7 +196,7 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     setOffset(0)
   }
 
-  // ━━━ Actions ━━━
+  // ━━━ Action handlers ━━━
   async function recordRemainingDeposit() {
     if (depositRemaining <= 0 || booking.depositAmount === 0) return
     try {
@@ -150,15 +215,11 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
 
   async function setBookingStatus(newStatus: BookingStatus) {
     if (isTerminal) return
-
-    if (newStatus === 'Cancelled') {
-      if (onCancel) {
-        closePanel()
-        setTimeout(() => onCancel(booking), 300)
-        return
-      }
+    if (newStatus === 'Cancelled' && onCancel) {
+      closePanel()
+      setTimeout(() => onCancel(booking), 300)
+      return
     }
-
     try {
       if (newStatus === 'Completed') {
         await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
@@ -176,7 +237,6 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
         if (newStatus === 'Cancelled') updates.cancelledAt = new Date()
         await db.bookings.update(booking.id, updates)
       }
-      // Create safety check when advancing to In Progress
       if (newStatus === 'In Progress' && booking.requiresSafetyCheck) {
         const existing = await db.safetyChecks.where('bookingId').equals(booking.id).first()
         if (!existing) {
@@ -240,7 +300,6 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     try {
       const oldStatus = client.screeningStatus
       await db.clients.update(client.id, { screeningStatus: 'Screened' as ScreeningStatus })
-      // Auto-advance bookings if needed
       const { advanceBookingsOnScreen } = await import('../db')
       await advanceBookingsOnScreen(client.id, oldStatus, 'Screened')
       if (navigator.vibrate) navigator.vibrate(15)
@@ -249,89 +308,22 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     }
   }
 
-  // ━━━ Build contextual actions ━━━
-  const actions: { label: string; icon: React.ReactNode; color: string; onTap: () => void }[] = []
-
-  if (!isTerminal) {
-    const clientIsScreened = client?.screeningStatus === 'Screened'
-
-    // Screening shortcut (if not screened)
-    if (client && !clientIsScreened) {
-      actions.push({
-        label: 'Mark Screened',
-        icon: <UserCheck size={14} />,
-        color: '#22c55e',
-        onTap: setScreened,
-      })
-    }
-
-    // Deposit (if deposit expected and not fully paid)
-    if (booking.depositAmount > 0 && !depositFullyPaid) {
-      actions.push({
-        label: `Deposit ${formatCurrency(depositRemaining)}`,
-        icon: <DollarSign size={14} />,
-        color: '#f59e0b',
-        onTap: recordRemainingDeposit,
-      })
-    }
-
-    // Next status action
-    const nextStatusMap: Partial<Record<BookingStatus, { status: BookingStatus; label: string; icon: React.ReactNode; color: string }>> = {
-      'To Be Confirmed': { status: 'Pending Deposit', label: 'Pending Dep.', icon: <DollarSign size={14} />, color: '#3b82f6' },
-      'Pending Deposit': { status: 'Confirmed', label: 'Confirm', icon: <Check size={14} />, color: '#22c55e' },
-      'Confirmed': { status: 'In Progress', label: 'Start Session', icon: <Play size={14} />, color: '#14b8a6' },
-      'In Progress': { status: 'Completed', label: 'Complete', icon: <Check size={14} />, color: '#22c55e' },
-    }
-
-    const next = nextStatusMap[booking.status]
-    if (next) {
-      actions.push({
-        label: next.label,
-        icon: next.icon,
-        color: next.color,
-        onTap: () => setBookingStatus(next.status),
-      })
-    }
-
-    // Cancel
-    actions.push({
-      label: 'Cancel',
-      icon: <X size={14} />,
-      color: '#ef4444',
-      onTap: () => setBookingStatus('Cancelled'),
-    })
-
-    // No-show (only after confirmed)
-    if (booking.status === 'Confirmed' || booking.status === 'In Progress') {
-      actions.push({
-        label: 'No-Show',
-        icon: <AlertTriangle size={14} />,
-        color: '#ef4444',
-        onTap: markNoShow,
-      })
-    }
-  }
+  const depositPartial = totalDeposits > 0 && depositRemaining > 0
 
   return (
     <div className="relative overflow-hidden rounded-xl" style={{ touchAction: 'pan-y' }}>
-      {/* Action panel behind */}
-      <div
-        className="absolute inset-y-0 right-0 flex flex-col justify-center gap-1.5 p-2"
-        aria-hidden={offset === 0}
-        style={{
-          width: `${PANEL_WIDTH}px`,
-          background: 'var(--bg-secondary)',
-        }}
-      >
-        {actions.map((a, i) => (
-          <SwipeAction key={i} label={a.label} icon={a.icon} color={a.color} onTap={a.onTap} />
-        ))}
-        {isTerminal && (
-          <p className="text-[10px] text-center py-2" style={{ color: 'var(--text-secondary)' }}>
-            No actions
-          </p>
-        )}
-      </div>
+      {/* Action panel behind — horizontal blocks */}
+      {PANEL_WIDTH > 0 && (
+        <div
+          className="absolute inset-y-0 right-0 flex"
+          aria-hidden={offset === 0}
+          style={{ width: `${PANEL_WIDTH}px` }}
+        >
+          {actions.map((a, i) => (
+            <ActionBlock key={i} action={a} />
+          ))}
+        </div>
+      )}
 
       {/* Foreground card */}
       <div
@@ -392,7 +384,6 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
           <p className="text-xs font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
             {formatCurrency(bookingTotal(booking))}
           </p>
-          {/* Mini indicators row */}
           <div className="flex items-center justify-end gap-1 mt-0.5">
             {booking.depositAmount > 0 && (
               <span className="text-[9px]" title={depositFullyPaid ? 'Deposit received' : depositPartial ? 'Deposit partial' : 'Deposit pending'}>
@@ -409,8 +400,8 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
           </div>
         </div>
 
-        {/* Swipe hint edge indicator */}
-        {offset === 0 && (
+        {/* Swipe hint */}
+        {offset === 0 && !isTerminal && (
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-10 rounded-l-full"
             style={{ backgroundColor: '#a855f7', opacity: 0.35 }} />
         )}
