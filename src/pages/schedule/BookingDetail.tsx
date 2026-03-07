@@ -93,6 +93,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const [payNotes, setPayNotes] = useState('')
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null)
   const [deletingPayment, setDeletingPayment] = useState(false)
+  const [earlyStartConfirmed, setEarlyStartConfirmed] = useState(false)
+  const [unscreenedConfirmed, setUnscreenedConfirmed] = useState(false)
 
   // Allow Dexie time to resolve before showing "not found"
   const [settled, setSettled] = useState(false)
@@ -128,9 +130,6 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const isFullyPaid = balance <= 0
   const totalDeposits = (payments ?? []).filter(p => p.label === 'Deposit').reduce((sum, p) => sum + p.amount, 0)
   const depositRemaining = booking.depositAmount - totalDeposits
-
-  const [earlyStartConfirmed, setEarlyStartConfirmed] = useState(false)
-  const [unscreenedConfirmed, setUnscreenedConfirmed] = useState(false)
 
   async function updateStatus(status: BookingStatus) {
     try {
