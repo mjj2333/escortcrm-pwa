@@ -287,11 +287,6 @@ function VenueList({ cities, grouped, search, onSearchChange, activeCount, archi
                             {v.name}
                           </span>
                           {v.isFavorite && <Star size={12} fill="#f59e0b" stroke="#f59e0b" />}
-                          {v.hotelFriendly && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-500/15 text-green-500">
-                              FRIENDLY
-                            </span>
-                          )}
                         </div>
                         <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
                           {v.address}
@@ -410,11 +405,6 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
                 {venue.venueType}
               </span>
               <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{venue.city}</span>
-              {venue.hotelFriendly && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-500/15 text-green-500">
-                  FRIENDLY
-                </span>
-              )}
             </div>
           </div>
         </div>
@@ -906,7 +896,6 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
   const [costPerHour, setCostPerHour] = useState(0)
   const [costPerDay, setCostPerDay] = useState(0)
   const [costNotes, setCostNotes] = useState('')
-  const [hotelFriendly, setHotelFriendly] = useState(false)
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -927,7 +916,6 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
       setCostPerHour(existing.costPerHour ?? 0)
       setCostPerDay(existing.costPerDay ?? 0)
       setCostNotes(existing.costNotes ?? '')
-      setHotelFriendly(existing.hotelFriendly ?? false)
       setNotes(existing.notes ?? '')
     }
   }, [existing])
@@ -957,7 +945,6 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
         costPerHour: costPerHour || undefined,
         costPerDay: costPerDay || undefined,
         costNotes: costNotes.trim() || undefined,
-        hotelFriendly: venueType === 'Hotel' ? (hotelFriendly || undefined) : undefined,
         notes: notes.trim() || undefined,
         updatedAt: new Date(),
       }
@@ -991,28 +978,6 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
       <FieldSelect label="Type" value={venueType} options={venueTypes} onChange={v => setVenueType(v as VenueType)} />
       <FieldTextInput label="City" value={city} onChange={setCity} placeholder="e.g. Vancouver" required />
       <FieldTextInput label="Address" value={address} onChange={setAddress} placeholder="Full street address" />
-
-      {/* Hotel friendly toggle */}
-      {venueType === 'Hotel' && (
-        <button
-          onClick={() => setHotelFriendly(!hotelFriendly)}
-          role="checkbox"
-          aria-checked={hotelFriendly}
-          className="flex items-center gap-3 w-full py-2.5 px-3 rounded-lg mb-1"
-          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-        >
-          <div
-            className="w-5 h-5 rounded flex items-center justify-center"
-            style={{
-              backgroundColor: hotelFriendly ? '#22c55e' : 'transparent',
-              border: hotelFriendly ? 'none' : '2px solid var(--border)',
-            }}
-          >
-            {hotelFriendly && <Check size={14} className="text-white" />}
-          </div>
-          <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Provider-friendly hotel</span>
-        </button>
-      )}
 
       <SectionLabel label="Directions for Client" />
       <FieldHint text="These can be quickly copied and sent to the client from the venue detail page." />
