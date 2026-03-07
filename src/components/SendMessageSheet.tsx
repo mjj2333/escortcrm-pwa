@@ -119,8 +119,11 @@ function resolveTemplatePlaceholders(
     const depositType = localStorage.getItem(lsKey('defaultDepositType'))?.replace(/^"|"$/g, '') || 'percent'
     const depositPct = parseInt(localStorage.getItem(lsKey('defaultDepositPercentage'))?.replace(/^"|"$/g, '') || '25')
     const depositFlat = parseFloat(localStorage.getItem(lsKey('defaultDepositFlat'))?.replace(/^"|"$/g, '') || '0')
+    const depositPerHour = parseFloat(localStorage.getItem(lsKey('defaultDepositPerHour'))?.replace(/^"|"$/g, '') || '0')
     if (depositType === 'flat' && depositFlat > 0) {
       depositStr = formatCurrency(depositFlat)
+    } else if (depositType === 'per-hour' && depositPerHour > 0) {
+      depositStr = `${formatCurrency(depositPerHour)}/hr`
     } else if (depositPct > 0) {
       depositStr = `${depositPct}%`
     } else {

@@ -128,7 +128,7 @@ const PROFILE_LS_KEYS = [
   'profileWorkingName', 'profileWorkEmail', 'profileWorkPhone',
   'profileWebsite', 'profileOnlyFans', 'profileInstagram', 'profileTwitter', 'profileBsky',
   'profileTagline', 'profileSetupDone',
-  'defaultDepositType', 'defaultDepositPercentage', 'defaultDepositFlat',
+  'defaultDepositType', 'defaultDepositPercentage', 'defaultDepositFlat', 'defaultDepositPerHour',
   'currency', 'introTemplate', 'directionsTemplate',
   'tplConfirmation', 'tplDepositReminder', 'tplScreening', 'tplCancellation', 'tplThankYou',
   'taxRate', 'setAsideRate',

@@ -69,9 +69,10 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
   const [addingRate, setAddingRate] = useState(false)
 
   // Default deposit
-  const [depositType, setDepositType] = useLocalStorage<'percent' | 'flat'>('defaultDepositType', 'percent')
+  const [depositType, setDepositType] = useLocalStorage<'percent' | 'flat' | 'per-hour'>('defaultDepositType', 'percent')
   const [depositPct, setDepositPct] = useLocalStorage('defaultDepositPercentage', 25)
   const [depositFlat, setDepositFlat] = useLocalStorage('defaultDepositFlat', 0)
+  const [depositPerHour, setDepositPerHour] = useLocalStorage('defaultDepositPerHour', 0)
 
   async function addRate() {
     const duration = parseFloat(newRateDurationText)
@@ -254,6 +255,17 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
             >
               Flat Rate
             </button>
+            <button
+              onClick={() => setDepositType('per-hour')}
+              aria-pressed={depositType === 'per-hour'}
+              className="flex-1 py-2 text-xs font-semibold transition-colors"
+              style={{
+                backgroundColor: depositType === 'per-hour' ? '#a855f7' : 'transparent',
+                color: depositType === 'per-hour' ? '#fff' : 'var(--text-secondary)',
+              }}
+            >
+              Per Hour
+            </button>
           </div>
 
           {depositType === 'percent' ? (
@@ -269,7 +281,7 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
               </div>
               <FieldHint text={`New bookings will auto-calculate ${depositPct}% of the base rate as deposit.`} />
             </>
-          ) : (
+          ) : depositType === 'flat' ? (
             <>
               <div className="flex items-center gap-2">
                 <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{deriveCurrencySymbol()}</span>
@@ -281,6 +293,20 @@ export function ProfilePage({ isOpen, onClose }: ProfilePageProps) {
                   style={fieldInputStyle} />
               </div>
               <FieldHint text={`New bookings will default to ${formatCurrency(depositFlat)} deposit.`} />
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{deriveCurrencySymbol()}</span>
+                <input type="text" inputMode="decimal"
+                  value={depositPerHour > 0 ? String(depositPerHour) : ''}
+                  onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ''); if (raw === '' || raw === '.') { setDepositPerHour(0); return }; const val = parseFloat(raw); if (!isNaN(val)) setDepositPerHour(val) }}
+                  placeholder="0" aria-label="Deposit per hour"
+                  className="w-28 px-3 py-2.5 rounded-lg text-sm outline-none"
+                  style={fieldInputStyle} />
+                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>/hr</span>
+              </div>
+              <FieldHint text={`New bookings will calculate deposit at ${formatCurrency(depositPerHour)}/hr × booking duration.`} />
             </>
           )}
         </div>

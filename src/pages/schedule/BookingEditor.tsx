@@ -44,8 +44,9 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
   const serviceRates = useLiveQuery(() => db.serviceRates.filter(r => r.isActive).sortBy('sortOrder')) ?? []
   const tours = useLiveQuery(() => db.tours.filter(t => !t.isArchived).toArray()) ?? []
   const [defaultDepositPct] = useLocalStorage('defaultDepositPercentage', 25)
-  const [defaultDepositType] = useLocalStorage<'percent' | 'flat'>('defaultDepositType', 'percent')
+  const [defaultDepositType] = useLocalStorage<'percent' | 'flat' | 'per-hour'>('defaultDepositType', 'percent')
   const [defaultDepositFlat] = useLocalStorage('defaultDepositFlat', 0)
+  const [defaultDepositPerHour] = useLocalStorage('defaultDepositPerHour', 0)
 
   // Core fields
   const [clientId, setClientId] = useState(booking?.clientId ?? preselectedClientId ?? rebookFrom?.clientId ?? '')
@@ -178,11 +179,13 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
     if (!isEditing && !userEditedDeposit) {
       if (defaultDepositType === 'flat') {
         setDepositAmount(defaultDepositFlat)
+      } else if (defaultDepositType === 'per-hour') {
+        setDepositAmount(Math.round((duration / 60) * defaultDepositPerHour))
       } else if (baseRate > 0) {
         setDepositAmount(Math.round(baseRate * defaultDepositPct / 100))
       }
     }
-  }, [baseRate, defaultDepositPct, defaultDepositType, defaultDepositFlat, isEditing, userEditedDeposit])
+  }, [baseRate, defaultDepositPct, defaultDepositType, defaultDepositFlat, defaultDepositPerHour, duration, isEditing, userEditedDeposit])
 
   async function createNewClientInline() {
     if (!newClientAlias.trim()) return
@@ -729,7 +732,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
           <div className="pt-1">
           <FieldCurrency label="Deposit Amount" value={depositAmount}
             onChange={v => { setDepositAmount(v); setUserEditedDeposit(true) }}
-            hint={defaultDepositType === 'flat' ? `Default flat deposit.` : `Auto-calculated at ${defaultDepositPct}% of base rate.`} />
+            hint={defaultDepositType === 'flat' ? `Default flat deposit.` : defaultDepositType === 'per-hour' ? `Auto-calculated at ${formatCurrency(defaultDepositPerHour)}/hr × ${duration} min.` : `Auto-calculated at ${defaultDepositPct}% of base rate.`} />
           {depositAmount > 0 && !isEditing && (
             <FieldToggle label="Deposit Received" value={depositReceived} onChange={setDepositReceived}
               hint="Manage deposit payments from the booking detail page after creation." />
