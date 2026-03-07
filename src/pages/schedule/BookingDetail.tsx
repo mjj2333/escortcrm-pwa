@@ -320,6 +320,15 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                 🔄 {booking.recurrence === 'weekly' ? 'Weekly' : booking.recurrence === 'biweekly' ? 'Biweekly' : 'Monthly'}
               </span>
             )}
+            {next && (
+              <button type="button"
+                onClick={() => updateStatus(next)}
+                className="text-[10px] px-2.5 py-1 rounded-full font-semibold flex items-center gap-1"
+                style={{ backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e' }}
+              >
+                <CheckCircle size={10} /> {next}
+              </button>
+            )}
           </div>
           <h2 className="text-xl font-bold mt-3" style={{ color: 'var(--text-primary)' }}>
             {formatCurrency(total)}
@@ -771,19 +780,6 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             <CalendarPlus size={18} className="text-purple-500" />
             <span className="text-sm font-medium text-purple-500">Export to Calendar</span>
           </button>
-
-          {/* Advance Status */}
-          {next && (
-            <button type="button"
-              onClick={() => updateStatus(next)}
-              className="flex items-center gap-3 py-3 w-full text-left"
-            >
-              <CheckCircle size={18} className="text-green-500" />
-              <span className="text-sm font-medium text-green-500">
-                Mark as {next}
-              </span>
-            </button>
-          )}
 
           {/* Book Again */}
           {isTerminal && (
