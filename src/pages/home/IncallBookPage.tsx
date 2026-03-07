@@ -991,33 +991,37 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
         style={{ ...fieldInputStyle, fontSize: '16px' }}
       />
 
-      <SectionLabel label="Access" />
-      <FieldSelect label="Method" value={accessMethod} options={['', ...accessMethods]} onChange={v => setAccessMethod(v as AccessMethod | '')}
-        displayFn={v => v || 'Select method...'} />
-      <textarea
-        value={accessNotes}
-        onChange={e => setAccessNotes(e.target.value)}
-        placeholder="Key cafe code, lockbox combo, app login details, special instructions..."
-        rows={3}
-        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
-        style={{ ...fieldInputStyle, fontSize: '16px' }}
-      />
+      {venueType !== 'Hotel' && (
+        <>
+          <SectionLabel label="Access" />
+          <FieldSelect label="Method" value={accessMethod} options={['', ...accessMethods]} onChange={v => setAccessMethod(v as AccessMethod | '')}
+            displayFn={v => v || 'Select method...'} />
+          <textarea
+            value={accessNotes}
+            onChange={e => setAccessNotes(e.target.value)}
+            placeholder="Key cafe code, lockbox combo, app login details, special instructions..."
+            rows={3}
+            className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
+            style={{ ...fieldInputStyle, fontSize: '16px' }}
+          />
 
-      <SectionLabel label="Booking Platform" />
-      <FieldTextInput label="App / Platform" value={bookingApp} onChange={setBookingApp} placeholder="e.g. Airbnb, Hotels.com, direct" />
-      <textarea
-        value={bookingNotes}
-        onChange={e => setBookingNotes(e.target.value)}
-        placeholder="Login credentials, how to book, account notes..."
-        rows={3}
-        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
-        style={{ ...fieldInputStyle, fontSize: '16px' }}
-      />
+          <SectionLabel label="Booking Platform" />
+          <FieldTextInput label="App / Platform" value={bookingApp} onChange={setBookingApp} placeholder="e.g. Airbnb, Hotels.com, direct" />
+          <textarea
+            value={bookingNotes}
+            onChange={e => setBookingNotes(e.target.value)}
+            placeholder="Login credentials, how to book, account notes..."
+            rows={3}
+            className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none mb-1"
+            style={{ ...fieldInputStyle, fontSize: '16px' }}
+          />
 
-      <SectionLabel label="Contact Person" />
-      <FieldTextInput label="Name" value={contactName} onChange={setContactName} placeholder="Landlord, front desk, host..." />
-      <FieldTextInput label="Phone" value={contactPhone} onChange={v => setContactPhone(formatPhone(v))} placeholder="Phone number" />
-      <FieldTextInput label="Email" value={contactEmail} onChange={setContactEmail} placeholder="Email" />
+          <SectionLabel label="Contact Person" />
+          <FieldTextInput label="Name" value={contactName} onChange={setContactName} placeholder="Landlord, front desk, host..." />
+          <FieldTextInput label="Phone" value={contactPhone} onChange={v => setContactPhone(formatPhone(v))} placeholder="Phone number" />
+          <FieldTextInput label="Email" value={contactEmail} onChange={setContactEmail} placeholder="Email" />
+        </>
+      )}
 
       <SectionLabel label="Costs" />
       <div className="flex gap-3">
