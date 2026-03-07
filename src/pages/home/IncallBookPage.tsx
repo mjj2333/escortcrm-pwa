@@ -524,12 +524,13 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
                 <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(venue.costPerDay)}</p>
               </div>
             )}
+            {typeof venue.costNotes === 'number' && venue.costNotes > 0 && (
+              <div>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Other</p>
+                <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(venue.costNotes as number)}</p>
+              </div>
+            )}
           </div>
-          {venue.costNotes && (
-            <p className="text-xs mt-2 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
-              {venue.costNotes}
-            </p>
-          )}
         </Card>
       )}
 
@@ -895,7 +896,7 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
   const [bookingNotes, setBookingNotes] = useState('')
   const [costPerHour, setCostPerHour] = useState(0)
   const [costPerDay, setCostPerDay] = useState(0)
-  const [costNotes, setCostNotes] = useState('')
+  const [costNotes, setCostNotes] = useState(0)
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -915,7 +916,7 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
       setBookingNotes(existing.bookingNotes ?? '')
       setCostPerHour(existing.costPerHour ?? 0)
       setCostPerDay(existing.costPerDay ?? 0)
-      setCostNotes(existing.costNotes ?? '')
+      setCostNotes(typeof existing.costNotes === 'number' ? existing.costNotes : 0)
       setNotes(existing.notes ?? '')
     }
   }, [existing])
@@ -944,7 +945,7 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
         bookingNotes: bookingNotes.trim() || undefined,
         costPerHour: costPerHour || undefined,
         costPerDay: costPerDay || undefined,
-        costNotes: costNotes.trim() || undefined,
+        costNotes: costNotes || undefined,
         notes: notes.trim() || undefined,
         updatedAt: new Date(),
       }
@@ -1027,7 +1028,7 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
           <FieldCurrency label="Per Day" value={costPerDay} onChange={setCostPerDay} />
         </div>
       </div>
-      <FieldTextInput label="Cost Notes" value={costNotes} onChange={setCostNotes} placeholder="Payment terms, cleaning fees..." />
+      <FieldCurrency label="Other Cost" value={costNotes} onChange={setCostNotes} />
 
       <SectionLabel label="Notes" />
       <textarea
