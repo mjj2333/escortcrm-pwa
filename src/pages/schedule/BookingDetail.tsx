@@ -132,8 +132,24 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const totalDeposits = (payments ?? []).filter(p => p.label === 'Deposit').reduce((sum, p) => sum + p.amount, 0)
   const depositRemaining = booking.depositAmount - totalDeposits
 
+  const [earlyStartConfirmed, setEarlyStartConfirmed] = useState(false)
+
   async function updateStatus(status: BookingStatus) {
     try {
+      // Warn if setting In Progress more than 1 hour before booking start
+      if (status === 'In Progress' && booking && !earlyStartConfirmed) {
+        const msUntilStart = new Date(booking.dateTime).getTime() - Date.now()
+        if (msUntilStart > 60 * 60 * 1000) {
+          const hours = Math.round(msUntilStart / (60 * 60 * 1000))
+          const label = hours >= 24 ? `${Math.round(hours / 24)} day(s)` : `${hours} hour(s)`
+          showToast(`This booking starts in ${label} — tap again to confirm`, 'info')
+          setEarlyStartConfirmed(true)
+          setTimeout(() => setEarlyStartConfirmed(false), 5000)
+          return
+        }
+      }
+      setEarlyStartConfirmed(false)
+
       if (status === 'Completed') {
         // Wrap completion in a transaction with re-check to prevent double payment
         // if the auto-status timer fires at the same moment
