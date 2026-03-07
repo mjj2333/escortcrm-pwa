@@ -78,6 +78,8 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
   const [offset, setOffset] = useState(0)
   const [swiping, setSwiping] = useState(false)
   const isDragging = useRef(false)
+  const earlyStartConfirmed = useRef(false)
+  const unscreenedConfirmed = useRef(false)
 
   // Deposit tracking
   const totalDeposits = depositPaid
@@ -215,6 +217,30 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
 
   async function setBookingStatus(newStatus: BookingStatus) {
     if (isTerminal) return
+
+    // Warn when confirming for unscreened client
+    if (newStatus === 'Confirmed' && client?.screeningStatus !== 'Screened' && !unscreenedConfirmed.current) {
+      showToast('Client is not screened — tap again to confirm anyway', 'info')
+      unscreenedConfirmed.current = true
+      setTimeout(() => { unscreenedConfirmed.current = false }, 5000)
+      return
+    }
+    unscreenedConfirmed.current = false
+
+    // Warn if starting > 1 hour before booking time
+    if (newStatus === 'In Progress' && !earlyStartConfirmed.current) {
+      const msUntilStart = new Date(booking.dateTime).getTime() - Date.now()
+      if (msUntilStart > 60 * 60 * 1000) {
+        const hours = Math.round(msUntilStart / (60 * 60 * 1000))
+        const label = hours >= 24 ? `${Math.round(hours / 24)} day(s)` : `${hours} hour(s)`
+        showToast(`This booking starts in ${label} — tap again to confirm`, 'info')
+        earlyStartConfirmed.current = true
+        setTimeout(() => { earlyStartConfirmed.current = false }, 5000)
+        return
+      }
+    }
+    earlyStartConfirmed.current = false
+
     if (newStatus === 'Cancelled' && onCancel) {
       closePanel()
       setTimeout(() => onCancel(booking), 300)
