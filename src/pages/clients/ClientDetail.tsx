@@ -170,6 +170,9 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     await db.clients.update(clientId, { isBlocked: true })
     setShowBlockConfirm(false)
     onBack()
+    showUndoToast(`Blocked ${client?.alias ?? 'client'}`, async () => {
+      await db.clients.update(clientId, { isBlocked: false })
+    })
   }
 
   async function confirmDelete() {
