@@ -164,7 +164,17 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
 
     try {
       if (isEditing && client) {
-        await db.clients.update(client.id, data)
+        // Use modify() so cleared optional fields are actually removed (update() ignores undefined keys)
+        await db.clients.where(':id').equals(client.id).modify(existing => {
+          Object.assign(existing, data)
+          // Delete optional fields that were cleared (empty string / undefined → remove key)
+          const optionalKeys = ['nickname', 'phone', 'email', 'telegram', 'signal', 'whatsapp',
+            'address', 'secondaryContact', 'screeningMethod', 'referenceSource', 'verificationNotes',
+            'birthday', 'clientSince'] as const
+          for (const key of optionalKeys) {
+            if (!data[key]) delete (existing as unknown as Record<string, unknown>)[key]
+          }
+        })
         await advanceBookingsOnScreen(client.id, client.screeningStatus, screeningStatus)
         await downgradeBookingsOnUnscreen(client.id, client.screeningStatus, screeningStatus)
 
