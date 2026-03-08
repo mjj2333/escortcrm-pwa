@@ -931,19 +931,21 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
     setSaving(true)
 
     try {
+      // Hotel venues hide access/booking/contact sections — don't persist stale values
+      const isHotel = venueType === 'Hotel'
       const data = {
         name: name.trim(),
         venueType,
         city: city.trim(),
         address: address.trim(),
         directions: directions.trim() || undefined,
-        contactName: contactName.trim() || undefined,
-        contactPhone: contactPhone.trim() || undefined,
-        contactEmail: contactEmail.trim() || undefined,
-        accessMethod: accessMethod || undefined,
-        accessNotes: accessNotes.trim() || undefined,
-        bookingApp: bookingApp.trim() || undefined,
-        bookingNotes: bookingNotes.trim() || undefined,
+        contactName: isHotel ? undefined : (contactName.trim() || undefined),
+        contactPhone: isHotel ? undefined : (contactPhone.trim() || undefined),
+        contactEmail: isHotel ? undefined : (contactEmail.trim() || undefined),
+        accessMethod: isHotel ? undefined : (accessMethod || undefined),
+        accessNotes: isHotel ? undefined : (accessNotes.trim() || undefined),
+        bookingApp: isHotel ? undefined : (bookingApp.trim() || undefined),
+        bookingNotes: isHotel ? undefined : (bookingNotes.trim() || undefined),
         costPerHour: costPerHour || undefined,
         costPerDay: costPerDay || undefined,
         costNotes: costNotes.trim() || undefined,
