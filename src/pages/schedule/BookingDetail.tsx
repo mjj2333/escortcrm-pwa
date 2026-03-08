@@ -866,7 +866,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       <ConfirmDialog
         isOpen={confirmAction === 'delete'}
         title="Delete Booking"
-        message="Permanently delete this booking? This cannot be undone."
+        message="Delete this booking? You can undo this from the toast notification."
         confirmLabel="Delete"
         onConfirm={deleteBooking}
         onCancel={() => setConfirmAction(null)}
