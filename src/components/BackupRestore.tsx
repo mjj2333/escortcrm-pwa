@@ -374,6 +374,27 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
     console.warn('Failed to restore some localStorage settings')
   }
 
+  // Sync restored theme settings to DOM classes
+  try {
+    const themeRaw = localStorage.getItem(lsKey('themeMode'))
+    const darkRaw = localStorage.getItem(lsKey('darkMode'))
+    const oledRaw = localStorage.getItem(lsKey('oledBlack'))
+
+    let isDark: boolean
+    if (themeRaw) {
+      const mode = JSON.parse(themeRaw)
+      isDark = mode === 'system'
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        : mode === 'dark'
+    } else {
+      isDark = darkRaw === null ? true : JSON.parse(darkRaw)
+    }
+    const isOled = oledRaw === null ? true : JSON.parse(oledRaw)
+
+    document.documentElement.classList.toggle('dark', isDark)
+    document.documentElement.classList.toggle('oled-black', isDark && isOled)
+  } catch { /* theme sync failure is non-fatal */ }
+
   return { total }
 }
 
