@@ -908,9 +908,11 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
   const [costNotes, setCostNotes] = useState('')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const populated = useRef(false)
 
   useEffect(() => {
-    if (existing) {
+    if (existing && !populated.current) {
+      populated.current = true
       setName(existing.name)
       setVenueType(existing.venueType)
       setCity(existing.city)
@@ -961,7 +963,13 @@ function VenueEditor({ venueId, onSave, onCancel }: { venueId?: string; onSave: 
         updatedAt: new Date(),
       }
 
-      if (venueId && existing) {
+      if (venueId) {
+        // Guard against saving before live query has loaded the existing venue
+        if (!existing) {
+          showToast('Still loading — please try again')
+          setSaving(false)
+          return
+        }
         await db.incallVenues.update(venueId, data)
         showToast('Venue updated')
         onSave(venueId)
