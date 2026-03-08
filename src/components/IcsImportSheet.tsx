@@ -36,6 +36,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
   const [rows, setRows] = useState<ImportRow[]>([])
   const [importing, setImporting] = useState(false)
   const [expandedRow, setExpandedRow] = useState<number | null>(null)
+  const [clientSearch, setClientSearch] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const clients = useLiveQuery(
@@ -145,6 +146,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
   function setClient(idx: number, clientId: string) {
     setRows(prev => prev.map((r, i) => i === idx ? { ...r, clientId } : r))
     setExpandedRow(null)
+    setClientSearch('')
   }
 
   const includedCount = rows.filter(r => r.include).length
@@ -308,7 +310,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
                         <div className="mt-2">
                           {client ? (
                             <button type="button"
-                              onClick={() => setExpandedRow(isExpanded ? null : idx)}
+                              onClick={() => { setExpandedRow(isExpanded ? null : idx); setClientSearch('') }}
                               className="flex items-center gap-1.5 text-xs font-medium"
                               style={{ color: '#22c55e' }}
                             >
@@ -318,7 +320,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
                             </button>
                           ) : hasMultiple ? (
                             <button type="button"
-                              onClick={() => setExpandedRow(isExpanded ? null : idx)}
+                              onClick={() => { setExpandedRow(isExpanded ? null : idx); setClientSearch('') }}
                               className="flex items-center gap-1.5 text-xs font-medium"
                               style={{ color: '#f97316' }}
                             >
@@ -328,7 +330,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
                             </button>
                           ) : (
                             <button type="button"
-                              onClick={() => setExpandedRow(isExpanded ? null : idx)}
+                              onClick={() => { setExpandedRow(isExpanded ? null : idx); setClientSearch('') }}
                               className="flex items-center gap-1.5 text-xs"
                               style={{ color: 'var(--text-secondary)' }}
                             >
@@ -349,50 +351,67 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
                     </div>
 
                     {/* Client picker dropdown */}
-                    {isExpanded && (
-                      <div
-                        className="border-t px-3 py-2 space-y-1"
-                        style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-secondary)' }}
-                      >
-                        <button type="button"
-                          onClick={() => setClient(idx, '')}
-                          className="w-full text-left px-2 py-1.5 rounded text-xs"
-                          style={{
-                            backgroundColor: !row.clientId ? 'rgba(168,85,247,0.12)' : 'transparent',
-                            color: !row.clientId ? '#a855f7' : 'var(--text-secondary)',
-                          }}
+                    {isExpanded && (() => {
+                      const searchLower = clientSearch.toLowerCase()
+                      const matches = row.clientMatches.map(id => clientMap.get(id)).filter(Boolean) as Client[]
+                      const filtered = searchLower
+                        ? clients.filter(c => c.alias.toLowerCase().includes(searchLower) && !row.clientMatches.includes(c.id))
+                        : clients.filter(c => !row.clientMatches.includes(c.id))
+                      const shown = [...matches, ...filtered].slice(0, 20)
+                      return (
+                        <div
+                          className="border-t px-3 py-2 space-y-1"
+                          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-secondary)' }}
                         >
-                          No client
-                        </button>
-                        {(row.clientMatches.length > 0
-                          ? [...new Set([...row.clientMatches, ...clients.map(c => c.id)])]
-                          : clients.map(c => c.id)
-                        ).map(cid => {
-                          const c = clientMap.get(cid)
-                          if (!c) return null
-                          const isMatch = row.clientMatches.includes(cid)
-                          return (
-                            <button type="button"
-                              key={cid}
-                              onClick={() => setClient(idx, cid)}
-                              className="w-full text-left px-2 py-1.5 rounded text-xs flex items-center gap-2"
-                              style={{
-                                backgroundColor: row.clientId === cid ? 'rgba(168,85,247,0.12)' : 'transparent',
-                                color: row.clientId === cid ? '#a855f7' : 'var(--text-primary)',
-                              }}
-                            >
-                              <span className="truncate">{c.alias}</span>
-                              {isMatch && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded shrink-0"
-                                  style={{ backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>
-                                  match
-                                </span>
-                              )}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
+                          <input
+                            type="text"
+                            value={clientSearch}
+                            onChange={e => setClientSearch(e.target.value)}
+                            placeholder="Search clients…"
+                            className="w-full px-2 py-1.5 rounded text-xs outline-none mb-1"
+                            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                            autoFocus
+                          />
+                          <button type="button"
+                            onClick={() => setClient(idx, '')}
+                            className="w-full text-left px-2 py-1.5 rounded text-xs"
+                            style={{
+                              backgroundColor: !row.clientId ? 'rgba(168,85,247,0.12)' : 'transparent',
+                              color: !row.clientId ? '#a855f7' : 'var(--text-secondary)',
+                            }}
+                          >
+                            No client
+                          </button>
+                          {shown.map(c => {
+                            const isMatch = row.clientMatches.includes(c.id)
+                            return (
+                              <button type="button"
+                                key={c.id}
+                                onClick={() => setClient(idx, c.id)}
+                                className="w-full text-left px-2 py-1.5 rounded text-xs flex items-center gap-2"
+                                style={{
+                                  backgroundColor: row.clientId === c.id ? 'rgba(168,85,247,0.12)' : 'transparent',
+                                  color: row.clientId === c.id ? '#a855f7' : 'var(--text-primary)',
+                                }}
+                              >
+                                <span className="truncate">{c.alias}</span>
+                                {isMatch && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded shrink-0"
+                                    style={{ backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>
+                                    match
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          })}
+                          {filtered.length > 20 - matches.length && (
+                            <p className="text-[10px] text-center py-1" style={{ color: 'var(--text-secondary)' }}>
+                              Type to search {clients.length} clients…
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
                 )
               })}

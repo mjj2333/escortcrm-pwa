@@ -191,14 +191,31 @@ export function extractClientName(summary: string): string {
   return name.trim()
 }
 
-/** Match a name against client aliases. Returns matching client IDs. */
+/** Match a name against client aliases. Returns matching client IDs.
+ *  Requires exact match or full-word match to avoid false positives
+ *  (e.g. "Jo" should not match "John"). */
 export function matchClients(
   name: string,
   clients: { id: string; alias: string }[],
 ): string[] {
   if (!name) return []
-  const lower = name.toLowerCase()
+  const lower = name.toLowerCase().trim()
+  if (lower.length < 2) return []
   return clients
-    .filter(c => c.alias.toLowerCase().includes(lower) || lower.includes(c.alias.toLowerCase()))
+    .filter(c => {
+      const alias = c.alias.toLowerCase().trim()
+      // Exact match
+      if (alias === lower) return true
+      // Full alias appears as a whole word in the name (or vice versa)
+      const longerContainsShorter = (longer: string, shorter: string) => {
+        if (shorter.length < 3) return false
+        const idx = longer.indexOf(shorter)
+        if (idx === -1) return false
+        const before = idx === 0 || /\W/.test(longer[idx - 1])
+        const after = idx + shorter.length >= longer.length || /\W/.test(longer[idx + shorter.length])
+        return before && after
+      }
+      return longerContainsShorter(lower, alias) || longerContainsShorter(alias, lower)
+    })
     .map(c => c.id)
 }
