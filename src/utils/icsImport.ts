@@ -19,10 +19,11 @@ function unfold(raw: string): string {
 /** Unescape RFC 5545 special characters */
 function icsUnescape(text: string): string {
   return text
+    .replace(/\\\\/g, '\x00')
     .replace(/\\n/gi, '\n')
     .replace(/\\,/g, ',')
     .replace(/\\;/g, ';')
-    .replace(/\\\\/g, '\\')
+    .replace(/\x00/g, '\\')
 }
 
 /** Extract TZID parameter from a property line like DTSTART;TZID=America/New_York:... */
