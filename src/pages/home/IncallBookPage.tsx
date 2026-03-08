@@ -356,9 +356,10 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
   }
 
   async function toggleArchive() {
-    await db.incallVenues.update(venueId, { isArchived: !venue!.isArchived, updatedAt: new Date() })
-    showToast(venue!.isArchived ? 'Venue restored' : 'Venue archived')
-    if (!venue!.isArchived) onBack()
+    const wasArchived = venue!.isArchived
+    await db.incallVenues.update(venueId, { isArchived: !wasArchived, updatedAt: new Date() })
+    showToast(wasArchived ? 'Venue restored' : 'Venue archived')
+    onBack()
   }
 
   async function handleDelete() {
