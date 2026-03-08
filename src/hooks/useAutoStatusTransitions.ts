@@ -82,7 +82,11 @@ export function useAutoStatusTransitions() {
 
         // Pending Deposit → Confirmed when deposit is fully received
         if (b.status === 'Pending Deposit' && (b.depositReceived || b.depositAmount === 0)) {
-          await db.bookings.update(b.id, { status: 'Confirmed', confirmedAt: new Date() })
+          await db.transaction('rw', db.bookings, async () => {
+            const current = await db.bookings.get(b.id)
+            if (!current || current.status !== 'Pending Deposit') return
+            await db.bookings.update(b.id, { status: 'Confirmed', confirmedAt: new Date() })
+          })
           continue
         }
 
