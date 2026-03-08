@@ -264,6 +264,12 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
           if (current.clientId) {
             await db.clients.update(current.clientId, { lastSeen: new Date() })
           }
+          // Auto-resolve any pending/overdue safety check for this booking
+          const pendingCheck = await db.safetyChecks.where('bookingId').equals(booking.id)
+            .filter(c => c.status === 'pending' || c.status === 'overdue').first()
+          if (pendingCheck) {
+            await db.safetyChecks.update(pendingCheck.id, { status: 'checkedIn', checkedInAt: new Date() })
+          }
         })
       } else if (newStatus === 'In Progress' && booking.requiresSafetyCheck) {
         await db.transaction('rw', [db.bookings, db.safetyChecks], async () => {

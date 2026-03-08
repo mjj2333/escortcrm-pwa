@@ -109,7 +109,7 @@ export function useAutoStatusTransitions() {
           })
         } else if (b.status === 'In Progress' && now >= fiveAfterEnd) {
           let clientAlias = 'Client'
-          await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
+          await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients, db.safetyChecks], async () => {
             // Re-check status to avoid race with manual completion
             const current = await db.bookings.get(b.id)
             if (!current || current.status !== 'In Progress') return
@@ -124,6 +124,12 @@ export function useAutoStatusTransitions() {
             // Update lastSeen
             if (b.clientId) {
               await db.clients.update(b.clientId, { lastSeen: new Date() })
+            }
+            // Auto-resolve any pending/overdue safety check for this booking
+            const pendingCheck = await db.safetyChecks.where('bookingId').equals(b.id)
+              .filter(c => c.status === 'pending' || c.status === 'overdue').first()
+            if (pendingCheck) {
+              await db.safetyChecks.update(pendingCheck.id, { status: 'checkedIn', checkedInAt: new Date() })
             }
           })
           // Nudge to write session notes

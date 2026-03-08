@@ -167,6 +167,12 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
           if (current.clientId) {
             await db.clients.update(current.clientId, { lastSeen: new Date() })
           }
+          // Auto-resolve any pending/overdue safety check for this booking
+          const pendingCheck = await db.safetyChecks.where('bookingId').equals(bookingId)
+            .filter(c => c.status === 'pending' || c.status === 'overdue').first()
+          if (pendingCheck) {
+            await db.safetyChecks.update(pendingCheck.id, { status: 'checkedIn', checkedInAt: new Date() })
+          }
         })
         setTimeout(() => setShowJournal(true), 400)
       } else {

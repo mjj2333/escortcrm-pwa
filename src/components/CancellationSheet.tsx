@@ -92,7 +92,7 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
     const depOut = depositOutcome || undefined
 
     try {
-    await db.transaction('rw', [db.bookings, db.clients, db.payments, db.transactions], async () => {
+    await db.transaction('rw', [db.bookings, db.clients, db.payments, db.transactions, db.safetyChecks], async () => {
       if (mode === 'noshow') {
         await db.bookings.update(booking.id, {
           status: 'No Show' as BookingStatus,
@@ -158,6 +158,13 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
           date: new Date(),
           notes: `Deposit credited to future booking — ${client?.alias ?? 'client'}`,
         })
+      }
+
+      // Auto-resolve any pending/overdue safety check for this booking
+      const pendingCheck = await db.safetyChecks.where('bookingId').equals(booking.id)
+        .filter(c => c.status === 'pending' || c.status === 'overdue').first()
+      if (pendingCheck) {
+        await db.safetyChecks.update(pendingCheck.id, { status: 'checkedIn', checkedInAt: new Date() })
       }
     })
 
