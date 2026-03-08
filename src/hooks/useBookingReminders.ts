@@ -53,9 +53,13 @@ export function useBookingReminders(enabled: boolean) {
 
       try {
       const now = Date.now()
-      const bookings = await db.bookings.where('status').anyOf(
+      const window8h = 8 * 60 * 60_000
+      const bookings = (await db.bookings.where('status').anyOf(
         ['Pending Deposit', 'Confirmed', 'In Progress']
-      ).toArray()
+      ).toArray()).filter(b => {
+        const start = new Date(b.dateTime).getTime()
+        return start > now - 60_000 && start <= now + window8h
+      })
 
       // Only load clients referenced by upcoming bookings
       const clientIds = [...new Set(bookings.map(b => b.clientId).filter((id): id is string => !!id))]
