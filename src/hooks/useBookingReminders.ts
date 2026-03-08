@@ -116,8 +116,6 @@ export function useBookingReminders(enabled: boolean) {
       const todayMD = `${today.getMonth()}-${today.getDate()}`
       const birthdayKey = `birthday-${todayMD}`
       if (!notifiedRef.current.has(birthdayKey)) {
-        addNotified(birthdayKey)
-
         const allClients = await db.clients.filter(c => !c.isBlocked).toArray()
         const birthdayClients = allClients.filter(c => {
           if (!c.birthday) return false
@@ -126,6 +124,7 @@ export function useBookingReminders(enabled: boolean) {
         })
 
         if (birthdayClients.length > 0) {
+          addNotified(birthdayKey)
           const names = birthdayClients.map(c => c.alias).join(', ')
           showAppNotification('🎂 Birthday today!', {
             body: names,
