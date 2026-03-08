@@ -219,7 +219,7 @@ async function exportVenues(format: Format) {
 }
 
 async function downloadSheet(rows: Record<string, unknown>[], name: string, format: Format) {
-  if (rows.length === 0) return
+  if (rows.length === 0) throw new Error(`No ${name.replace(/_/g, ' ')} to export`)
   const headers = Object.keys(rows[0])
 
   if (format === 'csv') {
