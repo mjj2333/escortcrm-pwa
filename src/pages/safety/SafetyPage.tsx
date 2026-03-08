@@ -176,9 +176,11 @@ export function SafetyPage() {
   }
 
   async function confirmAlertAll() {
-    for (const c of overdueChecks) {
-      await db.safetyChecks.update(c.id, { status: 'alert' as SafetyCheckStatus })
-    }
+    await db.transaction('rw', db.safetyChecks, async () => {
+      for (const c of overdueChecks) {
+        await db.safetyChecks.update(c.id, { status: 'alert' as SafetyCheckStatus })
+      }
+    })
     showToast(`${overdueChecks.length} alert${overdueChecks.length > 1 ? 's' : ''} confirmed`)
     setAlertAllConfirm(false)
   }
