@@ -34,7 +34,7 @@ export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T 
   const setStoredValue = useCallback((newValue: T | ((prev: T) => T)) => {
     setValue(prev => {
       const resolved = typeof newValue === 'function' ? (newValue as (prev: T) => T)(prev) : newValue
-      localStorage.setItem(storageKey, JSON.stringify(resolved))
+      try { localStorage.setItem(storageKey, JSON.stringify(resolved)) } catch { /* quota full or unavailable */ }
       // Notify other hooks using the same key
       window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key: storageKey, value: resolved } }))
       return resolved
