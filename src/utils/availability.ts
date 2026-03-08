@@ -64,9 +64,9 @@ function getBufferSettings(): { bufferMinutes: number; outcallBufferMinutes: num
   let outcallBufferMinutes = 30
   try {
     const raw1 = localStorage.getItem('c_bufferMinutes')
-    if (raw1 !== null) bufferMinutes = JSON.parse(raw1)
+    if (raw1 !== null) { const v = JSON.parse(raw1); if (typeof v === 'number' && isFinite(v) && v >= 0) bufferMinutes = v }
     const raw2 = localStorage.getItem('c_outcallBufferMinutes')
-    if (raw2 !== null) outcallBufferMinutes = JSON.parse(raw2)
+    if (raw2 !== null) { const v = JSON.parse(raw2); if (typeof v === 'number' && isFinite(v) && v >= 0) outcallBufferMinutes = v }
   } catch { /* use defaults */ }
   return { bufferMinutes, outcallBufferMinutes }
 }
