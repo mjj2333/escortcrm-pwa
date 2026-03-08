@@ -187,7 +187,7 @@ export interface IncallVenue {
   bookingNotes?: string     // login, how to book
   costPerHour?: number
   costPerDay?: number
-  costNotes?: number | string
+  costNotes?: string
   hotelFriendly?: boolean
   notes?: string
   isFavorite?: boolean
