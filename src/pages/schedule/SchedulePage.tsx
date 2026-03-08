@@ -109,7 +109,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase()
         const client = clientFor(b.clientId)
-        if (!client?.alias?.toLowerCase().includes(q)) return false
+        if (!client?.alias?.toLowerCase().includes(q) && !client?.nickname?.toLowerCase().includes(q)) return false
       }
       return true
     }
@@ -387,7 +387,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
         >
           <input
             type="search"
-            placeholder="Search by client name or alias..."
+            placeholder="Search by client name..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={baseInputStyle}
