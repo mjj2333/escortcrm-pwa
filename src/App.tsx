@@ -364,6 +364,7 @@ export default function App() {
       return (
         <ErrorBoundary fallback={<RouteErrorFallback />}>
           <BookingDetail
+            key={screen.bookingId}
             bookingId={screen.bookingId}
             onBack={goBack}
             onOpenClient={openClient}
@@ -376,6 +377,7 @@ export default function App() {
       return (
         <ErrorBoundary fallback={<RouteErrorFallback />}>
           <TourDetail
+            key={screen.tourId}
             tourId={screen.tourId}
             onBack={goBack}
             onOpenBooking={openBooking}
