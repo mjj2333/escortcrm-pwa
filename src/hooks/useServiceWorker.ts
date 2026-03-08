@@ -85,10 +85,8 @@ export function useServiceWorker() {
   const promptInstall = useCallback(async () => {
     if (!installPrompt) return
     await installPrompt.prompt()
-    const { outcome } = await installPrompt.userChoice
-    if (outcome === 'accepted') {
-      setInstallPrompt(null)
-    }
+    // Clear regardless of outcome — prompt() can only be called once per event
+    setInstallPrompt(null)
   }, [installPrompt])
 
   const dismissInstall = useCallback((neverAskAgain: boolean) => {
