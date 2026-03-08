@@ -166,13 +166,14 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
     !c.isBlocked && (!clientSearch || c.alias.toLowerCase().includes(clientSearch.toLowerCase()))
   )
 
-  // Auto-set safety check based on client risk
+  // Auto-set safety check based on client risk (only when clientId changes, not on live query updates)
   useEffect(() => {
     if (selectedClient && !isEditing) {
       const forceOn = selectedClient.riskLevel === 'High Risk' || selectedClient.riskLevel === 'Unknown'
-      setRequiresSafetyCheck(forceOn)
+      setRequiresSafetyCheck(forceOn || selectedClient.requiresSafetyCheck)
     }
-  }, [clientId, selectedClient])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId])
 
   // Auto-calculate deposit when rate changes
   useEffect(() => {
