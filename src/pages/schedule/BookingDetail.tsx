@@ -448,6 +448,9 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                 )}
               </div>
             </div>
+            {booking.notes && (
+              <p className="text-sm" style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{booking.notes}</p>
+            )}
           </div>
         </CollapsibleCard>
 
