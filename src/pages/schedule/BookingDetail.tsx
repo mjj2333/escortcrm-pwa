@@ -798,8 +798,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
             </button>
           )}
 
-          {/* No Show */}
-          {!isTerminal && (
+          {/* No Show — only makes sense once confirmed */}
+          {!isTerminal && (booking.status === 'Confirmed' || booking.status === 'In Progress') && (
             <button type="button"
               onClick={() => setConfirmAction('noshow')}
               className="flex items-center gap-3 py-3 w-full text-left"
