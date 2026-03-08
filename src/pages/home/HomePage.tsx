@@ -685,7 +685,7 @@ function AllActiveBookingsModal({
 
   const handleClose = useCallback(() => {
     setVisible(false)
-    setTimeout(onClose, 200)
+    setTimeout(onClose, 250)
   }, [onClose])
 
   useEffect(() => {
