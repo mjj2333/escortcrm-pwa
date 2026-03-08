@@ -274,10 +274,14 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
           }
         })
       } else {
-        const updates: Partial<Booking> = { status: newStatus }
-        if (newStatus === 'Confirmed') updates.confirmedAt = new Date()
-        if (newStatus === 'Cancelled') updates.cancelledAt = new Date()
-        await db.bookings.update(booking.id, updates)
+        await db.transaction('rw', [db.bookings], async () => {
+          const current = await db.bookings.get(booking.id)
+          if (!current || current.status === 'Completed' || current.status === 'Cancelled' || current.status === 'No Show') return
+          const updates: Partial<Booking> = { status: newStatus }
+          if (newStatus === 'Confirmed') updates.confirmedAt = new Date()
+          if (newStatus === 'Cancelled') updates.cancelledAt = new Date()
+          await db.bookings.update(booking.id, updates)
+        })
       }
       if (navigator.vibrate) navigator.vibrate(newStatus === 'Cancelled' ? [20, 50, 20] : 20)
       closePanel()
@@ -299,19 +303,21 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     }
     try {
       await db.transaction('rw', [db.bookings, db.clients], async () => {
+        const current = await db.bookings.get(booking.id)
+        if (!current || current.status === 'Completed' || current.status === 'Cancelled' || current.status === 'No Show') return
         await db.bookings.update(booking.id, {
           status: 'No Show' as BookingStatus,
           cancelledAt: new Date(),
         })
-        if (booking.clientId) {
-          const clientBookings = await db.bookings.where('clientId').equals(booking.clientId).toArray()
+        if (current.clientId) {
+          const clientBookings = await db.bookings.where('clientId').equals(current.clientId).toArray()
           const noShows = clientBookings.filter(b => b.status === 'No Show').length
-          const currentClient = await db.clients.get(booking.clientId)
+          const currentClient = await db.clients.get(current.clientId)
           if (currentClient) {
             let riskLevel = currentClient.riskLevel
             if (noShows >= 2) riskLevel = 'High Risk'
             else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
-            await db.clients.update(booking.clientId, { riskLevel })
+            await db.clients.update(current.clientId, { riskLevel })
           }
         }
       })
@@ -326,8 +332,10 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     if (!client) return
     try {
       const oldStatus = client.screeningStatus
-      await db.clients.update(client.id, { screeningStatus: 'Screened' as ScreeningStatus })
-      await advanceBookingsOnScreen(client.id, oldStatus, 'Screened')
+      await db.transaction('rw', [db.clients, db.bookings], async () => {
+        await db.clients.update(client.id, { screeningStatus: 'Screened' as ScreeningStatus })
+        await advanceBookingsOnScreen(client.id, oldStatus, 'Screened')
+      })
       if (navigator.vibrate) navigator.vibrate(15)
     } catch {
       showToast('Failed to update screening', 'error')
