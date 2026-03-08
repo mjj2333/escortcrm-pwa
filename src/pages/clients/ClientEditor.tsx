@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Check, User, UserCheck, ShieldCheck, Heart, ShieldAlert, Share2, Cake, CalendarDays, MapPin, StickyNote } from 'lucide-react'
 import { db, createClient, downgradeBookingsOnUnscreen, advanceBookingsOnScreen } from '../../db'
 import { Modal } from '../../components/Modal'
@@ -106,8 +106,11 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
     whatsapp: { value: whatsapp, set: setWhatsapp },
   }
 
+  // Reset form state when modal opens — only on false→true transition,
+  // not when live-query updates client mid-edit
+  const wasOpen = useRef(false)
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpen.current) {
       setAlias(client?.alias ?? '')
       setNickname(client?.nickname ?? '')
       setPrimaryContact(client?.preferredContact ?? 'Text')
@@ -130,6 +133,7 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
       setBirthday(client?.birthday ? toLocalDateStr(new Date(client.birthday)) : '')
       setClientSince(client?.clientSince ? toLocalDateStr(new Date(client.clientSince)) : '')
     }
+    wasOpen.current = isOpen
   }, [isOpen, client])
 
   const isValid = alias.trim().length > 0
