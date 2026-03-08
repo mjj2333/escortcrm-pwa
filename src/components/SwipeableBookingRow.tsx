@@ -197,8 +197,11 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
   }
 
   // ━━━ Action handlers ━━━
+  const actionInFlight = useRef(false)
+
   async function recordRemainingDeposit() {
-    if (depositRemaining <= 0 || booking.depositAmount === 0) return
+    if (depositRemaining <= 0 || booking.depositAmount === 0 || actionInFlight.current) return
+    actionInFlight.current = true
     try {
       await recordBookingPayment({
         bookingId: booking.id,
@@ -210,11 +213,14 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
       if (navigator.vibrate) navigator.vibrate(15)
     } catch {
       showToast('Failed to record deposit', 'error')
+    } finally {
+      actionInFlight.current = false
     }
   }
 
   async function setBookingStatus(newStatus: BookingStatus) {
-    if (isTerminal) return
+    if (isTerminal || actionInFlight.current) return
+    actionInFlight.current = true
 
     // Warn when confirming for unscreened client
     if (newStatus === 'Confirmed' && client?.screeningStatus !== 'Screened' && !unscreenedConfirmed.current) {
@@ -291,16 +297,19 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
       }
     } catch {
       showToast('Failed to update booking status', 'error')
+    } finally {
+      actionInFlight.current = false
     }
   }
 
   async function markNoShow() {
-    if (isTerminal) return
+    if (isTerminal || actionInFlight.current) return
     if (onNoShow) {
       closePanel()
       setTimeout(() => onNoShow(booking), 300)
       return
     }
+    actionInFlight.current = true
     try {
       await db.transaction('rw', [db.bookings, db.clients], async () => {
         const current = await db.bookings.get(booking.id)
@@ -325,11 +334,14 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
       closePanel()
     } catch {
       showToast('Failed to mark no-show', 'error')
+    } finally {
+      actionInFlight.current = false
     }
   }
 
   async function setScreened() {
-    if (!client) return
+    if (!client || actionInFlight.current) return
+    actionInFlight.current = true
     try {
       const oldStatus = client.screeningStatus
       await db.transaction('rw', [db.clients, db.bookings], async () => {
@@ -339,6 +351,8 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
       if (navigator.vibrate) navigator.vibrate(15)
     } catch {
       showToast('Failed to update screening', 'error')
+    } finally {
+      actionInFlight.current = false
     }
   }
 
