@@ -237,7 +237,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
                 </p>
                 {overlapCount > 0 && (
                   <p className="text-[10px] mt-0.5" style={{ color: '#f97316' }}>
-                    {overlapCount} overlap{overlapCount !== 1 ? '' : 's'} with existing bookings
+                    {overlapCount} overlap{overlapCount !== 1 ? 's' : ''} with existing bookings
                   </p>
                 )}
               </div>
