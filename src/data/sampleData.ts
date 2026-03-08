@@ -471,7 +471,7 @@ export async function seedSampleData(): Promise<void> {
       id: bMT1, clientId: cMThompson,
       dateTime: daysFromNow(4, 20), duration: 60,
       locationType: 'Incall',
-      status: 'To Be Confirmed', baseRate: 400, extras: 0, travelFee: 0,
+      status: 'Pending Deposit', baseRate: 400, extras: 0, travelFee: 0,
       depositAmount: 100, depositReceived: false, paymentReceived: false,
       notes: 'Pending screening. Will confirm venue once screening passes.',
       createdAt: daysAgo(1),

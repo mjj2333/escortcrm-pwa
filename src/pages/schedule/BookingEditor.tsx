@@ -20,7 +20,7 @@ import type {
   RecurrencePattern
 } from '../../types'
 
-const bookingStatuses: BookingStatus[] = ['To Be Confirmed', 'Pending Deposit', 'Confirmed', 'In Progress', 'Completed', 'Cancelled', 'No Show']
+const bookingStatuses: BookingStatus[] = ['Pending Deposit', 'Confirmed', 'In Progress', 'Completed', 'Cancelled', 'No Show']
 const locationTypes: LocationType[] = ['Incall', 'Outcall', 'Travel', 'Virtual']
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const recurrenceOptions: RecurrencePattern[] = ['none', 'weekly', 'biweekly', 'monthly']
@@ -59,7 +59,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
   const [venueId, setVenueId] = useState(booking?.venueId ?? rebookFrom?.venueId ?? '')
   const [venueName, setVenueName] = useState('')
   const [showVenuePicker, setShowVenuePicker] = useState(false)
-  const [status, setStatus] = useState<BookingStatus>(booking?.status ?? 'To Be Confirmed')
+  const [status, setStatus] = useState<BookingStatus>(booking?.status ?? 'Pending Deposit')
   const [baseRate, setBaseRate] = useState(booking?.baseRate ?? rebookFrom?.baseRate ?? 0)
   const [extras, setExtras] = useState(booking?.extras ?? rebookFrom?.extras ?? 0)
   const [travelFee, setTravelFee] = useState(booking?.travelFee ?? rebookFrom?.travelFee ?? 0)
@@ -124,7 +124,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
       const vid = booking?.venueId ?? rebookFrom?.venueId
       if (vid) db.incallVenues.get(vid).then(v => setVenueName(v?.name ?? ''))
       else setVenueName('')
-      setStatus(booking?.status ?? 'To Be Confirmed')
+      setStatus(booking?.status ?? 'Pending Deposit')
       setBaseRate(booking?.baseRate ?? rebookFrom?.baseRate ?? 0)
       setExtras(booking?.extras ?? rebookFrom?.extras ?? 0)
       setTravelFee(booking?.travelFee ?? rebookFrom?.travelFee ?? 0)

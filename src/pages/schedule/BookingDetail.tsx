@@ -39,7 +39,6 @@ interface BookingDetailProps {
 
 // Status progression map
 const nextStatus: Partial<Record<BookingStatus, BookingStatus>> = {
-  'To Be Confirmed': 'Pending Deposit',
   'Pending Deposit': 'Confirmed',
   'Confirmed': 'In Progress',
   'In Progress': 'Completed',

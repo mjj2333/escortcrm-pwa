@@ -5,7 +5,7 @@ import type {
   SafetyContact, SafetyCheck, IncidentLog, ServiceRate, BookingPayment, JournalEntry, ScreeningDoc,
   IncallVenue, VenueDoc, ChecklistItem, Tour
 } from '../types'
-import type { PaymentLabel, PaymentMethod, ScreeningStatus, BookingStatus } from '../types'
+import type { PaymentLabel, PaymentMethod, ScreeningStatus } from '../types'
 
 class CompanionDatabase extends Dexie {
   clients!: EntityTable<Client, 'id'>
@@ -160,7 +160,7 @@ export function createBooking(data: Partial<Booking>): Booking {
     locationAddress: data.locationAddress,
     locationNotes: data.locationNotes,
     venueId: data.venueId,
-    status: data.status ?? 'To Be Confirmed',
+    status: data.status ?? 'Pending Deposit',
     baseRate: data.baseRate ?? 0,
     extras: data.extras ?? 0,
     travelFee: data.travelFee ?? 0,
@@ -223,13 +223,13 @@ export function isUpcoming(b: Booking, now?: Date): boolean {
   // Future bookings are always upcoming
   if (new Date(b.dateTime) > n) return true
   // Confirmed/Pending bookings whose time just passed stay visible until auto-transition fires
-  if (b.status === 'Confirmed' || b.status === 'Pending Deposit' || b.status === 'To Be Confirmed') return true
+  if (b.status === 'Confirmed' || b.status === 'Pending Deposit') return true
   return false
 }
 
 /**
  * When a client's screening status changes FROM Screened to something else,
- * downgrade their future pre-session bookings back to "To Be Confirmed".
+ * downgrade their future confirmed bookings back to "Pending Deposit".
  * This prevents confirmed bookings for unscreened clients.
  */
 export async function downgradeBookingsOnUnscreen(
@@ -239,20 +239,18 @@ export async function downgradeBookingsOnUnscreen(
 ): Promise<number> {
   if (oldStatus !== 'Screened' || newStatus === 'Screened') return 0
   const bookings = await db.bookings.where('clientId').equals(clientId).toArray()
-  const preSessionStatuses: BookingStatus[] = ['Pending Deposit', 'Confirmed']
   const toDowngrade = bookings.filter(b =>
-    preSessionStatuses.includes(b.status) && new Date(b.dateTime) > new Date()
+    b.status === 'Confirmed' && new Date(b.dateTime) > new Date()
   )
   for (const b of toDowngrade) {
-    await db.bookings.update(b.id, { status: 'To Be Confirmed', confirmedAt: undefined })
+    await db.bookings.update(b.id, { status: 'Pending Deposit', confirmedAt: undefined })
   }
   return toDowngrade.length
 }
 
 /**
- * When a client becomes Screened, advance their "To Be Confirmed" bookings:
- * → "Pending Deposit" if deposit is required and not yet received
- * → "Confirmed" otherwise
+ * When a client becomes Screened, advance their "Pending Deposit" bookings
+ * to "Confirmed" if no deposit is required (or already received).
  */
 export async function advanceBookingsOnScreen(
   clientId: string,
@@ -262,13 +260,14 @@ export async function advanceBookingsOnScreen(
   if (newStatus !== 'Screened' || oldStatus === 'Screened') return 0
   const bookings = await db.bookings.where('clientId').equals(clientId).toArray()
   const now = new Date()
-  const toAdvance = bookings.filter(b => b.status === 'To Be Confirmed' && new Date(b.dateTime) > now)
+  const toAdvance = bookings.filter(b =>
+    b.status === 'Pending Deposit' && new Date(b.dateTime) > now
+    && ((b.depositAmount ?? 0) === 0 || b.depositReceived)
+  )
   for (const b of toAdvance) {
-    const nextSt: BookingStatus = (b.depositAmount ?? 0) > 0 && !b.depositReceived
-      ? 'Pending Deposit' : 'Confirmed'
     await db.bookings.update(b.id, {
-      status: nextSt,
-      ...(nextSt === 'Confirmed' ? { confirmedAt: new Date() } : {}),
+      status: 'Confirmed',
+      confirmedAt: new Date(),
     })
   }
   return toAdvance.length

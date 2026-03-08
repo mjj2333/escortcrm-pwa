@@ -54,7 +54,7 @@ export function useBookingReminders(enabled: boolean) {
       try {
       const now = Date.now()
       const bookings = await db.bookings.where('status').anyOf(
-        ['To Be Confirmed', 'Pending Deposit', 'Confirmed', 'In Progress']
+        ['Pending Deposit', 'Confirmed', 'In Progress']
       ).toArray()
 
       // Only load clients referenced by upcoming bookings

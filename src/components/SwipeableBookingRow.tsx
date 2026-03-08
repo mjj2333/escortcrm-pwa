@@ -94,7 +94,6 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
   if (!isTerminal) {
     // Slot 1: Next status (always present for non-terminal)
     const nextMap: Partial<Record<BookingStatus, { status: BookingStatus; label: string; Icon: typeof Check; color: string; bg: string }>> = {
-      'To Be Confirmed': { status: 'Pending Deposit', label: 'Advance',  Icon: Check,  color: '#fff', bg: '#3b82f6' },
       'Pending Deposit':  { status: 'Confirmed',      label: 'Confirm',  Icon: Check,  color: '#fff', bg: '#22c55e' },
       'Confirmed':        { status: 'In Progress',    label: 'Start',    Icon: Play,   color: '#fff', bg: '#14b8a6' },
       'In Progress':      { status: 'Completed',      label: 'Complete', Icon: Check,  color: '#fff', bg: '#22c55e' },
