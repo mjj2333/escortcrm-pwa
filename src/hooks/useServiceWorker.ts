@@ -40,7 +40,26 @@ export function useServiceWorker() {
       setUpdateAvailable(true)
     }
 
+    let reg: ServiceWorkerRegistration | null = null
+    let trackedInstalling: ServiceWorker | null = null
+
+    function onStateChange() {
+      if (trackedInstalling?.state === 'installed' && navigator.serviceWorker.controller) {
+        trackWaiting(trackedInstalling)
+      }
+    }
+
+    function onUpdateFound() {
+      const installing = reg?.installing
+      if (!installing) return
+      // Clean up previous statechange listener if any
+      if (trackedInstalling) trackedInstalling.removeEventListener('statechange', onStateChange)
+      trackedInstalling = installing
+      installing.addEventListener('statechange', onStateChange)
+    }
+
     navigator.serviceWorker.register('/sw.js').then((registration) => {
+      reg = registration
 
       // If a worker is already waiting (e.g. user ignored the prompt last time)
       if (registration.waiting) {
@@ -49,16 +68,7 @@ export function useServiceWorker() {
       }
 
       // A new worker just finished installing → it's now waiting
-      registration.addEventListener('updatefound', () => {
-        const installing = registration.installing
-        if (!installing) return
-        installing.addEventListener('statechange', () => {
-          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-            // New version installed but waiting — existing tab is controlled by old SW
-            trackWaiting(installing)
-          }
-        })
-      })
+      registration.addEventListener('updatefound', onUpdateFound)
     }).catch(err => console.warn('Service worker registration failed:', err))
 
     // When the new SW activates (after skipWaiting), reload to pick up new assets
@@ -73,6 +83,8 @@ export function useServiceWorker() {
     return () => {
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
       window.removeEventListener('beforeinstallprompt', onBeforeInstall)
+      if (reg) reg.removeEventListener('updatefound', onUpdateFound)
+      if (trackedInstalling) trackedInstalling.removeEventListener('statechange', onStateChange)
     }
   }, [])
 
