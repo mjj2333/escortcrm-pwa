@@ -244,10 +244,13 @@ export async function disableFieldEncryption(): Promise<void> {
   if (_key) {
     await migrateAllToPlaintext()
   }
+  // Clear key BEFORE deleting meta so hooks become no-ops immediately.
+  // Prevents concurrent writes (e.g. auto-status timer) from re-encrypting
+  // data between plaintext migration and key deletion.
+  clearFieldEncryption()
   const { db } = await import('./index')
   await db.meta.delete('field_encryption_key')
   await db.meta.delete('encrypt_schema_version')
-  clearFieldEncryption()
 }
 
 /**
