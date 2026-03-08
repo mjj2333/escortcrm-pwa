@@ -45,7 +45,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const [tick, forceRefresh] = useReducer(x => x + 1, 0)
   useEffect(() => {
     const msUntilMidnight = endOfDay(new Date()).getTime() - Date.now() + 1000
-    const timer = setTimeout(forceRefresh, msUntilMidnight)
+    const timer = setTimeout(() => { setNow(new Date()); forceRefresh() }, msUntilMidnight)
     return () => clearTimeout(timer)
   }, [tick])
 
