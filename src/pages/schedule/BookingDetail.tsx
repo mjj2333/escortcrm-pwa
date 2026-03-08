@@ -614,11 +614,11 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
                   const cid = client.id
                   const oldStatus = client.screeningStatus
                   setUpdatingScreening(true)
-                  ;(async () => {
+                  db.transaction('rw', [db.clients, db.bookings], async () => {
                     await db.clients.update(cid, { screeningStatus: newStatus })
                     await advanceBookingsOnScreen(cid, oldStatus, newStatus)
                     await downgradeBookingsOnUnscreen(cid, oldStatus, newStatus)
-                  })().catch(() => showToast('Failed to update screening status')).finally(() => setUpdatingScreening(false))
+                  }).catch(() => showToast('Failed to update screening status')).finally(() => setUpdatingScreening(false))
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
                 style={{
