@@ -82,7 +82,6 @@ const decoder = new TextDecoder()
 /** Encrypt a string → "enc:{base64}" (synchronous). */
 export function encryptFieldSync(value: string | undefined | null): string | undefined | null {
   if (value == null || value === '' || !_key) return value
-  if (typeof value === 'string' && value.startsWith(ENC_PREFIX)) return value
 
   const nonce = nacl.randomBytes(nacl.secretbox.nonceLength) // 24 bytes
   const msgBytes = encoder.encode(value)
