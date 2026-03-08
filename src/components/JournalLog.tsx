@@ -158,7 +158,7 @@ export function JournalLog({ clientId, onEditEntry }: JournalLogProps) {
 
                     {/* Edit button */}
                     <button type="button"
-                      onClick={(e) => { e.stopPropagation(); onEditEntry(entry, booking) }}
+                      onClick={(e) => { e.stopPropagation(); onEditEntry(entry, isSession ? booking : undefined) }}
                       className="flex items-center gap-1.5 mt-3 text-xs font-medium text-purple-500 active:opacity-70"
                     >
                       <Edit3 size={11} /> Edit Entry
