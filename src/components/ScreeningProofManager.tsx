@@ -27,7 +27,7 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
 
   const docIdKey = useMemo(() => docs.map(d => d.id).join(','), [docs])
 
-  // Generate object URLs for thumbnails
+  // Generate object URLs for thumbnails (differential: only create/revoke what changed)
   useEffect(() => {
     const prev = thumbUrlsRef.current
     const next = new Map<string, string>()
@@ -48,12 +48,14 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
 
     thumbUrlsRef.current = next
     forceRender(n => n + 1)
+  }, [docIdKey])
 
+  // Revoke all object URLs on unmount only
+  useEffect(() => {
     return () => {
-      // Revoke all on unmount
       for (const url of thumbUrlsRef.current.values()) URL.revokeObjectURL(url)
     }
-  }, [docIdKey])
+  }, [])
 
   const getThumbUrl = useCallback((id: string) => thumbUrlsRef.current.get(id), [docIdKey])
 
