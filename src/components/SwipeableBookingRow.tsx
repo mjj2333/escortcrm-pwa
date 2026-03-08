@@ -227,6 +227,7 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
       showToast('Client is not screened — tap again to confirm anyway', 'info')
       unscreenedConfirmed.current = true
       setTimeout(() => { unscreenedConfirmed.current = false }, 5000)
+      actionInFlight.current = false
       return
     }
     unscreenedConfirmed.current = false
@@ -240,12 +241,14 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
         showToast(`This booking starts in ${label} — tap again to confirm`, 'info')
         earlyStartConfirmed.current = true
         setTimeout(() => { earlyStartConfirmed.current = false }, 5000)
+        actionInFlight.current = false
         return
       }
     }
     earlyStartConfirmed.current = false
 
     if (newStatus === 'Cancelled' && onCancel) {
+      actionInFlight.current = false
       closePanel()
       setTimeout(() => onCancel(booking), 300)
       return
