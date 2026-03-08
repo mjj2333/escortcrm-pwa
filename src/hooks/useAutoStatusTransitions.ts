@@ -180,7 +180,7 @@ export function useAutoStatusTransitions() {
                 depositAmount: b.depositAmount,
                 depositMethod: b.depositMethod,
                 paymentMethod: b.paymentMethod,
-                tourId: b.tourId,
+                tourId: undefined,
                 notes: b.notes,
                 requiresSafetyCheck: b.requiresSafetyCheck,
                 safetyCheckMinutesAfter: b.safetyCheckMinutesAfter,
