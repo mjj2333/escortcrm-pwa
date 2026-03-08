@@ -525,6 +525,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
                         Telegram: { val: newClientTelegram, set: setNewClientTelegram, ph: '@username or phone', type: 'text' },
                         Signal: { val: newClientSignal, set: setNewClientSignal, ph: 'Signal number', type: 'tel' },
                         WhatsApp: { val: newClientWhatsapp, set: setNewClientWhatsapp, ph: 'WhatsApp number', type: 'tel' },
+                        Other: { val: newClientPhone, set: setNewClientPhone, ph: 'Contact info', type: 'text' },
                       }
                       const c = cfg[newClientPrimary]
                       if (!c) return null
@@ -553,6 +554,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
                         Telegram: { val: newClientTelegram, set: setNewClientTelegram, ph: '@username or phone', type: 'text' },
                         Signal: { val: newClientSignal, set: setNewClientSignal, ph: 'Signal number', type: 'tel' },
                         WhatsApp: { val: newClientWhatsapp, set: setNewClientWhatsapp, ph: 'WhatsApp number', type: 'tel' },
+                        Other: { val: newClientPhone, set: setNewClientPhone, ph: 'Contact info', type: 'text' },
                       }
                       const c = cfg[newClientSecondary]
                       if (!c) return null
