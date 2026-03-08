@@ -78,7 +78,7 @@ export function ConfirmDialog({
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
         <h3 id={titleId} className="font-bold text-base mb-2" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>{message}</p>
+        <p className="text-sm mb-4 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{message}</p>
         {inputPlaceholder && (
           <input
             type="text"
