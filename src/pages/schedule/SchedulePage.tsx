@@ -250,7 +250,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
       if (hiddenByDefault && activeStatuses.size === 0) return false
       return matchesFilters(b)
     }).length
-  }, [bookings, clients, activeStatuses, searchQuery, listDaysBack])
+  }, [bookings, clients, activeStatuses, searchQuery, listDaysBack, isDateRangeActive])
 
   const pastBookings   = listBookings.filter(b => new Date(b.dateTime) < now)
   const futureBookings = listBookings.filter(b => new Date(b.dateTime) >= now)
