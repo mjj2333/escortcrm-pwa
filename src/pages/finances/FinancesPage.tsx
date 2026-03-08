@@ -184,7 +184,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
   const paymentsByBookingId = useMemo(() => {
     const map = new Map<string, number>()
     for (const p of allPayments) {
-      if (p.label !== 'Tip') {
+      if (p.label !== 'Tip' && p.label !== 'Cancellation Fee') {
         map.set(p.bookingId, (map.get(p.bookingId) ?? 0) + p.amount)
       }
     }
@@ -543,7 +543,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
     }
     const bookingPaymentByTour = new Map<string, number>()
     for (const p of allPayments) {
-      if (p.label === 'Tip') continue
+      if (p.label === 'Tip' || p.label === 'Cancellation Fee') continue
       const tourId = bookingToTour.get(p.bookingId)
       if (tourId) {
         bookingPaymentByTour.set(tourId, (bookingPaymentByTour.get(tourId) ?? 0) + p.amount)
@@ -1838,7 +1838,7 @@ function AllTransactionsModal({ isOpen, onClose, transactions }: { isOpen: boole
           const booking = await db.bookings.get(paySnap.bookingId)
           if (booking) {
             const allPayments = await db.payments.where('bookingId').equals(paySnap.bookingId).toArray()
-            const allPaid = allPayments.filter(p => p.label !== 'Tip').reduce((s, p) => s + p.amount, 0)
+            const allPaid = allPayments.filter(p => p.label !== 'Tip' && p.label !== 'Cancellation Fee').reduce((s, p) => s + p.amount, 0)
             const depositPaid = allPayments.filter(p => p.label === 'Deposit').reduce((s, p) => s + p.amount, 0)
             const updates: Record<string, unknown> = {
               paymentReceived: allPaid >= bookingTotal(booking),

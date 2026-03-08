@@ -201,7 +201,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
   const monthRevenue = useMemo(() => {
     const completedIds = new Set(monthBookings.filter(b => b.status === 'Completed').map(b => b.id))
     return allPayments
-      .filter(p => completedIds.has(p.bookingId) && p.label !== 'Tip')
+      .filter(p => completedIds.has(p.bookingId) && p.label !== 'Tip' && p.label !== 'Cancellation Fee')
       .reduce((sum, p) => sum + p.amount, 0)
   }, [monthBookings, allPayments])
 

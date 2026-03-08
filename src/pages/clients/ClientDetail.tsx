@@ -110,7 +110,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const paymentsByBookingId = useMemo(() => {
     const map = new Map<string, number>()
     for (const p of allPayments) {
-      if (p.label === 'Tip') continue
+      if (p.label === 'Tip' || p.label === 'Cancellation Fee') continue
       map.set(p.bookingId, (map.get(p.bookingId) ?? 0) + p.amount)
     }
     return map
@@ -119,7 +119,7 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   const noShowCount = useMemo(() => bookings.filter(b => b.status === 'No Show').length, [bookings])
   const completedIds = useMemo(() => new Set(completedBookings.map(b => b.id)), [completedBookings])
   const totalRevenue = useMemo(() => allPayments
-    .filter(p => completedIds.has(p.bookingId) && p.label !== 'Tip')
+    .filter(p => completedIds.has(p.bookingId) && p.label !== 'Tip' && p.label !== 'Cancellation Fee')
     .reduce((sum, p) => sum + p.amount, 0), [allPayments, completedIds])
 
   // Outstanding balance: sum of (total - paid) for Pending Deposit+ bookings
