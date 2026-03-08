@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
@@ -93,8 +93,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const [payNotes, setPayNotes] = useState('')
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null)
   const [deletingPayment, setDeletingPayment] = useState(false)
-  const [earlyStartConfirmed, setEarlyStartConfirmed] = useState(false)
-  const [unscreenedConfirmed, setUnscreenedConfirmed] = useState(false)
+  const earlyStartConfirmed = useRef(false)
+  const unscreenedConfirmed = useRef(false)
 
   // Allow Dexie time to resolve before showing "not found"
   const [settled, setSettled] = useState(false)
@@ -134,27 +134,27 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   async function updateStatus(status: BookingStatus) {
     try {
       // Warn when confirming a booking for an unscreened client
-      if (status === 'Confirmed' && !clientIsScreened && !unscreenedConfirmed) {
+      if (status === 'Confirmed' && !clientIsScreened && !unscreenedConfirmed.current) {
         showToast('Client is not screened — tap again to confirm anyway', 'info')
-        setUnscreenedConfirmed(true)
-        setTimeout(() => setUnscreenedConfirmed(false), 5000)
+        unscreenedConfirmed.current = true
+        setTimeout(() => { unscreenedConfirmed.current = false }, 5000)
         return
       }
-      setUnscreenedConfirmed(false)
+      unscreenedConfirmed.current = false
 
       // Warn if setting In Progress more than 1 hour before booking start
-      if (status === 'In Progress' && booking && !earlyStartConfirmed) {
+      if (status === 'In Progress' && booking && !earlyStartConfirmed.current) {
         const msUntilStart = new Date(booking.dateTime).getTime() - Date.now()
         if (msUntilStart > 60 * 60 * 1000) {
           const hours = Math.round(msUntilStart / (60 * 60 * 1000))
           const label = hours >= 24 ? `${Math.round(hours / 24)} day(s)` : `${hours} hour(s)`
           showToast(`This booking starts in ${label} — tap again to confirm`, 'info')
-          setEarlyStartConfirmed(true)
-          setTimeout(() => setEarlyStartConfirmed(false), 5000)
+          earlyStartConfirmed.current = true
+          setTimeout(() => { earlyStartConfirmed.current = false }, 5000)
           return
         }
       }
-      setEarlyStartConfirmed(false)
+      earlyStartConfirmed.current = false
 
       if (status === 'Completed') {
         // Wrap completion in a transaction with re-check to prevent double payment
