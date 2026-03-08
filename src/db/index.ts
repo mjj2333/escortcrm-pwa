@@ -222,8 +222,8 @@ export function isUpcoming(b: Booking, now?: Date): boolean {
   const n = now ?? new Date()
   // Future bookings are always upcoming
   if (new Date(b.dateTime) > n) return true
-  // Confirmed/Pending bookings whose time just passed stay visible until auto-transition fires
-  if (b.status === 'Confirmed' || b.status === 'Pending Deposit') return true
+  // Active bookings whose time just passed stay visible until auto-transition fires
+  if (b.status === 'Confirmed' || b.status === 'Pending Deposit' || b.status === 'In Progress') return true
   return false
 }
 
@@ -429,8 +429,8 @@ export async function removeBookingPayment(paymentId: string): Promise<void> {
 /** Get total paid for a booking from the payment ledger. */
 export async function getBookingTotalPaid(bookingId: string): Promise<number> {
   const payments = await db.payments.where('bookingId').equals(bookingId).toArray()
-  // Exclude Tips — they are gratuities above the booking total, not payments toward the balance
-  return payments.filter(p => p.label !== 'Tip').reduce((sum, p) => sum + p.amount, 0)
+  // Exclude Tips and Cancellation Fees — they are not payments toward the booking balance
+  return payments.filter(p => p.label !== 'Tip' && p.label !== 'Cancellation Fee').reduce((sum, p) => sum + p.amount, 0)
 }
 
 /**
