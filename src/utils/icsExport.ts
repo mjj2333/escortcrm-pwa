@@ -25,11 +25,15 @@ function icsEscape(text: string): string {
 
 /** Fold lines longer than 75 octets per RFC 5545 */
 function foldLine(line: string): string {
+  const encoder = new TextEncoder()
   const parts: string[] = []
   let remaining = line
-  while (remaining.length > 75) {
-    parts.push(remaining.slice(0, 75))
-    remaining = ' ' + remaining.slice(75)
+  while (encoder.encode(remaining).length > 75) {
+    // Find the largest character count that fits in 75 bytes
+    let cut = 75
+    while (cut > 0 && encoder.encode(remaining.slice(0, cut)).length > 75) cut--
+    parts.push(remaining.slice(0, cut))
+    remaining = ' ' + remaining.slice(cut)
   }
   parts.push(remaining)
   return parts.join('\r\n')
