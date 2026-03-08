@@ -203,6 +203,9 @@ export function useAutoStatusTransitions() {
 
         // Nudge: 5 minutes before the grace period expires
         if (now >= fiveBeforeDeadline && now < deadline && !overdueNotified.has(`remind-${check.id}`)) {
+          // Re-read to ensure check hasn't been resolved since the query
+          const fresh = await db.safetyChecks.get(check.id)
+          if (!fresh || fresh.status !== 'pending') continue
           markOverdueNotified(`remind-${check.id}`)
           if ('Notification' in window && Notification.permission === 'granted') {
             const booking = await db.bookings.get(check.bookingId)
