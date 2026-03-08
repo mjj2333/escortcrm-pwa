@@ -367,12 +367,7 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
     await db.transaction('rw', [db.venueDocs, db.bookings, db.incallVenues], async () => {
       await db.venueDocs.where('venueId').equals(venueId).delete()
       // Clear venueId from any bookings referencing this venue
-      const allBookings = await db.bookings.toArray()
-      for (const b of allBookings) {
-        if (b.venueId === venueId) {
-          await db.bookings.update(b.id, { venueId: undefined })
-        }
-      }
+      await db.bookings.filter(b => b.venueId === venueId).modify({ venueId: undefined })
       await db.incallVenues.delete(venueId)
     })
     showToast('Venue deleted')
