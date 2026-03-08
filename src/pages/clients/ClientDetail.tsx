@@ -400,8 +400,13 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
             <RiskLevelBar
               value={client.riskLevel}
               onChange={async (level) => {
-                const shouldRequireSafety = level === 'High Risk' || level === 'Unknown'
-                await db.clients.update(clientId, { riskLevel: level, requiresSafetyCheck: shouldRequireSafety })
+                const wasForced = client.riskLevel === 'High Risk' || client.riskLevel === 'Unknown'
+                const willForce = level === 'High Risk' || level === 'Unknown'
+                const update: Partial<Pick<typeof client, 'riskLevel' | 'requiresSafetyCheck'>> = { riskLevel: level }
+                // Auto-enable when entering forced tier; auto-disable only when leaving forced tier
+                if (willForce) update.requiresSafetyCheck = true
+                else if (wasForced) update.requiresSafetyCheck = false
+                await db.clients.update(clientId, update)
               }}
             />
           </div>
