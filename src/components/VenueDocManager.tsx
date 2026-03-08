@@ -43,7 +43,8 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
     }
     thumbUrlsRef.current = next
     forceRender(n => n + 1)
-  }, [docIdKey])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- docIdKey is a stable derivative of docs
+  }, [docIdKey, docs])
 
   // Revoke all blob URLs on unmount only
   useEffect(() => {
