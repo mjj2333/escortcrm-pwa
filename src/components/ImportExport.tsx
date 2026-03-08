@@ -227,7 +227,7 @@ async function downloadSheet(rows: Record<string, unknown>[], name: string, form
       let s = String(v ?? '')
       // Prevent CSV formula injection: prefix dangerous characters with a single-quote
       if (s.length > 0 && '=+-@\t\r'.includes(s[0])) s = "'" + s
-      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
+      return s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r') ? `"${s.replace(/"/g, '""')}"` : s
     }
     const lines = [headers.map(escape).join(',')]
     for (const row of rows) lines.push(headers.map(h => escape(row[h])).join(','))
