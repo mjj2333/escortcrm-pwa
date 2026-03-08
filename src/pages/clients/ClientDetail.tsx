@@ -26,6 +26,7 @@ import { ScreeningProofManager } from '../../components/ScreeningProofManager'
 import { ProGate } from '../../components/ProGate'
 import { isPro } from '../../components/planLimits'
 import { screeningStatusColors, riskLevelColors, bookingStatusColors } from '../../types'
+import type { Client, ScreeningStatus, Booking, JournalEntry } from '../../types'
 
 interface ClientDetailProps {
   clientId: string
@@ -790,8 +791,6 @@ function CopyRow({ icon, text, field, copiedField, onCopy }: {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Contact Action Bar
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-import type { Client, ScreeningStatus, Booking, JournalEntry } from '../../types'
 
 function cleanPhone(phone: string): string {
   return phone.replace(/[^\d+]/g, '')
