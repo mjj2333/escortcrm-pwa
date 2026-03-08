@@ -71,11 +71,12 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
     setJournalEditEntry(null)
     setDeleting(false)
     setCopiedField(null)
+    resetAccordion()
   }, [clientId])
   const [journalEditEntry, setJournalEditEntry] = useState<{ entry?: JournalEntry; booking?: Booking } | null>(null)
   const [showNewActivity, setShowNewActivity] = useState(false)
   const [showUnblockConfirm, setShowUnblockConfirm] = useState(false)
-  const { expanded, toggle } = useAccordion()
+  const { expanded, toggle, reset: resetAccordion } = useAccordion()
 
   // Allow Dexie time to resolve before showing "not found"
   const [settled, setSettled] = useState(false)

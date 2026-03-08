@@ -52,5 +52,6 @@ export function useAccordion(defaultOpen: string[] = []) {
     next.has(key) ? next.delete(key) : next.add(key)
     return next
   })
-  return { expanded, toggle }
+  const reset = () => setExpanded(new Set(defaultOpen))
+  return { expanded, toggle, reset }
 }
