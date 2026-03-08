@@ -62,7 +62,8 @@ function dateInTimezone(
 function parseICSDate(val: string, tzid?: string): Date | null {
   // Format: YYYYMMDDTHHMMSSZ (UTC) or YYYYMMDDTHHMMSS (local)
   // Also handle date-only: YYYYMMDD
-  const clean = val.replace(/^.*[:=]/, '').trim()
+  // propValue() already strips the property name — only trim whitespace
+  const clean = val.trim()
   const m = clean.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2}))?(Z)?$/)
   if (!m) return null
 
