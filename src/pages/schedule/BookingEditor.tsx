@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useScrollLock } from '../../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ChevronRight, User, UserPlus, Search, AlertTriangle } from 'lucide-react'
@@ -108,9 +108,11 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
     }
   }, [conflictWarning, handleConflictEscape])
 
-  // Reset form state when modal opens (matches ClientEditor, TransactionEditor, etc.)
+  // Reset form state when modal opens — only on false→true transition,
+  // not when live-query updates booking/rebookFrom mid-edit
+  const wasOpen = useRef(false)
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpen.current) {
       setClientId(booking?.clientId ?? preselectedClientId ?? rebookFrom?.clientId ?? '')
       const defaultDate = preselectedDate ?? new Date()
       setDateTime(booking?.dateTime ? format(new Date(booking.dateTime), "yyyy-MM-dd'T'HH:mm") : format(defaultDate, "yyyy-MM-dd'T'HH:mm"))
@@ -154,6 +156,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
       setNewClientBoundaries('')
       setConflictWarning(null)
     }
+    wasOpen.current = isOpen
   }, [isOpen, booking, rebookFrom, preselectedClientId, preselectedDate])
 
   const selectedClient = clients.find(c => c.id === clientId)
