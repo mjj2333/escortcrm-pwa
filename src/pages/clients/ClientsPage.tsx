@@ -32,6 +32,7 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
   const [filterScreening, setFilterScreening] = useState<string>('')
   const [filterRisk, setFilterRisk] = useState<string>('')
   const [pinnedToast, setPinnedToast] = useState<{ id: string; pinned: boolean } | null>(null)
+  const pinnedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [renderLimit, setRenderLimit] = useState(50)
   const limits = usePlanLimits()
   const clients = useLiveQuery(() => db.clients.orderBy('alias').toArray())
@@ -53,8 +54,9 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
     const newPinned = !client.isPinned
     await db.clients.update(clientId, { isPinned: newPinned })
     if (navigator.vibrate) navigator.vibrate(30)
+    clearTimeout(pinnedTimerRef.current)
     setPinnedToast({ id: clientId, pinned: newPinned })
-    setTimeout(() => setPinnedToast(null), 1500)
+    pinnedTimerRef.current = setTimeout(() => setPinnedToast(null), 1500)
   }, [])
 
   // Hooks must be called before any early return to satisfy Rules of Hooks
