@@ -13,6 +13,8 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { EmptyState } from '../../components/EmptyState'
 import { SwipeableBookingRow } from '../../components/SwipeableBookingRow'
 import { CancellationSheet } from '../../components/CancellationSheet'
+import { JournalEntryEditor } from '../../components/JournalEntryEditor'
+import { isPro } from '../../components/planLimits'
 import { SampleDataBanner } from '../../components/SampleDataBanner'
 import { formatTime12 } from '../../utils/availability'
 import { availabilityStatusColors, bookingStatusColors } from '../../types'
@@ -67,6 +69,8 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const [reminderDismissed, setReminderDismissed] = useState(() => sessionStorage.getItem('backupReminderDismissed') === '1')
   const dismissReminder = () => { sessionStorage.setItem('backupReminderDismissed', '1'); setReminderDismissed(true) }
   const [cancelTarget, setCancelTarget] = useState<{ booking: Booking; mode: 'cancel' | 'noshow' } | null>(null)
+  const [journalBooking, setJournalBooking] = useState<Booking | null>(null)
+  const handleBookingCompleted = isPro() ? setJournalBooking : () => {}
   const [bookClientId, setBookClientId] = useState<string | null>(null)
   const [profileSetupDone] = useLocalStorage('profileSetupDone', false)
   const gettingStartedDone = useGettingStartedDone()
@@ -350,6 +354,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                     booking={booking}
                     client={client}
                     onOpen={() => onOpenBooking(booking.id)}
+                    onCompleted={handleBookingCompleted}
                     onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
                     onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
                     availabilityStatus={availForDay(new Date(booking.dateTime))?.status}
@@ -620,9 +625,20 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
           availForDay={availForDay}
           onClose={() => setShowAllActive(false)}
           onOpenBooking={(id) => { setShowAllActive(false); onOpenBooking(id) }}
+          onCompleted={handleBookingCompleted}
           onCancel={(b) => setCancelTarget({ booking: b, mode: 'cancel' })}
           onNoShow={(b) => setCancelTarget({ booking: b, mode: 'noshow' })}
           depositByBooking={depositByBooking}
+        />
+      )}
+
+      {/* Journal prompt after booking completion */}
+      {journalBooking && (
+        <JournalEntryEditor
+          isOpen={!!journalBooking}
+          onClose={() => setJournalBooking(null)}
+          booking={journalBooking}
+          clientAlias={clientForBooking(journalBooking.clientId)?.alias}
         />
       )}
 
@@ -642,13 +658,14 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function AllActiveBookingsModal({
-  bookings, clientFor, availForDay, onClose, onOpenBooking, onCancel, onNoShow, depositByBooking,
+  bookings, clientFor, availForDay, onClose, onOpenBooking, onCompleted, onCancel, onNoShow, depositByBooking,
 }: {
   bookings: import('../../types').Booking[]
   clientFor: (id?: string) => import('../../types').Client | undefined
   availForDay: (day: Date) => import('../../types').DayAvailability | undefined
   onClose: () => void
   onOpenBooking: (id: string) => void
+  onCompleted?: (booking: import('../../types').Booking) => void
   onCancel?: (booking: import('../../types').Booking) => void
   onNoShow?: (booking: import('../../types').Booking) => void
   depositByBooking?: Map<string, number>
@@ -728,6 +745,7 @@ function AllActiveBookingsModal({
                   booking={b}
                   client={clientFor(b.clientId)}
                   onOpen={() => onOpenBooking(b.id)}
+                  onCompleted={onCompleted}
                   onCancel={onCancel}
                   onNoShow={onNoShow}
                   availabilityStatus={availForDay(new Date(b.dateTime))?.status}
