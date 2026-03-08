@@ -365,14 +365,19 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
   async function handleDelete() {
     if (deleting) return
     setDeleting(true)
-    await db.transaction('rw', [db.venueDocs, db.bookings, db.incallVenues], async () => {
-      await db.venueDocs.where('venueId').equals(venueId).delete()
-      // Clear venueId from any bookings referencing this venue
-      await db.bookings.filter(b => b.venueId === venueId).modify({ venueId: undefined })
-      await db.incallVenues.delete(venueId)
-    })
-    showToast('Venue deleted')
-    onBack()
+    try {
+      await db.transaction('rw', [db.venueDocs, db.bookings, db.incallVenues], async () => {
+        await db.venueDocs.where('venueId').equals(venueId).delete()
+        // Clear venueId from any bookings referencing this venue
+        await db.bookings.filter(b => b.venueId === venueId).modify({ venueId: undefined })
+        await db.incallVenues.delete(venueId)
+      })
+      showToast('Venue deleted')
+      onBack()
+    } catch {
+      showToast('Failed to delete venue', 'error')
+      setDeleting(false)
+    }
   }
 
   const Icon = venueTypeIcons[venue.venueType] ?? Building2
