@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { db, bookingDurationFormatted } from '../db'
 import { showAppNotification } from '../utils/showNotification'
+import { lsKey } from './useSettings'
+
+function isStealthEnabled(): boolean {
+  try { return JSON.parse(localStorage.getItem(lsKey('stealthEnabled')) ?? 'false') } catch { return false }
+}
 
 /**
  * Booking Reminders using the Web Notifications API.
@@ -73,7 +78,8 @@ export function useBookingReminders(enabled: boolean) {
         const msBefore = start - now
 
         const client = b.clientId ? clientMap[b.clientId] : undefined
-        const name = client?.alias ?? 'Client'
+        const stealth = isStealthEnabled()
+        const name = stealth ? 'Client' : (client?.alias ?? 'Client')
 
         // 8 hour reminder — send directions for incall bookings with a venue
         const key8h = `${b.id}-8h-directions`
@@ -86,7 +92,9 @@ export function useBookingReminders(enabled: boolean) {
           // Look up venue name
           const venue = await db.incallVenues.get(b.venueId)
           showAppNotification('📍 Send directions to client', {
-            body: `${name} — ${venue?.name ?? 'Incall'} · Booking at ${new Date(b.dateTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`,
+            body: stealth
+              ? `Booking at ${new Date(b.dateTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+              : `${name} — ${venue?.name ?? 'Incall'} · Booking at ${new Date(b.dateTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`,
             icon: '/icon-192.png',
             tag: key8h,
           })
@@ -129,7 +137,9 @@ export function useBookingReminders(enabled: boolean) {
 
         if (birthdayClients.length > 0) {
           addNotified(birthdayKey)
-          const names = birthdayClients.map(c => c.alias).join(', ')
+          const names = isStealthEnabled()
+            ? `${birthdayClients.length} client${birthdayClients.length > 1 ? 's' : ''}`
+            : birthdayClients.map(c => c.alias).join(', ')
           showAppNotification('🎂 Birthday today!', {
             body: names,
             icon: '/icon-192.png',

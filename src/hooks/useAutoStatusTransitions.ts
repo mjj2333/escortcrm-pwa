@@ -3,14 +3,20 @@ import { addWeeks, addMonths, addMinutes } from 'date-fns'
 import { db, createBooking, completeBookingPayment, newId } from '../db'
 import { isPro, canAddBooking } from '../components/planLimits'
 import { showAppNotification } from '../utils/showNotification'
+import { lsKey } from './useSettings'
+
+function isStealthEnabled(): boolean {
+  try { return JSON.parse(localStorage.getItem(lsKey('stealthEnabled')) ?? 'false') } catch { return false }
+}
 
 function sendCompletionNotification(clientAlias: string, durationMin: number) {
   if (!('Notification' in window)) return
   if (Notification.permission === 'granted') {
+    const alias = isStealthEnabled() ? 'Client' : clientAlias
     showAppNotification('Session completed', {
       body: isPro()
-        ? `${clientAlias} · ${durationMin} min — tap to add session notes`
-        : `${clientAlias} · ${durationMin} min`,
+        ? `${alias} · ${durationMin} min — tap to add session notes`
+        : `${alias} · ${durationMin} min`,
       icon: '/icon-192.png',
       tag: 'session-complete',
     })
@@ -202,7 +208,7 @@ export function useAutoStatusTransitions() {
             const booking = await db.bookings.get(check.bookingId)
             const client = booking?.clientId ? await db.clients.get(booking.clientId) : undefined
             showAppNotification('⏰ Safety check-in due soon', {
-              body: client?.alias
+              body: client?.alias && !isStealthEnabled()
                 ? `${client.alias} — Check in now to confirm you're safe.`
                 : 'Your safety check-in is due. Open the app to check in.',
               icon: '/icon-192.png',
@@ -219,7 +225,7 @@ export function useAutoStatusTransitions() {
             const booking = await db.bookings.get(check.bookingId)
             const client = booking?.clientId ? await db.clients.get(booking.clientId) : undefined
             showAppNotification('🚨 Safety check-in OVERDUE', {
-              body: client?.alias
+              body: client?.alias && !isStealthEnabled()
                 ? `${client.alias} — You missed your check-in. Open the app to check in or send an alert.`
                 : 'You missed your safety check-in. Open the app to check in or send an alert.',
               icon: '/icon-192.png',
