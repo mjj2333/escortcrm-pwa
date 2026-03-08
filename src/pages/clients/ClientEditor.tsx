@@ -240,8 +240,8 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
           <FieldTextInput label="Nickname or Preferred Name" value={nickname} onChange={setNickname}
             placeholder="Optional" icon={<UserCheck size={12} />} />
           <div className="grid grid-cols-2 gap-2 mb-2">
-            <FieldDate label="Birthday" value={birthday} onChange={setBirthday} icon={<Cake size={12} />} max={new Date().toISOString().split('T')[0]} />
-            <FieldDate label="Client Since" value={clientSince} onChange={setClientSince} icon={<CalendarDays size={12} />} max={new Date().toISOString().split('T')[0]} />
+            <FieldDate label="Birthday" value={birthday} onChange={setBirthday} icon={<Cake size={12} />} max={toLocalDateStr(new Date())} />
+            <FieldDate label="Client Since" value={clientSince} onChange={setClientSince} icon={<CalendarDays size={12} />} max={toLocalDateStr(new Date())} />
           </div>
           <FieldTextInput label="Address" value={address} onChange={setAddress}
             placeholder="Physical address (for outcalls)" icon={<MapPin size={12} />} />
