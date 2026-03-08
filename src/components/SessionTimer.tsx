@@ -24,6 +24,7 @@ export function SessionTimer({ startTime, durationMin }: SessionTimerProps) {
   const [now, setNow] = useState(Date.now())
   const vibratedWarning = useRef(false)
   const vibratedEnd = useRef(false)
+  const mountedAt = useRef(Date.now())
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000)
@@ -34,6 +35,7 @@ export function SessionTimer({ startTime, durationMin }: SessionTimerProps) {
   useEffect(() => {
     vibratedWarning.current = false
     vibratedEnd.current = false
+    mountedAt.current = Date.now()
   }, [startTime, durationMin])
 
   const endMs = new Date(startTime).getTime() + durationMin * 60000
@@ -46,8 +48,10 @@ export function SessionTimer({ startTime, durationMin }: SessionTimerProps) {
   const totalMs = durationMin * 60000
   const progress = totalMs > 0 ? Math.min(Math.max(elapsed / totalMs, 0), 1) : 1
 
-  // Vibration alerts
+  // Vibration alerts — skip if already in warning/overtime state on mount
   useEffect(() => {
+    const lived = Date.now() - mountedAt.current
+    if (lived < 3000) return
     if (isWarning && !vibratedWarning.current) {
       vibratedWarning.current = true
       navigator.vibrate?.([200, 100, 200])
