@@ -72,7 +72,6 @@ interface Props {
 }
 
 export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, client, onOpen, onCompleted, onCancel, onNoShow, availabilityStatus, depositPaid = 0 }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null)
   const startX = useRef(0)
   const currentX = useRef(0)
   const [offset, setOffset] = useState(0)
@@ -352,7 +351,6 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
 
       {/* Foreground card */}
       <div
-        ref={containerRef}
         className="flex items-center gap-3 p-3 border cursor-pointer active:scale-[0.98] relative"
         style={{
           backgroundColor: 'var(--bg-card)',
