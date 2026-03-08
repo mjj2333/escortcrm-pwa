@@ -237,10 +237,12 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
 
   async function handleSave() {
     if (!isValid || saving) return
+    setSaving(true)
     const dt = new Date(dateTime)
 
     const conflict = await checkBookingConflict(dt, duration, locationType, booking?.id)
     if (conflict.hasConflict) {
+      setSaving(false)
       setConflictWarning({
         reason: conflict.reason,
         dayStatus: conflict.dayStatus ?? '',
@@ -870,7 +872,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
             <button type="button" onClick={() => setConflictWarning(null)}
               className="flex-1 py-3 rounded-xl text-sm font-semibold"
               style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Go Back</button>
-            <button type="button" onClick={() => saveBooking(!conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict)}
+            <button type="button" disabled={saving} onClick={() => saveBooking(!conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict)}
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
               style={{ background: conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict
                 ? 'linear-gradient(135deg, #ef4444, #dc2626)'
