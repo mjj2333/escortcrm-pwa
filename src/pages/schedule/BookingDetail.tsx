@@ -303,6 +303,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         className="sticky top-0 z-30 border-b backdrop-blur-xl header-frosted"
         style={{
           borderColor: 'var(--border)',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
         }}
       >
         <div className="flex items-center justify-between px-4 h-12 max-w-lg mx-auto">

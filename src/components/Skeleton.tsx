@@ -118,7 +118,7 @@ function SkHeader({ hasAction = true }: { hasAction?: boolean }) {
   return (
     <div
       className="sticky top-0 z-30 px-4 flex items-center justify-between border-b"
-      style={{ height: 56, backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border)' }}
+      style={{ height: 56, backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border)', paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <Sk className="h-5 w-24" />
       {hasAction && <Sk className="h-8 w-8 rounded-lg" />}
