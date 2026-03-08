@@ -66,9 +66,10 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   // Allow Dexie time to resolve before showing "not found"
   const [settled, setSettled] = useState(false)
   useEffect(() => {
+    setSettled(false)
     const timer = setTimeout(() => setSettled(true), 300)
     return () => clearTimeout(timer)
-  }, [])
+  }, [clientId])
 
   const completedBookings = useMemo(() => bookings
     .filter(b => b.status === 'Completed')
