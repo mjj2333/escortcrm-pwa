@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, memo } from 'react'
 import { isToday, isTomorrow, differenceInDays, startOfDay, addMinutes } from 'date-fns'
 import { Check, X, Play, DollarSign, UserCheck, AlertTriangle } from 'lucide-react'
-import { db, newId, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment } from '../db'
+import { db, newId, formatCurrency, bookingTotal, bookingDurationFormatted, completeBookingPayment, recordBookingPayment, advanceBookingsOnScreen } from '../db'
 import { StatusBadge } from './StatusBadge'
 import { showToast } from './Toast'
 import { MiniTags } from './TagPicker'
@@ -248,13 +248,14 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     }
     try {
       if (newStatus === 'Completed') {
-        await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
+        await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients, db.safetyChecks], async () => {
           const current = await db.bookings.get(booking.id)
           if (!current || current.status === 'Completed') return
           await db.bookings.update(booking.id, { status: 'Completed', completedAt: new Date() })
-          await completeBookingPayment(current, client?.alias)
-          if (booking.clientId) {
-            await db.clients.update(booking.clientId, { lastSeen: new Date() })
+          const c = current.clientId ? await db.clients.get(current.clientId) : undefined
+          await completeBookingPayment(current, c?.alias)
+          if (current.clientId) {
+            await db.clients.update(current.clientId, { lastSeen: new Date() })
           }
         })
       } else {
@@ -326,7 +327,6 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     try {
       const oldStatus = client.screeningStatus
       await db.clients.update(client.id, { screeningStatus: 'Screened' as ScreeningStatus })
-      const { advanceBookingsOnScreen } = await import('../db')
       await advanceBookingsOnScreen(client.id, oldStatus, 'Screened')
       if (navigator.vibrate) navigator.vibrate(15)
     } catch {
