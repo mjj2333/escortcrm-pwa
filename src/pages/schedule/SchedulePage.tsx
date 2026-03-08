@@ -86,7 +86,8 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
 
   // Journal prompt after completing a booking
   const [journalBooking, setJournalBooking] = useState<Booking | null>(null)
-  const handleBookingCompleted = isPro() ? setJournalBooking : () => {}
+  const noop = useCallback(() => {}, [])
+  const handleBookingCompleted = isPro() ? setJournalBooking : noop
   const [cancelTarget, setCancelTarget] = useState<{ booking: Booking; mode: 'cancel' | 'noshow' } | null>(null)
 
   const limits = usePlanLimits()
@@ -230,14 +231,14 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
         if (hiddenByDefault && activeStatuses.size === 0) return false
         if (!matchesFilters(b)) return false
         if (isDateRangeActive) {
-          if (dateFrom && dt < startOfDay(parseISO(dateFrom))) return false
-          if (dateTo   && dt > endOfDay(parseISO(dateTo)))     return false
+          if (dateRangeStart && dt < dateRangeStart) return false
+          if (dateRangeEnd   && dt > dateRangeEnd)   return false
           return true
         }
         return dt >= pastCutoff
       })
       .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
-  }, [bookings, clients, activeStatuses, searchQuery, dateFrom, dateTo, listDaysBack])
+  }, [bookings, clients, activeStatuses, searchQuery, dateRangeStart, dateRangeEnd, listDaysBack])
 
   // Count of older bookings hidden by the cutoff
   const olderHiddenCount = useMemo(() => {

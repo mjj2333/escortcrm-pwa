@@ -70,7 +70,8 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const dismissReminder = () => { sessionStorage.setItem('backupReminderDismissed', '1'); setReminderDismissed(true) }
   const [cancelTarget, setCancelTarget] = useState<{ booking: Booking; mode: 'cancel' | 'noshow' } | null>(null)
   const [journalBooking, setJournalBooking] = useState<Booking | null>(null)
-  const handleBookingCompleted = isPro() ? setJournalBooking : () => {}
+  const noop = useCallback(() => {}, [])
+  const handleBookingCompleted = isPro() ? setJournalBooking : noop
   const [bookClientId, setBookClientId] = useState<string | null>(null)
   const [profileSetupDone] = useLocalStorage('profileSetupDone', false)
   const gettingStartedDone = useGettingStartedDone()
