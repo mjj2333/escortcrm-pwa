@@ -53,12 +53,12 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
   const [customColor, setCustomColor] = useState('#8b5cf6')
 
   function isSelected(name: string) {
-    return selected.some(t => t.name === name)
+    return selected.some(t => t.name.toLowerCase() === name.toLowerCase())
   }
 
   function toggleTag(preset: Omit<ClientTag, 'id'>) {
     if (isSelected(preset.name)) {
-      onChange(selected.filter(t => t.name !== preset.name))
+      onChange(selected.filter(t => t.name.toLowerCase() !== preset.name.toLowerCase()))
     } else {
       onChange([...selected, { ...preset, id: newId() }])
     }
@@ -78,7 +78,7 @@ export function TagPicker({ selected, onChange }: TagPickerProps) {
     // Save to localStorage for reuse
     let saved: ClientTag[] = []
     try { saved = JSON.parse(localStorage.getItem(lsKey('customTags')) ?? '[]') } catch { /* corrupted */ }
-    if (!saved.some(t => t.name === name)) {
+    if (!saved.some(t => t.name.toLowerCase() === name.toLowerCase())) {
       saved.push(tag)
       localStorage.setItem(lsKey('customTags'), JSON.stringify(saved))
     }
