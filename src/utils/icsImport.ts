@@ -25,19 +25,56 @@ function icsUnescape(text: string): string {
     .replace(/\\\\/g, '\\')
 }
 
-/** Parse an ICS datetime string (UTC or local) → Date */
-function parseICSDate(val: string): Date | null {
+/** Extract TZID parameter from a property line like DTSTART;TZID=America/New_York:... */
+function extractTZID(line: string): string | null {
+  const m = line.match(/;TZID=([^:;]+)/i)
+  return m ? m[1] : null
+}
+
+/** Convert a datetime in a named timezone to a local Date using Intl API */
+function dateInTimezone(
+  y: number, mo: number, d: number, h: number, mi: number, s: number,
+  tzid: string,
+): Date {
+  try {
+    // Start with a UTC guess where the numbers match the desired wall-clock time
+    const guessUtc = Date.UTC(y, mo - 1, d, h, mi, s)
+    // Ask what that UTC instant looks like in the target timezone
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tzid,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date(guessUtc))
+    const get = (type: string) => +(parts.find(p => p.type === type)?.value ?? 0)
+    const tzH = get('hour') === 24 ? 0 : get('hour')
+    const tzGuess = Date.UTC(get('year'), get('month') - 1, get('day'), tzH, get('minute'), get('second'))
+    // The difference is the UTC offset for this timezone at this time
+    return new Date(guessUtc - (tzGuess - guessUtc))
+  } catch {
+    // Invalid TZID — fall back to local time
+    return new Date(y, mo - 1, d, h, mi, s)
+  }
+}
+
+/** Parse an ICS datetime string (UTC, TZID-qualified, or local) → Date */
+function parseICSDate(val: string, tzid?: string): Date | null {
   // Format: YYYYMMDDTHHMMSSZ (UTC) or YYYYMMDDTHHMMSS (local)
   // Also handle date-only: YYYYMMDD
-  const clean = val.replace(/^.*[:=]/, '').trim() // strip TZID= or VALUE= prefixes
+  const clean = val.replace(/^.*[:=]/, '').trim()
   const m = clean.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2}))?(Z)?$/)
   if (!m) return null
 
   const [, y, mo, d, h, mi, s, utc] = m
+  const yn = +y, mon = +mo, dn = +d, hn = +(h ?? 0), min = +(mi ?? 0), sn = +(s ?? 0)
+
   if (utc || clean.endsWith('Z')) {
-    return new Date(Date.UTC(+y, +mo - 1, +d, +(h ?? 0), +(mi ?? 0), +(s ?? 0)))
+    return new Date(Date.UTC(yn, mon - 1, dn, hn, min, sn))
   }
-  return new Date(+y, +mo - 1, +d, +(h ?? 0), +(mi ?? 0), +(s ?? 0))
+  if (tzid) {
+    return dateInTimezone(yn, mon, dn, hn, min, sn, tzid)
+  }
+  return new Date(yn, mon - 1, dn, hn, min, sn)
 }
 
 /** Parse an ICS DURATION value (e.g., PT1H30M) → minutes */
@@ -67,6 +104,8 @@ export function parseICS(raw: string): ParsedEvent[] {
   let summary = ''
   let dtstart = ''
   let dtend = ''
+  let dtstartTzid = ''
+  let dtendTzid = ''
   let duration = ''
   let location = ''
   let description = ''
@@ -80,6 +119,8 @@ export function parseICS(raw: string): ParsedEvent[] {
       summary = ''
       dtstart = ''
       dtend = ''
+      dtstartTzid = ''
+      dtendTzid = ''
       duration = ''
       location = ''
       description = ''
@@ -88,11 +129,11 @@ export function parseICS(raw: string): ParsedEvent[] {
 
     if (upper === 'END:VEVENT') {
       if (inEvent && dtstart) {
-        const start = parseICSDate(dtstart)
+        const start = parseICSDate(dtstart, dtstartTzid || undefined)
         if (start) {
           let durationMin = 60
           if (dtend) {
-            const end = parseICSDate(dtend)
+            const end = parseICSDate(dtend, dtendTzid || undefined)
             if (end) durationMin = Math.round((end.getTime() - start.getTime()) / 60000)
           } else if (duration) {
             durationMin = parseDuration(duration)
@@ -117,8 +158,14 @@ export function parseICS(raw: string): ParsedEvent[] {
 
     if (upper.startsWith('UID')) uid = propValue(line)
     else if (upper.startsWith('SUMMARY')) summary = propValue(line)
-    else if (upper.startsWith('DTSTART')) dtstart = propValue(line)
-    else if (upper.startsWith('DTEND')) dtend = propValue(line)
+    else if (upper.startsWith('DTSTART')) {
+      dtstart = propValue(line)
+      dtstartTzid = extractTZID(line) ?? ''
+    }
+    else if (upper.startsWith('DTEND')) {
+      dtend = propValue(line)
+      dtendTzid = extractTZID(line) ?? ''
+    }
     else if (upper.startsWith('DURATION')) duration = propValue(line)
     else if (upper.startsWith('LOCATION')) location = propValue(line)
     else if (upper.startsWith('DESCRIPTION')) description = propValue(line)

@@ -1,12 +1,12 @@
-import { useState, useRef, useCallback } from 'react'
-import { Upload, Check, AlertCircle, User, ChevronDown } from 'lucide-react'
+import { useState, useRef, useCallback, useMemo } from 'react'
+import { Upload, Check, AlertCircle, User, ChevronDown, Clock } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { format } from 'date-fns'
 import { Modal } from './Modal'
 import { showToast } from './Toast'
 import { db, createBooking } from '../db'
 import { parseICS, extractClientName, matchClients, type ParsedEvent } from '../utils/icsImport'
-import type { Client } from '../types'
+import type { Booking, Client } from '../types'
 
 interface IcsImportSheetProps {
   isOpen: boolean
@@ -20,6 +20,15 @@ interface ImportRow {
   baseRate: number
   duration: number
   include: boolean
+  overlap: Booking | null // existing booking that overlaps this slot
+}
+
+/** Check if two time ranges overlap */
+function timesOverlap(
+  aStart: number, aEnd: number,
+  bStart: number, bEnd: number,
+): boolean {
+  return aStart < bEnd && aEnd > bStart
 }
 
 export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
@@ -39,8 +48,19 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
     [],
   ) ?? []
 
-  const clientMap = new Map<string, Client>()
-  for (const c of clients) clientMap.set(c.id, c)
+  // Load existing bookings for overlap detection (non-terminal only)
+  const existingBookings = useLiveQuery(
+    () => db.bookings
+      .filter(b => b.status !== 'Cancelled' && b.status !== 'No Show')
+      .toArray(),
+    [],
+  ) ?? []
+
+  const clientMap = useMemo(() => {
+    const map = new Map<string, Client>()
+    for (const c of clients) map.set(c.id, c)
+    return map
+  }, [clients])
 
   // Reset when opened
   const handleClose = useCallback(() => {
@@ -52,15 +72,24 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
   }, [onClose])
 
   function matchRate(durationMin: number): number {
-    // Exact match first
     const exact = rates.find(r => r.duration === durationMin)
     if (exact) return exact.rate
-    // Closest match within 15 minutes
     const close = rates
       .filter(r => Math.abs(r.duration - durationMin) <= 15)
       .sort((a, b) => Math.abs(a.duration - durationMin) - Math.abs(b.duration - durationMin))
     if (close.length > 0) return close[0].rate
     return 0
+  }
+
+  function findOverlap(event: ParsedEvent): Booking | null {
+    const evStart = event.start.getTime()
+    const evEnd = evStart + event.durationMin * 60000
+    for (const b of existingBookings) {
+      const bStart = new Date(b.dateTime).getTime()
+      const bEnd = bStart + b.duration * 60000
+      if (timesOverlap(evStart, evEnd, bStart, bEnd)) return b
+    }
+    return null
   }
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -83,6 +112,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
         const name = extractClientName(ev.summary)
         const matches = matchClients(name, clientList)
         const rate = matchRate(ev.durationMin)
+        const overlap = findOverlap(ev)
 
         return {
           event: ev,
@@ -90,7 +120,8 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
           clientMatches: matches,
           baseRate: rate,
           duration: ev.durationMin,
-          include: true,
+          include: !overlap, // auto-uncheck overlapping events
+          overlap,
         }
       })
 
@@ -100,8 +131,10 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
       setRows(importRows)
       setStep('preview')
     }
+    reader.onerror = () => {
+      showToast('Failed to read file')
+    }
     reader.readAsText(file)
-    // Reset input so re-selecting same file triggers change
     e.target.value = ''
   }
 
@@ -115,6 +148,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
   }
 
   const includedCount = rows.filter(r => r.include).length
+  const overlapCount = rows.filter(r => r.overlap).length
 
   async function handleImport() {
     if (importing || includedCount === 0) return
@@ -194,10 +228,17 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
         {step === 'preview' && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                {rows.length} event{rows.length !== 1 ? 's' : ''} found
-                {includedCount < rows.length && ` · ${includedCount} selected`}
-              </p>
+              <div>
+                <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                  {rows.length} event{rows.length !== 1 ? 's' : ''} found
+                  {includedCount < rows.length && ` · ${includedCount} selected`}
+                </p>
+                {overlapCount > 0 && (
+                  <p className="text-[10px] mt-0.5" style={{ color: '#f97316' }}>
+                    {overlapCount} overlap{overlapCount !== 1 ? '' : 's'} with existing bookings
+                  </p>
+                )}
+              </div>
               <button type="button"
                 onClick={() => { setStep('select'); setRows([]) }}
                 className="text-xs text-purple-500 font-medium"
@@ -211,6 +252,9 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
                 const client = row.clientId ? clientMap.get(row.clientId) : null
                 const hasMultiple = row.clientMatches.length > 1
                 const isExpanded = expandedRow === idx
+                const overlapClient = row.overlap?.clientId
+                  ? clientMap.get(row.overlap.clientId)
+                  : null
 
                 return (
                   <div
@@ -218,7 +262,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
                     className="rounded-xl overflow-hidden"
                     style={{
                       backgroundColor: 'var(--bg-card)',
-                      border: '1px solid var(--border)',
+                      border: `1px solid ${row.overlap ? 'rgba(249,115,22,0.4)' : 'var(--border)'}`,
                       opacity: row.include ? 1 : 0.45,
                     }}
                   >
@@ -248,6 +292,16 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
                           <p className="text-xs truncate mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                             {row.event.location}
                           </p>
+                        )}
+
+                        {/* Overlap warning */}
+                        {row.overlap && (
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            <Clock size={10} color="#f97316" />
+                            <span className="text-[10px] font-medium" style={{ color: '#f97316' }}>
+                              Overlaps with {overlapClient?.alias ?? 'existing booking'}
+                            </span>
+                          </div>
                         )}
 
                         {/* Client match */}
@@ -310,7 +364,6 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
                         >
                           No client
                         </button>
-                        {/* Show matches first, then all clients */}
                         {(row.clientMatches.length > 0
                           ? [...new Set([...row.clientMatches, ...clients.map(c => c.id)])]
                           : clients.map(c => c.id)
