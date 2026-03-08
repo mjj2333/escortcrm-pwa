@@ -5,9 +5,31 @@ import { isBiometricEnabled, assertBiometric } from '../hooks/useBiometric'
 import { clearFieldEncryption } from '../db/fieldCrypto'
 import { lsKey } from '../hooks/useSettings'
 
-/** SHA-256 hash a PIN string → hex. Used for storage and comparison so
+const PIN_SALT_KEY = 'pin_salt'
+
+function getPinSalt(): string {
+  let salt = localStorage.getItem(lsKey(PIN_SALT_KEY))
+  if (!salt) {
+    salt = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0')).join('')
+    localStorage.setItem(lsKey(PIN_SALT_KEY), salt)
+  }
+  return salt
+}
+
+/** SHA-256 hash a PIN string with salt → hex. Used for storage and comparison so
  *  the plaintext PIN never lives in localStorage. */
-export async function hashPin(pin: string): Promise<string> {
+export async function hashPin(pin: string, salt?: string): Promise<string> {
+  const s = salt ?? getPinSalt()
+  const encoded = new TextEncoder().encode(s + pin)
+  const buf = await crypto.subtle.digest('SHA-256', encoded)
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/** Hash without salt — only for verifying legacy unsalted hashes during migration. */
+async function hashPinUnsalted(pin: string): Promise<string> {
   const encoded = new TextEncoder().encode(pin)
   const buf = await crypto.subtle.digest('SHA-256', encoded)
   return Array.from(new Uint8Array(buf))
@@ -169,7 +191,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
         // Duress PIN check — wipe all data silently
         const duressRaw = localStorage.getItem(lsKey('duressPin'))
         const duressHash = duressRaw ? duressRaw.replace(/^"|"$/g, '') : ''
-        if (duressHash && hash === duressHash) {
+        if (duressHash && (hash === duressHash || await hashPinUnsalted(pinSnapshot) === duressHash)) {
           setWiping(true)
           clearFieldEncryption()
           try {
@@ -184,7 +206,18 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
           return
         }
 
-        if (hash === correctPin) {
+        // Check salted hash first, then fall back to legacy unsalted hash
+        let matched = hash === correctPin
+        if (!matched) {
+          const unsalted = await hashPinUnsalted(pinSnapshot)
+          if (unsalted === correctPin) {
+            matched = true
+            // Migrate to salted hash
+            onSetPin?.(hash, pinSnapshot)
+          }
+        }
+
+        if (matched) {
           await clearAttempts()
           onUnlockRef.current(pinSnapshot)
         } else {

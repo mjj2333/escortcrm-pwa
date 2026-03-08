@@ -40,6 +40,14 @@ export default function Calculator({ onExit, pinHash }: CalculatorProps) {
         checkingRef.current = false
         return
       }
+      // Legacy unsalted hash fallback
+      const unsalted = await hashPin(candidate, '')
+      if (unsalted === pinHash) {
+        failedAttempts.current = 0
+        onExit()
+        checkingRef.current = false
+        return
+      }
     }
     failedAttempts.current++
     if (failedAttempts.current >= 5) {
