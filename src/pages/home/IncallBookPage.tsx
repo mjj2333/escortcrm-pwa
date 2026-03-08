@@ -352,14 +352,22 @@ function VenueDetail({ venueId, onEdit, onBack }: { venueId: string; onEdit: () 
   }
 
   async function toggleFavorite() {
-    await db.incallVenues.update(venueId, { isFavorite: !venue!.isFavorite })
+    try {
+      await db.incallVenues.update(venueId, { isFavorite: !venue!.isFavorite })
+    } catch {
+      showToast('Failed to update favorite', 'error')
+    }
   }
 
   async function toggleArchive() {
     const wasArchived = venue!.isArchived
-    await db.incallVenues.update(venueId, { isArchived: !wasArchived, updatedAt: new Date() })
-    showToast(wasArchived ? 'Venue restored' : 'Venue archived')
-    onBack()
+    try {
+      await db.incallVenues.update(venueId, { isArchived: !wasArchived, updatedAt: new Date() })
+      showToast(wasArchived ? 'Venue restored' : 'Venue archived')
+      onBack()
+    } catch {
+      showToast('Failed to update venue', 'error')
+    }
   }
 
   async function handleDelete() {
