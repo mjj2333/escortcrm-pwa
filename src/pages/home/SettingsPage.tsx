@@ -77,6 +77,10 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
     }
   }, [remindersEnabled])
 
+  useEffect(() => {
+    return () => clearTimeout(versionTapTimer.current)
+  }, [])
+
   /** Apply the resolved dark/light state to the DOM */
   function applyDarkState(isDark: boolean) {
     document.documentElement.classList.toggle('dark', isDark)
