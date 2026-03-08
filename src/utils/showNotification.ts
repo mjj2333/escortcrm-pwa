@@ -9,7 +9,13 @@
  */
 export async function showAppNotification(title: string, options?: NotificationOptions) {
   try {
-    const reg = await navigator.serviceWorker?.ready
+    // navigator.serviceWorker.ready never rejects — add a timeout to avoid hanging forever
+    const reg = navigator.serviceWorker
+      ? await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<undefined>(r => setTimeout(r, 3000)),
+        ])
+      : undefined
     if (reg) {
       await reg.showNotification(title, options)
     } else {
