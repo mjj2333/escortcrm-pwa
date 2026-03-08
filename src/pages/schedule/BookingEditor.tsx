@@ -285,6 +285,18 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
         ...(status === 'No Show' && booking.status !== 'No Show' ? { cancelledAt: new Date(), cancelledBy: 'client' as const } : {}),
       })
 
+      // Recalculate depositReceived when depositAmount changes
+      if (depositAmount !== booking.depositAmount) {
+        const depositPayments = await db.payments
+          .where('bookingId').equals(booking.id)
+          .filter(p => p.label === 'Deposit')
+          .toArray()
+        const totalDeposits = depositPayments.reduce((sum, p) => sum + p.amount, 0)
+        await db.bookings.update(booking.id, {
+          depositReceived: depositAmount > 0 ? totalDeposits >= depositAmount : false,
+        })
+      }
+
       // Side effects when status changes via editor
       if (status !== booking.status) {
         if (status === 'Completed') {
