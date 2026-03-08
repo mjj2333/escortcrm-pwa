@@ -141,17 +141,38 @@ const PROFILE_LS_KEYS = [
 ]
 
 export async function createBackup(): Promise<BackupPayload> {
-  // Serialize screeningDocs (Blob → base64)
-  const rawScreeningDocs = await db.screeningDocs.toArray()
-  const screeningDocs = await Promise.all(rawScreeningDocs.map(async doc => ({
+  // Read all tables in a single read transaction for a consistent snapshot
+  const snapshot = await db.transaction('r',
+    [db.clients, db.bookings, db.transactions, db.availability,
+     db.safetyContacts, db.safetyChecks, db.incidents, db.serviceRates,
+     db.payments, db.journalEntries, db.incallVenues, db.screeningDocs,
+     db.venueDocs, db.bookingChecklist, db.tours],
+    async () => ({
+      clients: await db.clients.toArray(),
+      bookings: await db.bookings.toArray(),
+      transactions: await db.transactions.toArray(),
+      availability: await db.availability.toArray(),
+      safetyContacts: await db.safetyContacts.toArray(),
+      safetyChecks: await db.safetyChecks.toArray(),
+      incidents: await db.incidents.toArray(),
+      serviceRates: await db.serviceRates.toArray(),
+      payments: await db.payments.toArray(),
+      journalEntries: await db.journalEntries.toArray(),
+      incallVenues: await db.incallVenues.toArray(),
+      rawScreeningDocs: await db.screeningDocs.toArray(),
+      rawVenueDocs: await db.venueDocs.toArray(),
+      bookingChecklist: await db.bookingChecklist.toArray(),
+      tours: await db.tours.toArray(),
+    }),
+  )
+
+  // Serialize Blobs → base64 outside the transaction (FileReader is async)
+  const screeningDocs = await Promise.all(snapshot.rawScreeningDocs.map(async doc => ({
     ...doc,
     data: await blobToBase64(doc.data),
     _blobMime: doc.mimeType,
   })))
-
-  // Serialize venueDocs (Blob → base64)
-  const rawVenueDocs = await db.venueDocs.toArray()
-  const venueDocs = await Promise.all(rawVenueDocs.map(async doc => ({
+  const venueDocs = await Promise.all(snapshot.rawVenueDocs.map(async doc => ({
     ...doc,
     data: await blobToBase64(doc.data),
     _blobMime: doc.mimeType,
@@ -168,21 +189,21 @@ export async function createBackup(): Promise<BackupPayload> {
     version: CURRENT_BACKUP_VERSION,
     created: new Date().toISOString(),
     tables: {
-      clients: await db.clients.toArray(),
-      bookings: await db.bookings.toArray(),
-      transactions: await db.transactions.toArray(),
-      availability: await db.availability.toArray(),
-      safetyContacts: await db.safetyContacts.toArray(),
-      safetyChecks: await db.safetyChecks.toArray(),
-      incidents: await db.incidents.toArray(),
-      serviceRates: await db.serviceRates.toArray(),
-      payments: await db.payments.toArray(),
-      journalEntries: await db.journalEntries.toArray(),
-      incallVenues: await db.incallVenues.toArray(),
+      clients: snapshot.clients,
+      bookings: snapshot.bookings,
+      transactions: snapshot.transactions,
+      availability: snapshot.availability,
+      safetyContacts: snapshot.safetyContacts,
+      safetyChecks: snapshot.safetyChecks,
+      incidents: snapshot.incidents,
+      serviceRates: snapshot.serviceRates,
+      payments: snapshot.payments,
+      journalEntries: snapshot.journalEntries,
+      incallVenues: snapshot.incallVenues,
       screeningDocs,
       venueDocs,
-      bookingChecklist: await db.bookingChecklist.toArray(),
-      tours: await db.tours.toArray(),
+      bookingChecklist: snapshot.bookingChecklist,
+      tours: snapshot.tours,
     },
     profile,
   }
