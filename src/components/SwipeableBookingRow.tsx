@@ -256,26 +256,28 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
             await db.clients.update(current.clientId, { lastSeen: new Date() })
           }
         })
+      } else if (newStatus === 'In Progress' && booking.requiresSafetyCheck) {
+        await db.transaction('rw', [db.bookings, db.safetyChecks], async () => {
+          await db.bookings.update(booking.id, { status: 'In Progress' })
+          const existing = await db.safetyChecks.where('bookingId').equals(booking.id).first()
+          if (!existing) {
+            const sessionStart = Math.max(new Date(booking.dateTime).getTime(), Date.now())
+            const checkTime = addMinutes(new Date(sessionStart), booking.safetyCheckMinutesAfter || 15)
+            await db.safetyChecks.add({
+              id: newId(),
+              bookingId: booking.id,
+              safetyContactId: booking.safetyContactId,
+              scheduledTime: checkTime,
+              bufferMinutes: 15,
+              status: 'pending',
+            })
+          }
+        })
       } else {
         const updates: Partial<Booking> = { status: newStatus }
         if (newStatus === 'Confirmed') updates.confirmedAt = new Date()
         if (newStatus === 'Cancelled') updates.cancelledAt = new Date()
         await db.bookings.update(booking.id, updates)
-      }
-      if (newStatus === 'In Progress' && booking.requiresSafetyCheck) {
-        const existing = await db.safetyChecks.where('bookingId').equals(booking.id).first()
-        if (!existing) {
-          const sessionStart = Math.max(new Date(booking.dateTime).getTime(), Date.now())
-          const checkTime = addMinutes(new Date(sessionStart), booking.safetyCheckMinutesAfter || 15)
-          await db.safetyChecks.add({
-            id: newId(),
-            bookingId: booking.id,
-            safetyContactId: booking.safetyContactId,
-            scheduledTime: checkTime,
-            bufferMinutes: 15,
-            status: 'pending',
-          })
-        }
       }
       if (navigator.vibrate) navigator.vibrate(newStatus === 'Cancelled' ? [20, 50, 20] : 20)
       closePanel()
