@@ -133,10 +133,11 @@ const PROFILE_LS_KEYS = [
   'tplConfirmation', 'tplDepositReminder', 'tplScreening', 'tplCancellation', 'tplThankYou',
   'taxRate', 'setAsideRate',
   'goalWeekly', 'goalMonthly', 'goalQuarterly', 'goalYearly',
-  'darkMode', 'oledBlack', 'remindersEnabled',
+  'darkMode', 'oledBlack', 'themeMode', 'remindersEnabled',
   'financeCards_v2', 'financeHintDismissed',
   'defaultChecklistItems', 'stealthEnabled',
   'bufferMinutes', 'outcallBufferMinutes',
+  'customTags',
 ]
 
 export async function createBackup(): Promise<BackupPayload> {
@@ -327,19 +328,29 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   )
 
   // ─── Restore localStorage profile settings ──────────────────────────
-  const allowedProfileKeys = new Set(PROFILE_LS_KEYS)
-  if (payload.profile && typeof payload.profile === 'object') {
-    for (const [key, val] of Object.entries(payload.profile)) {
-      if (typeof val === 'string' && allowedProfileKeys.has(key)) {
-        localStorage.setItem(lsKey(key), val)
-        // Notify mounted useLocalStorage hooks
-        try {
-          window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key: lsKey(key), value: JSON.parse(val) } }))
-        } catch {
-          window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key: lsKey(key), value: val } }))
+  // Wrapped in try/catch so a localStorage error doesn't mask a successful DB restore
+  try {
+    // Clear all profile keys first so settings absent from the backup don't leak through
+    for (const key of PROFILE_LS_KEYS) {
+      localStorage.removeItem(lsKey(key))
+    }
+    const allowedProfileKeys = new Set(PROFILE_LS_KEYS)
+    if (payload.profile && typeof payload.profile === 'object') {
+      for (const [key, val] of Object.entries(payload.profile)) {
+        if (typeof val === 'string' && allowedProfileKeys.has(key)) {
+          localStorage.setItem(lsKey(key), val)
+          // Notify mounted useLocalStorage hooks
+          try {
+            window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key: lsKey(key), value: JSON.parse(val) } }))
+          } catch {
+            window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key: lsKey(key), value: val } }))
+          }
         }
       }
     }
+  } catch {
+    // DB restore succeeded — localStorage failure is non-fatal
+    console.warn('Failed to restore some localStorage settings')
   }
 
   return { total }
