@@ -88,6 +88,9 @@ export function useAutoStatusTransitions() {
 
         if (b.status === 'Confirmed' && now >= startTime) {
           await db.transaction('rw', [db.bookings, db.safetyChecks], async () => {
+            // Re-check status to avoid race with manual transition or another tab
+            const current = await db.bookings.get(b.id)
+            if (!current || current.status !== 'Confirmed') return
             await db.bookings.update(b.id, { status: 'In Progress' })
 
             // Create safety check if required
