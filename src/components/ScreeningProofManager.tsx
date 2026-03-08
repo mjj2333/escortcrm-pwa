@@ -107,11 +107,16 @@ export function ScreeningProofManager({ clientId, editable = false }: ScreeningP
   }
 
   async function handleDelete(doc: ScreeningDoc) {
-    const url = thumbUrlsRef.current.get(doc.id)
-    if (url) { URL.revokeObjectURL(url); thumbUrlsRef.current.delete(doc.id) }
-    await db.screeningDocs.delete(doc.id)
-    if (previewDoc?.id === doc.id) setPreviewDoc(null)
-    showToast('Document removed')
+    try {
+      await db.screeningDocs.delete(doc.id)
+      // Only revoke URL after successful delete
+      const url = thumbUrlsRef.current.get(doc.id)
+      if (url) { URL.revokeObjectURL(url); thumbUrlsRef.current.delete(doc.id) }
+      if (previewDoc?.id === doc.id) setPreviewDoc(null)
+      showToast('Document removed')
+    } catch {
+      showToast('Failed to delete document', 'error')
+    }
   }
 
   function navigatePreview(direction: -1 | 1) {
