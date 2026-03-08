@@ -969,7 +969,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
               />
             </div>
 
-            {payAmount && parseFloat(payAmount) > 0 && balance > 0 && parseFloat(payAmount) > balance && (
+            {payAmount && parseFloat(payAmount) > 0 && balance > 0 && parseFloat(payAmount) > balance && payLabel !== 'Tip' && payLabel !== 'Cancellation Fee' && (
               <p className="text-xs text-center mb-2" style={{ color: '#f97316' }}>
                 This exceeds the remaining balance of {formatCurrency(balance)}
               </p>
