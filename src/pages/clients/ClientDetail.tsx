@@ -840,14 +840,17 @@ function ContactActionBar({ client }: { client: Client }) {
     })
   }
 
-  // Telegram — use dedicated field, fall back to phone (with + prefix for valid deep link)
-  const tgHandle = client.telegram || (phone ? (phone.startsWith('+') ? phone : `+${phone}`) : null)
+  // Telegram — use dedicated field, fall back to phone via tg://resolve?phone=
+  const tgHandle = client.telegram || null
   const tgFallback = !client.telegram && !!phone
-  if (tgHandle) {
+  const tgLink = tgHandle
+    ? (tgHandle.startsWith('@') ? `https://t.me/${tgHandle.slice(1)}` : `https://t.me/${tgHandle}`)
+    : phone ? `tg://resolve?phone=${phone.replace(/\D/g, '')}` : null
+  if (tgLink) {
     actions.push({
       label: 'Telegram',
       icon: <span className="text-xs font-bold">TG</span>,
-      href: tgHandle.startsWith('@') ? `https://t.me/${tgHandle.slice(1)}` : `https://t.me/${tgHandle}`,
+      href: tgLink,
       bg: 'rgba(0,136,204,0.15)', fg: '#0088cc',
       preferred: pref === 'Telegram',
       fallback: tgFallback,
