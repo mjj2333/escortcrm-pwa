@@ -62,6 +62,11 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientId, clientA
   async function handleSave() {
     if (saving) return
     if (!existingEntry && !hasContent) { onClose(); return }
+    const resolvedClientId = booking?.clientId ?? clientId
+    if (!existingEntry && !resolvedClientId) {
+      showToast('No client associated', 'error')
+      return
+    }
     setSaving(true)
     const now = new Date()
     try {
@@ -84,7 +89,7 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientId, clientA
         const entry: JournalEntry = {
           id: newId(),
           bookingId: booking.id,
-          clientId: booking.clientId ?? '',
+          clientId: resolvedClientId!,
           entryType: 'session',
           date: booking.completedAt ?? booking.dateTime,
           notes: notes.trim(),
@@ -99,7 +104,7 @@ export function JournalEntryEditor({ isOpen, onClose, booking, clientId, clientA
       } else {
         const entry: JournalEntry = {
           id: newId(),
-          clientId: clientId ?? '',
+          clientId: resolvedClientId!,
           entryType,
           date: new Date(dateTime),
           notes: notes.trim(),
