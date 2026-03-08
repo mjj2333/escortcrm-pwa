@@ -268,7 +268,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
         hashPin(pin).then(async hash => {
           if (cancelled) return
           await clearAttempts() // reset any prior failed attempts
-          onSetPin?.(hash, pin)
+          if (onSetPin) await onSetPin(hash, pin)
           onUnlockRef.current(pin)
         }).catch(() => {
           setError('Failed to set PIN — please try again')
