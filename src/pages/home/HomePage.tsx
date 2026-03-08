@@ -477,10 +477,12 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                 const c = clientMap.get(clientId)
                 if (!c) return null
                 return (
-                  <button type="button"
+                  <div
                     key={clientId}
+                    role="button" tabIndex={0}
                     onClick={() => onOpenClient(clientId)}
-                    className="flex items-center gap-3 w-full text-left py-1.5"
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenClient(clientId) } }}
+                    className="flex items-center gap-3 w-full text-left py-1.5 cursor-pointer"
                   >
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
@@ -512,7 +514,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                         </button>
                       )}
                     </div>
-                  </button>
+                  </div>
                 )
               })}
             </div>
@@ -556,10 +558,12 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
             />
             <div className="space-y-2">
               {upcomingBirthdays.map(({ client: c, daysUntil }) => (
-                <button type="button"
+                <div
                   key={c.id}
+                  role="button" tabIndex={0}
                   onClick={() => onOpenClient(c.id)}
-                  className="flex items-center gap-3 w-full text-left py-1.5"
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenClient(c.id) } }}
+                  className="flex items-center gap-3 w-full text-left py-1.5 cursor-pointer"
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
@@ -590,7 +594,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
                       </button>
                     )}
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </Card>
