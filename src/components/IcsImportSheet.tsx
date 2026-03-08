@@ -157,6 +157,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
     setImporting(true)
     try {
       const toImport = rows.filter(r => r.include)
+      const now = new Date()
       const bookings = toImport.map(r =>
         createBooking({
           clientId: r.clientId || undefined,
@@ -164,7 +165,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
           duration: r.duration,
           baseRate: r.baseRate,
           notes: [r.event.description, r.event.location].filter(Boolean).join('\n'),
-          status: 'Pending Deposit',
+          status: r.event.start < now ? 'Completed' : 'Pending Deposit',
         })
       )
       await db.bookings.bulkAdd(bookings)
