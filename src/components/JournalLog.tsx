@@ -31,7 +31,7 @@ interface JournalLogProps {
 
 export function JournalLog({ clientId, onEditEntry }: JournalLogProps) {
   const entries = useLiveQuery(
-    () => db.journalEntries.where('clientId').equals(clientId).reverse().sortBy('date'),
+    () => db.journalEntries.where('clientId').equals(clientId).sortBy('date').then(arr => arr.reverse()),
     [clientId]
   ) ?? []
 
