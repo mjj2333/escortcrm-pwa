@@ -320,9 +320,14 @@ async function importClients(rows: Record<string, unknown>[]): Promise<{ importe
   let skipped = 0
   let duplicates = 0
   let activeCount = pro ? 0 : await getActiveClientCount()
-  for (const row of rows) {
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]
     if (!pro && activeCount >= FREE_CLIENT_LIMIT) {
-      skipped += rows.length - imported - skipped - duplicates
+      // Count only remaining rows that have a valid alias
+      for (let j = i; j < rows.length; j++) {
+        const a = String(rows[j]['Alias'] ?? rows[j]['alias'] ?? '').trim()
+        if (a) skipped++
+      }
       break
     }
 
