@@ -253,7 +253,7 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [pinEnabled])
 
-  const { pushNav, replaceNav } = useHashNav(activeTab, screen, setActiveTab, setScreen)
+  const { pushNav, replaceNav, navDepth } = useHashNav(activeTab, screen, setActiveTab, setScreen)
 
   // Push a history entry when settings opens so back-button closes it
   useEffect(() => {
@@ -286,11 +286,9 @@ export default function App() {
   }
 
   function goBack() {
-    // Use browser back if we have a valid app state behind us.
-    // history.state is set by pushNav/replaceNav, so its presence means
-    // the previous entry is ours. history.length is unreliable — it counts
-    // entries from before the PWA was opened.
-    if (history.state?.tab !== undefined && screen.type !== 'tab') {
+    // Only use history.back() if we've pushed entries within this session.
+    // On deep-linked views (no prior entries), history.back() would exit the PWA.
+    if (navDepth.current > 0) {
       history.back()
     } else {
       replaceNav(activeTab, { type: 'tab' })

@@ -16,7 +16,7 @@
 //   2. useHashNav only wires up the popstate listener and provides pushNav/replaceNav.
 //   3. On mount, history.replaceState seeds the initial entry (no setState needed).
 
-import { useEffect, useCallback, startTransition } from 'react'
+import { useEffect, useCallback, useRef, startTransition } from 'react'
 
 const TAB_HASHES = ['#home', '#schedule', '#clients', '#finances', '#safety']
 
@@ -66,6 +66,9 @@ export function useHashNav(
   setActiveTab: (tab: number) => void,
   setScreen: (screen: Screen) => void,
 ) {
+  // Track how many entries we've pushed so goBack knows if history.back() is safe
+  const navDepth = useRef(0)
+
   // Seed the initial history entry so back-button has somewhere to go.
   // History-only — no setState, so no Suspense boundary issue.
   useEffect(() => {
@@ -76,6 +79,7 @@ export function useHashNav(
   // Back/forward button handler
   useEffect(() => {
     function onPopState(e: PopStateEvent) {
+      if (navDepth.current > 0) navDepth.current--
       const state = e.state as NavState | null
       startTransition(() => {
         if (state) {
@@ -96,6 +100,7 @@ export function useHashNav(
   const pushNav = useCallback((tab: number, screen: Screen) => {
     const hash = stateToHash({ tab, screen })
     history.pushState({ tab, screen }, '', hash)
+    navDepth.current++
     startTransition(() => {
       setActiveTab(tab)
       setScreen(screen)
@@ -112,5 +117,5 @@ export function useHashNav(
     })
   }, [setActiveTab, setScreen])
 
-  return { pushNav, replaceNav }
+  return { pushNav, replaceNav, navDepth }
 }
