@@ -130,10 +130,10 @@ export function useGettingStartedDone() {
   const [profileDone] = useLocalStorage('profileSetupDone', false)
   const [pinEnabled] = useLocalStorage('pinEnabled', false)
 
-  const clientCount = useLiveQuery(() => db.clients.count()) ?? 0
-  const bookingCount = useLiveQuery(() => db.bookings.count()) ?? 0
-  const availCount = useLiveQuery(() => db.availability.count()) ?? 0
-  const contactCount = useLiveQuery(() => db.safetyContacts.count()) ?? 0
+  const clientCount = useLiveQuery(() => dismissed ? 0 : db.clients.count(), [dismissed]) ?? 0
+  const bookingCount = useLiveQuery(() => dismissed ? 0 : db.bookings.count(), [dismissed]) ?? 0
+  const availCount = useLiveQuery(() => dismissed ? 0 : db.availability.count(), [dismissed]) ?? 0
+  const contactCount = useLiveQuery(() => dismissed ? 0 : db.safetyContacts.count(), [dismissed]) ?? 0
 
   if (dismissed) return true
   return profileDone && clientCount > 0 && bookingCount > 0 && availCount > 0 && contactCount > 0 && pinEnabled
