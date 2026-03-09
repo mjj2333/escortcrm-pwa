@@ -486,7 +486,9 @@ async function readFile(file: File): Promise<Record<string, unknown>[]> {
   return rows
 }
 
-function parseCSV(text: string): Record<string, unknown>[] {
+function parseCSV(rawText: string): Record<string, unknown>[] {
+  // Strip UTF-8 BOM that Excel/Google Sheets may prepend
+  const text = rawText.charCodeAt(0) === 0xFEFF ? rawText.slice(1) : rawText
   const lines: string[][] = []
   let current: string[] = []
   let field = ''
