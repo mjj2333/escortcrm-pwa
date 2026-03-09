@@ -652,7 +652,7 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
   address: string
 }) {
   useScrollLock(isOpen)
-  const clients = useLiveQuery(() => db.clients.toArray()) ?? []
+  const clients = useLiveQuery(() => isOpen ? db.clients.toArray() : [], [isOpen]) ?? []
   const [search, setSearch] = useState('')
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [message, setMessage] = useState('')
@@ -1095,7 +1095,7 @@ export function VenuePicker({ isOpen, onClose, onSelect }: {
   onSelect: (venue: IncallVenue) => void
 }) {
   useScrollLock(isOpen)
-  const venues = useLiveQuery(() => db.incallVenues.toArray()) ?? []
+  const venues = useLiveQuery(() => isOpen ? db.incallVenues.toArray() : [], [isOpen]) ?? []
   const [search, setSearch] = useState('')
 
   useEffect(() => {
