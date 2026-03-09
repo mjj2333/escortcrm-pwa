@@ -117,7 +117,7 @@ export function useHashNav(
   /** Replace the current history entry (tab switches — don't pollute back stack). */
   const replaceNav = useCallback((tab: number, screen: Screen) => {
     const hash = stateToHash({ tab, screen })
-    history.replaceState({ tab, screen }, '', hash)
+    history.replaceState({ tab, screen, _depth: navDepth.current }, '', hash)
     startTransition(() => {
       setActiveTab(tab)
       setScreen(screen)
