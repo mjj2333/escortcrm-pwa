@@ -81,8 +81,11 @@ export function useHashNav(
     function onPopState(e: PopStateEvent) {
       if (navDepth.current > 0) navDepth.current--
       const state = e.state as NavState | null
+      // Only trust state if it has a valid screen shape; other pushState
+      // callers (e.g. settings overlay) use different state shapes.
+      const isNavState = state && typeof state.tab === 'number' && state.screen && typeof state.screen.type === 'string'
       startTransition(() => {
-        if (state) {
+        if (isNavState) {
           setActiveTab(state.tab)
           setScreen(state.screen)
         } else {

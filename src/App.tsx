@@ -262,14 +262,13 @@ export default function App() {
   useEffect(() => {
     if (!showSettings) return
     history.pushState({ settings: true }, '', '#settings')
-    function onPop(e: PopStateEvent) {
-      // Prevent useHashNav from also handling this popstate
-      e.stopImmediatePropagation()
+    navDepth.current++
+    function onPop() {
       setShowSettings(false)
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
-  }, [showSettings])
+  }, [showSettings]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTabChange(tab: number) {
     // Tab switches replace history — tapping tabs shouldn't pollute the back stack
