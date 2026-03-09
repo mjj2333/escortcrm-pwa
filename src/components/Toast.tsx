@@ -49,7 +49,11 @@ export function ToastContainer() {
 
   useEffect(() => {
     listeners.add(handleToast)
-    return () => { listeners.delete(handleToast) }
+    return () => {
+      listeners.delete(handleToast)
+      timers.current.forEach(t => clearTimeout(t))
+      timers.current.clear()
+    }
   }, [handleToast])
 
   if (toasts.length === 0) return null
