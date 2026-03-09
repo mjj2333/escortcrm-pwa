@@ -138,6 +138,7 @@ const PROFILE_LS_KEYS = [
   'defaultChecklistItems', 'stealthEnabled',
   'bufferMinutes', 'outcallBufferMinutes',
   'customTags',
+  'backupReminderIntervalDays',
 ]
 
 export async function createBackup(): Promise<BackupPayload> {
