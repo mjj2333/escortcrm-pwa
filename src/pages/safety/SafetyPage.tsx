@@ -137,6 +137,11 @@ export function SafetyPage() {
   }
 
   async function confirmAlert(checkId: string) {
+    const fresh = await db.safetyChecks.get(checkId)
+    if (!fresh || fresh.status === 'checkedIn' || fresh.status === 'alert') {
+      setAlertConfirm(null)
+      return
+    }
     await db.safetyChecks.update(checkId, { status: 'alert' as SafetyCheckStatus })
     showToast('Alert status confirmed')
     setAlertConfirm(null)
