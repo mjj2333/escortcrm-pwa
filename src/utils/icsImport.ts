@@ -13,7 +13,8 @@ export interface ParsedEvent {
 
 /** Unfold RFC 5545 continuation lines (lines starting with space or tab) */
 function unfold(raw: string): string {
-  return raw.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '')
+  // Normalise all line endings (CRLF, bare CR, LF) to LF first
+  return raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n[ \t]/g, '')
 }
 
 /** Unescape RFC 5545 special characters */
@@ -101,7 +102,7 @@ function propValue(line: string): string {
 /** Parse an ICS file string → array of ParsedEvent */
 export function parseICS(raw: string): ParsedEvent[] {
   const unfolded = unfold(raw)
-  const lines = unfolded.split(/\r?\n/)
+  const lines = unfolded.split('\n')
   const events: ParsedEvent[] = []
 
   let inEvent = false
@@ -161,19 +162,21 @@ export function parseICS(raw: string): ParsedEvent[] {
 
     if (!inEvent) continue
 
-    if (upper.startsWith('UID')) uid = propValue(line)
-    else if (upper.startsWith('SUMMARY')) summary = propValue(line)
-    else if (upper.startsWith('DTSTART')) {
+    // Match property name followed by ':' or ';' (params) to avoid false prefix matches
+    const prop = upper.match(/^([A-Z-]+)[;:]/)?.[1]
+    if (prop === 'UID') uid = propValue(line)
+    else if (prop === 'SUMMARY') summary = propValue(line)
+    else if (prop === 'DTSTART') {
       dtstart = propValue(line)
       dtstartTzid = extractTZID(line) ?? ''
     }
-    else if (upper.startsWith('DTEND')) {
+    else if (prop === 'DTEND') {
       dtend = propValue(line)
       dtendTzid = extractTZID(line) ?? ''
     }
-    else if (upper.startsWith('DURATION')) duration = propValue(line)
-    else if (upper.startsWith('LOCATION')) location = propValue(line)
-    else if (upper.startsWith('DESCRIPTION')) description = propValue(line)
+    else if (prop === 'DURATION') duration = propValue(line)
+    else if (prop === 'LOCATION') location = propValue(line)
+    else if (prop === 'DESCRIPTION') description = propValue(line)
   }
 
   return events
