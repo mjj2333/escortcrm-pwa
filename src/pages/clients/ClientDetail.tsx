@@ -389,13 +389,16 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
                 onChange={(e) => {
                   const newStatus = e.target.value as ScreeningStatus
                   const cid = client.id
-                  const oldStatus = client.screeningStatus
 
-                  // Run in a detached async context so React re-renders can't kill it
                   ;(async () => {
-                    await db.clients.update(cid, { screeningStatus: newStatus })
-                    await advanceBookingsOnScreen(cid, oldStatus, newStatus)
-                    await downgradeBookingsOnUnscreen(cid, oldStatus, newStatus)
+                    await db.transaction('rw', [db.clients, db.bookings], async () => {
+                      const fresh = await db.clients.get(cid)
+                      if (!fresh) return
+                      const oldStatus = fresh.screeningStatus
+                      await db.clients.update(cid, { screeningStatus: newStatus })
+                      await advanceBookingsOnScreen(cid, oldStatus, newStatus)
+                      await downgradeBookingsOnUnscreen(cid, oldStatus, newStatus)
+                    })
                   })().catch(() => showToast('Failed to update screening status'))
                 }}
                 className="text-sm font-semibold rounded-lg px-2 py-1 outline-none"
