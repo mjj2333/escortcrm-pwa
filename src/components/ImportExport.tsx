@@ -475,11 +475,11 @@ function parseCSV(text: string): Record<string, unknown>[] {
     } else {
       if (ch === '"') inQuotes = true
       else if (ch === ',') { current.push(field); field = '' }
-      else if (ch === '\n' || (ch === '\r' && text[i + 1] === '\n')) {
+      else if (ch === '\n' || ch === '\r') {
         current.push(field); field = ''
         if (current.some(c => c.trim())) lines.push(current)
         current = []
-        if (ch === '\r') i++
+        if (ch === '\r' && text[i + 1] === '\n') i++ // skip LF in CRLF
       } else field += ch
     }
   }
