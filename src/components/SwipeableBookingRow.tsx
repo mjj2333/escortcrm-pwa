@@ -322,7 +322,7 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     }
     actionInFlight.current = true
     try {
-      await db.transaction('rw', [db.bookings, db.clients], async () => {
+      await db.transaction('rw', [db.bookings, db.clients, db.safetyChecks], async () => {
         const current = await db.bookings.get(booking.id)
         if (!current || current.status === 'Completed' || current.status === 'Cancelled' || current.status === 'No Show') return
         await db.bookings.update(booking.id, {
@@ -339,6 +339,12 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
             else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
             await db.clients.update(current.clientId, { riskLevel })
           }
+        }
+        // Resolve any pending/overdue safety check
+        const pendingCheck = await db.safetyChecks.where('bookingId').equals(booking.id)
+          .filter(c => c.status === 'pending' || c.status === 'overdue').first()
+        if (pendingCheck) {
+          await db.safetyChecks.update(pendingCheck.id, { status: 'checkedIn', checkedInAt: new Date() })
         }
       })
       if (navigator.vibrate) navigator.vibrate([20, 50, 20])
