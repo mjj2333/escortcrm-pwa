@@ -380,7 +380,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
         ...(status === 'Confirmed' || status === 'In Progress' || status === 'Completed' ? { confirmedAt: new Date() } : {}),
         ...(status === 'Completed' ? { completedAt: new Date() } : {}),
       })
-      await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
+      await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients, db.safetyChecks], async () => {
         await db.bookings.add(newBooking)
 
         // If deposit marked as received at creation, record it through the payment ledger
@@ -403,6 +403,19 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
           if (clientId) {
             await db.clients.update(clientId, { lastSeen: new Date() })
           }
+        }
+        // Create safety check when creating directly as In Progress
+        if (status === 'In Progress' && requiresSafetyCheck) {
+          const sessionStart = Math.max(dt.getTime(), Date.now())
+          const checkTime = new Date(sessionStart + (newBooking.safetyCheckMinutesAfter || 15) * 60_000)
+          await db.safetyChecks.add({
+            id: crypto.randomUUID(),
+            bookingId: newBooking.id,
+            safetyContactId: newBooking.safetyContactId,
+            scheduledTime: checkTime,
+            bufferMinutes: 15,
+            status: 'pending',
+          })
         }
       })
 
