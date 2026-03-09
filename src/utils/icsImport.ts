@@ -90,7 +90,8 @@ function parseDuration(val: string): number {
   const days = +(m[1] ?? 0)
   const hours = +(m[2] ?? 0)
   const mins = +(m[3] ?? 0)
-  return days * 1440 + hours * 60 + mins
+  const secs = +(m[4] ?? 0)
+  return days * 1440 + hours * 60 + mins + Math.round(secs / 60)
 }
 
 /** Extract the value part from an ICS property line (handles params like TZID) */

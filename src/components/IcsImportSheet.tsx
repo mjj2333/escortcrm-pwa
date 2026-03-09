@@ -166,6 +166,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
           baseRate: r.baseRate,
           notes: [r.event.description, r.event.location].filter(Boolean).join('\n'),
           status: r.event.start < now ? 'Completed' : 'Pending Deposit',
+          ...(r.event.start < now ? { completedAt: new Date(r.event.start.getTime() + r.duration * 60_000) } : {}),
         })
       )
       await db.transaction('rw', db.bookings, () => db.bookings.bulkAdd(bookings))
