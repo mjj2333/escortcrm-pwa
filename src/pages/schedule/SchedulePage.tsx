@@ -870,12 +870,13 @@ function WeekView({
   const nowRef = useRef<HTMLDivElement>(null)
   const [, forceUpdate] = useState(0)
   useEffect(() => {
+    if (!isViewingCurrentWeek) return
     // Scroll to now indicator on mount
     setTimeout(() => nowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 100)
     // Update every minute
     const interval = setInterval(() => forceUpdate(n => n + 1), 60_000)
     return () => clearInterval(interval)
-  }, [])
+  }, [isViewingCurrentWeek])
 
   const now = new Date()
   const nowHour = now.getHours() + now.getMinutes() / 60
