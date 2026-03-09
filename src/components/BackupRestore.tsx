@@ -518,7 +518,9 @@ export function BackupRestoreModal({ isOpen, onClose }: BackupRestoreProps) {
       // Reset migration flag in Dexie so migrateToPaymentLedger() re-runs in case
       // this backup pre-dates the payments ledger (has no payments table).
       await db.meta.delete('paymentsLedgerMigrated')
-      await db.meta.delete('encrypt_schema_version')
+      // Note: encrypt_schema_version is intentionally preserved — deleting it
+      // triggers a full re-encryption scan of all records on next unlock, which
+      // is unnecessary when encryption is already active and data is encrypted.
       setStatus({ type: 'success', msg: `Restored ${result.total} records from backup` })
     } catch (err) {
       setStatus({ type: 'error', msg: `Restore failed: ${err instanceof Error ? err.message : 'Unknown error'}` })
