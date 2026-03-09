@@ -303,10 +303,10 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
           tourId: tourId || undefined,
           notes: notes.trim() || '',
           // Set timestamps when status changes
-          ...(status === 'Confirmed' && booking.status !== 'Confirmed' && !booking.confirmedAt ? { confirmedAt: new Date() } : {}),
-          ...(status === 'Completed' && booking.status !== 'Completed' ? { completedAt: new Date() } : {}),
-          ...(status === 'Cancelled' && booking.status !== 'Cancelled' ? { cancelledAt: new Date(), cancelledBy: 'provider' as const } : {}),
-          ...(status === 'No Show' && booking.status !== 'No Show' ? { cancelledAt: new Date(), cancelledBy: 'client' as const } : {}),
+          ...(status === 'Confirmed' && prior.status !== 'Confirmed' && !prior.confirmedAt ? { confirmedAt: new Date() } : {}),
+          ...(status === 'Completed' && prior.status !== 'Completed' ? { completedAt: new Date() } : {}),
+          ...(status === 'Cancelled' && prior.status !== 'Cancelled' ? { cancelledAt: new Date(), cancelledBy: 'provider' as const } : {}),
+          ...(status === 'No Show' && prior.status !== 'No Show' ? { cancelledAt: new Date(), cancelledBy: 'client' as const } : {}),
         })
 
         // Recalculate depositReceived when depositAmount changes
