@@ -79,8 +79,11 @@ function parseICSDate(val: string, tzid?: string): Date | null {
   return new Date(yn, mon - 1, dn, hn, min, sn)
 }
 
-/** Parse an ICS DURATION value (e.g., PT1H30M) → minutes */
+/** Parse an ICS DURATION value (e.g., PT1H30M, P2W) → minutes */
 function parseDuration(val: string): number {
+  // RFC 5545 week format: P#W
+  const wk = val.match(/^P(\d+)W$/)
+  if (wk) return +(wk[1]) * 7 * 1440
   const m = val.match(/P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
   if (!m) return 60
   const days = +(m[1] ?? 0)
