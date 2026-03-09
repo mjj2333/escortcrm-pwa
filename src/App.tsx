@@ -255,10 +255,15 @@ export default function App() {
 
   const { pushNav, replaceNav } = useHashNav(activeTab, screen, setActiveTab, setScreen)
 
-  // Close settings overlay on back button (popstate)
+  // Push a history entry when settings opens so back-button closes it
   useEffect(() => {
     if (!showSettings) return
-    function onPop() { setShowSettings(false) }
+    history.pushState({ settings: true }, '', '#settings')
+    function onPop(e: PopStateEvent) {
+      // Prevent useHashNav from also handling this popstate
+      e.stopImmediatePropagation()
+      setShowSettings(false)
+    }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [showSettings])
@@ -463,7 +468,7 @@ export default function App() {
       {showSettings && (
         <Suspense fallback={null}>
           <ErrorBoundary fallback={<RouteErrorFallback />}>
-            <SettingsPage onClose={() => setShowSettings(false)} onShowPaywall={() => setShowPaywall(true)} />
+            <SettingsPage onClose={() => history.back()} onShowPaywall={() => setShowPaywall(true)} />
           </ErrorBoundary>
         </Suspense>
       )}
