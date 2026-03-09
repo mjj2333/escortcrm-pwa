@@ -191,7 +191,8 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
         // Duress PIN check — wipe all data silently
         const duressRaw = localStorage.getItem(lsKey('duressPin'))
         const duressHash = duressRaw ? duressRaw.replace(/^"|"$/g, '') : ''
-        if (duressHash && (hash === duressHash || await hashPinUnsalted(pinSnapshot) === duressHash)) {
+        if (duressHash && (hash === duressHash || (!cancelled && await hashPinUnsalted(pinSnapshot) === duressHash))) {
+          if (cancelled) { verifyingRef.current = false; return }
           setWiping(true)
           clearFieldEncryption()
           try {
