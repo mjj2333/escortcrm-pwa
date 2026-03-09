@@ -639,9 +639,9 @@ function buildDirectionsMessage(_venueName: string, directions: string, address:
     try { template = JSON.parse(raw) } catch { template = raw }
   }
   return template
-    .replace(/\{name\}/g, workingName)
-    .replace(/\{address\}/g, address)
-    .replace(/\{directions\}/g, directions)
+    .replace(/\{name\}/g, () => workingName)
+    .replace(/\{address\}/g, () => address)
+    .replace(/\{directions\}/g, () => directions)
 }
 
 function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }: {
