@@ -174,7 +174,9 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
   const incomeByBookingId = useMemo(() => {
     const map = new Map<string, number>()
     for (const t of filtered) {
-      if (t.type === 'income' && t.bookingId) {
+      // Exclude tips and cancellation fees to match canonical getBookingTotalPaid
+      if (t.type === 'income' && t.bookingId && t.category === 'booking'
+        && !(t.notes?.startsWith('Cancellation fee'))) {
         map.set(t.bookingId, (map.get(t.bookingId) ?? 0) + t.amount)
       }
     }
