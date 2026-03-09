@@ -162,7 +162,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
   }
 
   async function executeMerge() {
-    if (!targetClient) return
+    if (!targetClient || working) return
     setWorking(true)
 
     try {
