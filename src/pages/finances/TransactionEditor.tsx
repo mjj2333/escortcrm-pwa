@@ -67,7 +67,10 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
       if (isEditing && transaction) {
         await db.transaction('rw', [db.transactions, db.payments, db.bookings], async () => {
           await db.transactions.update(transaction.id, {
-            amount, type, category, paymentMethod,
+            amount,
+            // Don't allow type/category changes on payment-linked transactions
+            ...(isLinkedToPayment ? {} : { type, category }),
+            paymentMethod,
             date: new Date(date + 'T00:00:00'),
             notes: notes.trim(),
             tourId: tourId || undefined,
