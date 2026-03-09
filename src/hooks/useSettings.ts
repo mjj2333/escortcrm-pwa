@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 
 /** Prefix for all app localStorage keys to avoid collisions with other scripts on the same origin */
 export const LS_PREFIX = 'c_'
@@ -20,8 +20,10 @@ export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T 
   })
 
   // Listen for changes from other components using the same key
+  const selfUpdate = useRef(false)
   useEffect(() => {
     function onSync(e: Event) {
+      if (selfUpdate.current) return
       const detail = (e as CustomEvent).detail
       if (detail?.key === storageKey) {
         setValue(detail.value)
@@ -36,7 +38,9 @@ export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T 
       const resolved = typeof newValue === 'function' ? (newValue as (prev: T) => T)(prev) : newValue
       try { localStorage.setItem(storageKey, JSON.stringify(resolved)) } catch { /* quota full or unavailable */ }
       // Notify other hooks using the same key
+      selfUpdate.current = true
       window.dispatchEvent(new CustomEvent('ls-sync', { detail: { key: storageKey, value: resolved } }))
+      selfUpdate.current = false
       return resolved
     })
   }, [storageKey])
