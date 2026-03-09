@@ -248,8 +248,9 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     earlyStartConfirmed.current = false
 
     if (newStatus === 'Cancelled' && onCancel) {
+      const fresh = await db.bookings.get(booking.id)
       closePanel()
-      setTimeout(() => { onCancel(booking); actionInFlight.current = false }, 300)
+      setTimeout(() => { onCancel(fresh ?? booking); actionInFlight.current = false }, 300)
       return
     }
     try {
@@ -316,8 +317,9 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
     if (isTerminal || actionInFlight.current) return
     if (onNoShow) {
       actionInFlight.current = true
+      const fresh = await db.bookings.get(booking.id)
       closePanel()
-      setTimeout(() => { onNoShow(booking); actionInFlight.current = false }, 300)
+      setTimeout(() => { onNoShow(fresh ?? booking); actionInFlight.current = false }, 300)
       return
     }
     actionInFlight.current = true
