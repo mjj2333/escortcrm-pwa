@@ -93,9 +93,10 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
     const depOut = depositOutcome || undefined
 
     try {
+    let wasNoOp = false
     await db.transaction('rw', [db.bookings, db.clients, db.payments, db.transactions, db.safetyChecks], async () => {
       const current = await db.bookings.get(booking.id)
-      if (!current || current.status === 'Completed' || current.status === 'Cancelled' || current.status === 'No Show') return
+      if (!current || current.status === 'Completed' || current.status === 'Cancelled' || current.status === 'No Show') { wasNoOp = true; return }
       if (mode === 'noshow') {
         await db.bookings.update(booking.id, {
           status: 'No Show' as BookingStatus,
@@ -104,15 +105,15 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
           depositOutcome: depOut,
         })
         // Escalate client risk
-        if (booking.clientId) {
-          const clientBookings = await db.bookings.where('clientId').equals(booking.clientId).toArray()
+        if (current.clientId) {
+          const clientBookings = await db.bookings.where('clientId').equals(current.clientId).toArray()
           const noShows = clientBookings.filter(b => b.status === 'No Show').length
-          const currentClient = await db.clients.get(booking.clientId)
+          const currentClient = await db.clients.get(current.clientId)
           if (currentClient) {
             let riskLevel = currentClient.riskLevel
             if (noShows >= 2) riskLevel = 'High Risk'
             else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
-            await db.clients.update(booking.clientId, { riskLevel })
+            await db.clients.update(current.clientId, { riskLevel })
           }
         }
       } else {
@@ -171,11 +172,15 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
       }
     })
 
-    showToast(
-      mode === 'noshow'
-        ? fee > 0 ? `Marked no-show · ${formatCurrency(fee)} fee recorded` : 'Marked as no-show'
-        : fee > 0 ? `Booking cancelled · ${formatCurrency(fee)} fee recorded` : 'Booking cancelled'
-    )
+    if (wasNoOp) {
+      showToast('Booking was already finalised', 'info')
+    } else {
+      showToast(
+        mode === 'noshow'
+          ? fee > 0 ? `Marked no-show · ${formatCurrency(fee)} fee recorded` : 'Marked as no-show'
+          : fee > 0 ? `Booking cancelled · ${formatCurrency(fee)} fee recorded` : 'Booking cancelled'
+      )
+    }
     onClose()
     } catch (err) {
       showToast(`Failed to ${mode === 'noshow' ? 'mark no-show' : 'cancel booking'}`, 'error')
