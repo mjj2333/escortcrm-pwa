@@ -379,6 +379,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
         // Set timestamps when creating with an advanced status
         ...(status === 'Confirmed' || status === 'In Progress' || status === 'Completed' ? { confirmedAt: new Date() } : {}),
         ...(status === 'Completed' ? { completedAt: new Date() } : {}),
+        ...(status === 'Cancelled' ? { cancelledAt: new Date(), cancelledBy: 'provider' as const } : {}),
+        ...(status === 'No Show' ? { cancelledAt: new Date(), cancelledBy: 'client' as const } : {}),
       })
       await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients, db.safetyChecks], async () => {
         await db.bookings.add(newBooking)
