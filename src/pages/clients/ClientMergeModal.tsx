@@ -114,7 +114,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
     }
   }, [isOpen])
 
-  const allClients = useLiveQuery(() => db.clients.toArray()) ?? []
+  const allClients = useLiveQuery(() => isOpen ? db.clients.toArray() : [], [isOpen]) ?? []
 
   const searchResults = useMemo(() => {
     if (!search.trim()) return []
