@@ -294,8 +294,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
       const type = b.locationType || 'Other'
       if (!grouped[type]) grouped[type] = { count: 0, revenue: 0 }
       grouped[type].count++
-      const rev = incomeByBookingId.get(b.id) ?? 0
-      grouped[type].revenue += rev > 0 ? rev : (b.baseRate + (b.extras ?? 0) + (b.travelFee ?? 0))
+      grouped[type].revenue += incomeByBookingId.get(b.id) ?? 0
     })
     return Object.entries(grouped)
       .map(([type, data]) => ({ type: type as LocationType, ...data }))
