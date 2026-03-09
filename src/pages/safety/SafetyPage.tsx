@@ -49,7 +49,8 @@ export function SafetyPage() {
   const [unblacklistConfirm, setUnblacklistConfirm] = useState<{ clientId: string; alias: string } | null>(null)
   const [deleteContactConfirm, setDeleteContactConfirm] = useState<{ id: string; name: string } | null>(null)
   const [alertConfirm, setAlertConfirm] = useState<string | null>(null)
-  const [alertAllConfirm, setAlertAllConfirm] = useState(false)
+  const [alertAllQueue, setAlertAllQueue] = useState<{ phone: string; name: string; smsHref: string }[]>([])
+  const [alertAllIdx, setAlertAllIdx] = useState(0)
   const [deleteIncidentConfirm, setDeleteIncidentConfirm] = useState<IncidentLog | null>(null)
   const [checkinsLimit, setCheckinsLimit] = useState(30)
   const [incidentSearch, setIncidentSearch] = useState('')
@@ -156,8 +157,8 @@ export function SafetyPage() {
       return
     }
 
-    // Open one SMS per unique contact, each with their relevant check details
-    contactsToNotify.forEach(({ phone, checks }) => {
+    // Build a queue of SMS links — one per unique contact
+    const queue = [...contactsToNotify.values()].map(({ phone, name, checks }) => {
       const lines = ['⚠️ SAFETY ALERT — I need help. Please check on me immediately.']
       checks.forEach(check => {
         const booking = bookingFor(check.bookingId)
@@ -165,24 +166,39 @@ export function SafetyPage() {
         if (client) lines.push(`• Client: ${client.alias}`)
         if (booking?.locationAddress) lines.push(`  Location: ${booking.locationAddress}`)
       })
-      const a = document.createElement('a')
-      a.href = smsHref(phone, lines.join('\n'))
-      a.click()
+      return { phone, name, smsHref: smsHref(phone, lines.join('\n')) }
     })
 
-    const names = [...contactsToNotify.values()].map(c => c.name).join(', ')
-    showToast(`SMS opened for ${names} — confirm it was sent`, 'error')
-    setAlertAllConfirm(true)
+    // Open the first SMS immediately, queue the rest for step-by-step confirmation
+    const a = document.createElement('a')
+    a.href = queue[0].smsHref
+    a.click()
+    setAlertAllQueue(queue)
+    setAlertAllIdx(0)
   }
 
-  async function confirmAlertAll() {
-    await db.transaction('rw', db.safetyChecks, async () => {
-      for (const c of overdueChecks) {
-        await db.safetyChecks.update(c.id, { status: 'alert' as SafetyCheckStatus })
-      }
-    })
-    showToast(`${overdueChecks.length} alert${overdueChecks.length > 1 ? 's' : ''} confirmed`)
-    setAlertAllConfirm(false)
+  async function confirmAlertAllStep() {
+    const nextIdx = alertAllIdx + 1
+    if (nextIdx < alertAllQueue.length) {
+      // Open the next contact's SMS
+      const a = document.createElement('a')
+      a.href = alertAllQueue[nextIdx].smsHref
+      a.click()
+      setAlertAllIdx(nextIdx)
+    } else {
+      // All contacts handled — mark all overdue checks as alert
+      await db.transaction('rw', db.safetyChecks, async () => {
+        for (const c of overdueChecks) {
+          const fresh = await db.safetyChecks.get(c.id)
+          if (fresh?.status === 'overdue') {
+            await db.safetyChecks.update(c.id, { status: 'alert' as SafetyCheckStatus })
+          }
+        }
+      })
+      showToast(`${overdueChecks.length} alert${overdueChecks.length > 1 ? 's' : ''} confirmed`)
+      setAlertAllQueue([])
+      setAlertAllIdx(0)
+    }
   }
 
   const tabs = [
@@ -756,13 +772,17 @@ export function SafetyPage() {
         onCancel={() => setDeleteIncidentConfirm(null)}
       />
       <ConfirmDialog
-        isOpen={alertAllConfirm}
-        title="Confirm Alerts Sent"
-        message={`Did you send the SMS alert${overdueChecks.length > 1 ? 's' : ''}? This will mark ${overdueChecks.length} check-in${overdueChecks.length > 1 ? 's' : ''} as 'Alert Sent'.`}
-        confirmLabel="Yes, Sent"
+        isOpen={alertAllQueue.length > 0}
+        title={alertAllQueue.length > 1
+          ? `Confirm SMS Sent (${alertAllIdx + 1} of ${alertAllQueue.length})`
+          : 'Confirm Alert Sent'}
+        message={alertAllQueue[alertAllIdx]
+          ? `Did you send the SMS to ${alertAllQueue[alertAllIdx].name}?${alertAllIdx + 1 < alertAllQueue.length ? ` Next: ${alertAllQueue[alertAllIdx + 1]?.name}` : ` This will mark ${overdueChecks.length} check-in${overdueChecks.length > 1 ? 's' : ''} as 'Alert Sent'.`}`
+          : ''}
+        confirmLabel={alertAllIdx + 1 < alertAllQueue.length ? 'Yes, Open Next SMS' : 'Yes, All Sent'}
         confirmColor="#ef4444"
-        onConfirm={confirmAlertAll}
-        onCancel={() => setAlertAllConfirm(false)}
+        onConfirm={confirmAlertAllStep}
+        onCancel={() => { setAlertAllQueue([]); setAlertAllIdx(0) }}
       />
     </div>
   )
