@@ -360,6 +360,7 @@ export default function App() {
       return (
         <ErrorBoundary fallback={<RouteErrorFallback />}>
           <ClientDetail
+            key={screen.clientId}
             clientId={screen.clientId}
             onBack={goBack}
             onOpenBooking={openBooking}
