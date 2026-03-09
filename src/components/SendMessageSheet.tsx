@@ -186,8 +186,13 @@ interface SendMessageSheetProps {
   venue?: IncallVenue | null
 }
 
-export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: SendMessageSheetProps) {
+export function SendMessageSheet({ isOpen, onClose, client, booking: bookingProp, venue }: SendMessageSheetProps) {
   useScrollLock(isOpen)
+  // Live-query the booking so template variables reflect any recent edits
+  const booking = useLiveQuery(
+    () => bookingProp?.id ? db.bookings.get(bookingProp.id) : undefined,
+    [bookingProp?.id]
+  ) ?? bookingProp
   const hasBooking = !!booking
   const hasDirections = !!(venue?.directions && venue.directions.length > 0)
 
@@ -233,7 +238,8 @@ export function SendMessageSheet({ isOpen, onClose, client, booking, venue }: Se
     if (!config) return
     const template = loadTemplate(config)
     setMessage(resolveTemplatePlaceholders(template, client, booking, venue, totalPaid, serviceRates))
-  }, [isOpen, selectedType, client.id, booking?.id, totalPaid, serviceRates.length])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- booking object identity changes on live-query update
+  }, [isOpen, selectedType, client.id, booking?.id, booking?.depositAmount, booking?.baseRate, booking?.extras, booking?.travelFee, booking?.dateTime, booking?.duration, totalPaid, serviceRates.length])
 
   // Focus management + Escape key — must be before early return to satisfy Rules of Hooks
   const sheetRef = useRef<HTMLDivElement>(null)
