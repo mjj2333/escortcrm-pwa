@@ -99,6 +99,12 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
     try {
       await db.venueDocs.delete(docId)
       if (previewDoc?.id === docId) setPreviewDoc(null)
+      // Revoke the thumbnail blob URL immediately rather than waiting for the next query cycle
+      const thumbUrl = thumbUrlsRef.current.get(docId)
+      if (thumbUrl) {
+        URL.revokeObjectURL(thumbUrl)
+        thumbUrlsRef.current.delete(docId)
+      }
       showToast('Document deleted')
     } catch {
       showToast('Failed to delete document', 'error')
