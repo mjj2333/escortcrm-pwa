@@ -321,6 +321,9 @@ export async function recordBookingPayment(opts: {
 }): Promise<string | null> {
   let paymentId: string | null = null
   await db.transaction('rw', [db.payments, db.transactions, db.bookings], async () => {
+    // Verify the booking exists before creating any payment
+    const bookingExists = await db.bookings.get(opts.bookingId)
+    if (!bookingExists) return
     // Clamp non-tip/non-cancellation payments to remaining balance
     let amount = opts.amount
     if (opts.label !== 'Tip' && opts.label !== 'Cancellation Fee') {
