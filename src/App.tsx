@@ -181,9 +181,12 @@ export default function App() {
   }, [isOnline])
 
   // One-time migration: hash any existing plaintext PIN (4-digit numeric string)
+  const [pinMigrating, setPinMigrating] = useState(
+    () => !!(pinEnabled && pinCode && pinCode.length <= 6 && /^\d+$/.test(pinCode))
+  )
   useEffect(() => {
     if (pinEnabled && pinCode && pinCode.length <= 6 && /^\d+$/.test(pinCode)) {
-      hashPin(pinCode).then(hash => setPinCode(hash)).catch(() => {})
+      hashPin(pinCode).then(hash => { setPinCode(hash); setPinMigrating(false) }).catch(() => setPinMigrating(false))
     }
   }, [])
 
@@ -295,8 +298,11 @@ export default function App() {
     }
   }
 
-  // PIN Lock Screen
+  // PIN Lock Screen — wait for plaintext→hash migration before rendering
   if (pinEnabled && isLocked) {
+    if (pinMigrating) {
+      return <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }} />
+    }
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
         <ToastContainer />
