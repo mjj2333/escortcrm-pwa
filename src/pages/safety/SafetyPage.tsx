@@ -74,6 +74,8 @@ export function SafetyPage() {
   const primaryContact = contacts.find(c => c.isPrimary) ?? contacts[0]
 
   async function checkIn(checkId: string) {
+    const fresh = await db.safetyChecks.get(checkId)
+    if (!fresh || fresh.status === 'checkedIn' || fresh.status === 'alert') return
     await db.safetyChecks.update(checkId, {
       status: 'checkedIn' as SafetyCheckStatus,
       checkedInAt: new Date(),
