@@ -274,7 +274,10 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
     setSaving(true)
     try {
     if (isEditing && booking) {
-      await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
+      await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients, db.safetyChecks], async () => {
+        // Re-read to detect if status was already changed by another process
+        const prior = await db.bookings.get(booking.id)
+        if (!prior) return
         await db.bookings.update(booking.id, {
           clientId,
           dateTime: dt,
@@ -313,15 +316,22 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
           })
         }
 
-        // Side effects when status changes via editor
-        if (status !== booking.status) {
-          if (status === 'Completed') {
-            const updatedBooking = await db.bookings.get(booking.id)
-            if (updatedBooking) {
-              await completeBookingPayment(updatedBooking, selectedClient?.alias)
+        // Side effects when status changes via editor — use prior (pre-update) status
+        // to avoid double-completing if auto-timer already completed this booking
+        if (status !== prior.status) {
+          if (status === 'Completed' && prior.status !== 'Completed') {
+            const updated = await db.bookings.get(booking.id)
+            if (updated) {
+              await completeBookingPayment(updated, selectedClient?.alias)
             }
             if (clientId) {
               await db.clients.update(clientId, { lastSeen: new Date() })
+            }
+            // Resolve any pending/overdue safety checks
+            const pendingCheck = await db.safetyChecks.where('bookingId').equals(booking.id)
+              .filter(c => c.status === 'pending' || c.status === 'overdue').first()
+            if (pendingCheck) {
+              await db.safetyChecks.update(pendingCheck.id, { status: 'checkedIn', checkedInAt: new Date() })
             }
           }
           // Escalate client risk level on No Show (matches BookingDetail & SwipeableBookingRow logic)
