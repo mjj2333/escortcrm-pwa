@@ -93,6 +93,8 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
 
     try {
     await db.transaction('rw', [db.bookings, db.clients, db.payments, db.transactions, db.safetyChecks], async () => {
+      const current = await db.bookings.get(booking.id)
+      if (!current || current.status === 'Completed' || current.status === 'Cancelled' || current.status === 'No Show') return
       if (mode === 'noshow') {
         await db.bookings.update(booking.id, {
           status: 'No Show' as BookingStatus,
