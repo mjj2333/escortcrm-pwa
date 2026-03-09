@@ -245,11 +245,18 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
         await db.clients.update(targetClient.id, mergedForDb as Partial<Client>)
 
         // 7. Adjust booking statuses if screening status changed
-        const oldScreening = freshTarget.screeningStatus
+        // Check both the target's old status AND the source's old status against the merged result,
+        // since re-pointed source bookings may need downgrading if source was Screened but merged is not.
         const newScreening = merged.screeningStatus!
-        if (oldScreening !== newScreening) {
-          await advanceBookingsOnScreen(targetClient.id, oldScreening, newScreening)
-          await downgradeBookingsOnUnscreen(targetClient.id, oldScreening, newScreening)
+        const targetOld = freshTarget.screeningStatus
+        if (targetOld !== newScreening) {
+          await advanceBookingsOnScreen(targetClient.id, targetOld, newScreening)
+          await downgradeBookingsOnUnscreen(targetClient.id, targetOld, newScreening)
+        }
+        if (freshSource.screeningStatus !== newScreening && freshSource.screeningStatus !== targetOld) {
+          // Source had a different screening status — re-pointed bookings may need adjustment
+          await downgradeBookingsOnUnscreen(targetClient.id, freshSource.screeningStatus, newScreening)
+          await advanceBookingsOnScreen(targetClient.id, freshSource.screeningStatus, newScreening)
         }
 
         // 8. Delete source
