@@ -124,13 +124,13 @@ export function useAutoStatusTransitions() {
               status: 'Completed',
               completedAt: new Date(),
             })
-            // Record remaining payment via ledger
-            const client = b.clientId ? await db.clients.get(b.clientId) : undefined
+            // Record remaining payment via ledger — use fresh current.clientId
+            const client = current.clientId ? await db.clients.get(current.clientId) : undefined
             clientAlias = client?.alias ?? 'Client'
             await completeBookingPayment(current, client?.alias)
             // Update lastSeen
-            if (b.clientId) {
-              await db.clients.update(b.clientId, { lastSeen: new Date() })
+            if (current.clientId) {
+              await db.clients.update(current.clientId, { lastSeen: new Date() })
             }
             // Auto-resolve any pending/overdue safety check for this booking
             const pendingCheck = await db.safetyChecks.where('bookingId').equals(b.id)
