@@ -630,7 +630,7 @@ function CopyRow({ icon, label: _label, text, copied, onCopy }: {
 // SEND DIRECTIONS SHEET
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function buildDirectionsMessage(_venueName: string, directions: string, address: string): string {
+function buildDirectionsMessage(_venueName: string, directions: string, address: string, clientName?: string): string {
   const workingName = localStorage.getItem(lsKey('profileWorkingName'))?.replace(/^"|"$/g, '') || ''
   const raw = localStorage.getItem(lsKey('directionsTemplate'))
   const defaultTemplate = 'Hi! Here are the directions:\n\n📍 {address}\n\n{directions}\n\n— {name}'
@@ -642,6 +642,7 @@ function buildDirectionsMessage(_venueName: string, directions: string, address:
     .replace(/\{name\}/g, () => workingName)
     .replace(/\{address\}/g, () => address)
     .replace(/\{directions\}/g, () => directions)
+    .replace(/\{client\}/g, () => clientName || '')
 }
 
 function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }: {
@@ -669,7 +670,7 @@ function SendDirectionsSheet({ isOpen, onClose, venueName, directions, address }
 
   useEffect(() => {
     if (selectedClient) {
-      setMessage(buildDirectionsMessage(venueName, directions, address))
+      setMessage(buildDirectionsMessage(venueName, directions, address, selectedClient.alias))
     }
   }, [selectedClient, venueName, directions, address])
 
