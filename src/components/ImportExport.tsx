@@ -415,31 +415,39 @@ async function importTransactions(rows: Record<string, unknown>[]): Promise<numb
 }
 
 async function importSafetyContacts(rows: Record<string, unknown>[]): Promise<number> {
-  let count = 0
+  const toAdd: SafetyContact[] = []
+  let hasPrimary = false
   for (const row of rows) {
     const name = String(row['Name'] ?? row['name'] ?? '').trim()
     const phone = String(row['Phone'] ?? row['phone'] ?? '').trim()
     if (!name || !phone) continue
 
     const isPrimary = yesNo(row['Primary'] ?? row['isPrimary'])
-
-    // Enforce single-primary constraint: clear any existing primary if this one is marked primary
+    // Only the last row marked primary wins; clear earlier ones in this batch
     if (isPrimary) {
-      await db.safetyContacts.filter(c => c.isPrimary).modify({ isPrimary: false })
+      for (const c of toAdd) c.isPrimary = false
+      hasPrimary = true
     }
 
-    const contact: SafetyContact = {
+    toAdd.push({
       id: newId(),
       name,
       phone,
       relationship: String(row['Relationship'] ?? row['relationship'] ?? '').trim(),
       isPrimary,
       isActive: row['Active'] !== undefined ? yesNo(row['Active'] ?? row['isActive']) : true,
-    }
-    await db.safetyContacts.add(contact)
-    count++
+    })
   }
-  return count
+  if (toAdd.length > 0) {
+    await db.transaction('rw', db.safetyContacts, async () => {
+      // Clear existing primary only once, atomically with the insert
+      if (hasPrimary) {
+        await db.safetyContacts.filter(c => c.isPrimary).modify({ isPrimary: false })
+      }
+      await db.safetyContacts.bulkAdd(toAdd)
+    })
+  }
+  return toAdd.length
 }
 
 async function readFile(file: File): Promise<Record<string, unknown>[]> {
