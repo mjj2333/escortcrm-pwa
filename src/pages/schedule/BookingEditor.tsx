@@ -406,6 +406,18 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
             await db.clients.update(clientId, { lastSeen: new Date() })
           }
         }
+        // Escalate client risk on No Show
+        if (status === 'No Show' && clientId) {
+          const clientBookings = await db.bookings.where('clientId').equals(clientId).toArray()
+          const noShows = clientBookings.filter(b => b.status === 'No Show').length
+          const currentClient = await db.clients.get(clientId)
+          if (currentClient) {
+            let riskLevel = currentClient.riskLevel
+            if (noShows >= 2) riskLevel = 'High Risk'
+            else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
+            await db.clients.update(clientId, { riskLevel })
+          }
+        }
         // Create safety check when creating directly as In Progress
         if (status === 'In Progress' && requiresSafetyCheck) {
           const sessionStart = Math.max(dt.getTime(), Date.now())
