@@ -25,7 +25,7 @@ import { BookingChecklist, useChecklistCount } from '../../components/BookingChe
 import { CancellationSheet } from '../../components/CancellationSheet'
 import { SendMessageSheet } from '../../components/SendMessageSheet'
 import { bookingStatusColors, journalTagColors, riskLevelColors } from '../../types'
-import type { Booking, BookingStatus, PaymentMethod, PaymentLabel, ScreeningStatus } from '../../types'
+import type { Booking, BookingPayment, BookingStatus, ChecklistItem, IncidentLog, JournalEntry, PaymentMethod, PaymentLabel, SafetyCheck, ScreeningStatus, Transaction } from '../../types'
 
 const paymentMethods: PaymentMethod[] = ['Cash', 'e-Transfer', 'Crypto', 'Venmo', 'Cash App', 'Zelle', 'Gift Card', 'Other']
 const paymentLabels: PaymentLabel[] = ['Deposit', 'Payment', 'Tip', 'Adjustment']
@@ -207,18 +207,27 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
 
   async function deleteBooking() {
     try {
-      // Snapshot everything before deletion for undo
-      const bookingSnap = await db.bookings.get(bookingId)
-      const paymentsSnap = await db.payments.where('bookingId').equals(bookingId).toArray()
-      const txnsSnap = await db.transactions.where('bookingId').equals(bookingId).toArray()
-      const checksSnap = await db.safetyChecks.where('bookingId').equals(bookingId).toArray()
-      const journalSnap = await db.journalEntries.where('bookingId').equals(bookingId).toArray()
-      const incidentsSnap = await db.incidents.where('bookingId').equals(bookingId).toArray()
-      const checklistSnap = await db.bookingChecklist.where('bookingId').equals(bookingId).toArray()
-      // Find child bookings that reference this one as parent (recurring chain)
-      const childBookings = await db.bookings.filter(b => b.parentBookingId === bookingId).toArray()
+      // Snapshot and delete atomically so undo data is consistent
+      let bookingSnap: Booking | undefined
+      let paymentsSnap: BookingPayment[] = []
+      let txnsSnap: Transaction[] = []
+      let checksSnap: SafetyCheck[] = []
+      let journalSnap: JournalEntry[] = []
+      let incidentsSnap: IncidentLog[] = []
+      let checklistSnap: ChecklistItem[] = []
+      let childBookings: Booking[] = []
 
       await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.safetyChecks, db.journalEntries, db.incidents, db.bookingChecklist], async () => {
+        // Snapshot inside the transaction for consistency
+        bookingSnap = await db.bookings.get(bookingId)
+        paymentsSnap = await db.payments.where('bookingId').equals(bookingId).toArray()
+        txnsSnap = await db.transactions.where('bookingId').equals(bookingId).toArray()
+        checksSnap = await db.safetyChecks.where('bookingId').equals(bookingId).toArray()
+        journalSnap = await db.journalEntries.where('bookingId').equals(bookingId).toArray()
+        incidentsSnap = await db.incidents.where('bookingId').equals(bookingId).toArray()
+        checklistSnap = await db.bookingChecklist.where('bookingId').equals(bookingId).toArray()
+        childBookings = await db.bookings.filter(b => b.parentBookingId === bookingId).toArray()
+
         await db.payments.where('bookingId').equals(bookingId).delete()
         await db.transactions.where('bookingId').equals(bookingId).delete()
         await db.safetyChecks.where('bookingId').equals(bookingId).delete()
