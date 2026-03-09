@@ -350,14 +350,15 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   )
 
   // ─── Restore localStorage profile settings ──────────────────────────
-  // Wrapped in try/catch so a localStorage error doesn't mask a successful DB restore
-  try {
-    // Clear all profile keys first so settings absent from the backup don't leak through
-    for (const key of PROFILE_LS_KEYS) {
-      localStorage.removeItem(lsKey(key))
-    }
-    const allowedProfileKeys = new Set(PROFILE_LS_KEYS)
-    if (payload.profile && typeof payload.profile === 'object') {
+  // Only clear+restore if the backup contains profile data; older backups without
+  // a profile key should leave existing localStorage settings intact.
+  if (payload.profile && typeof payload.profile === 'object') {
+    try {
+      // Clear all profile keys first so settings absent from the backup don't leak through
+      for (const key of PROFILE_LS_KEYS) {
+        localStorage.removeItem(lsKey(key))
+      }
+      const allowedProfileKeys = new Set(PROFILE_LS_KEYS)
       for (const [key, val] of Object.entries(payload.profile)) {
         if (typeof val === 'string' && allowedProfileKeys.has(key)) {
           localStorage.setItem(lsKey(key), val)
@@ -369,10 +370,10 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
           }
         }
       }
+    } catch {
+      // DB restore succeeded — localStorage failure is non-fatal
+      console.warn('Failed to restore some localStorage settings')
     }
-  } catch {
-    // DB restore succeeded — localStorage failure is non-fatal
-    console.warn('Failed to restore some localStorage settings')
   }
 
   // Sync restored theme settings to DOM classes
