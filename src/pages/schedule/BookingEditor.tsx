@@ -277,6 +277,12 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
         // Re-read to detect if status was already changed by another process
         const prior = await db.bookings.get(booking.id)
         if (!prior) return
+        // Don't overwrite terminal states — another process may have completed/cancelled
+        if (prior.status !== booking.status &&
+            (prior.status === 'Completed' || prior.status === 'Cancelled' || prior.status === 'No Show')) {
+          showToast(`Booking was already ${prior.status} — cannot save changes`)
+          return
+        }
         await db.bookings.update(booking.id, {
           clientId,
           dateTime: dt,
