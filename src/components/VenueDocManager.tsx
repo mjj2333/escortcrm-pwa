@@ -105,7 +105,31 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
     }
   }
 
+  // Clear stale preview if the doc was deleted externally
+  useEffect(() => {
+    if (previewDoc && docs.length > 0 && !docs.some(d => d.id === previewDoc.id)) {
+      setPreviewDoc(null)
+    }
+  }, [previewDoc, docs])
+
   const previewIdx = previewDoc ? docs.findIndex(d => d.id === previewDoc.id) : -1
+
+  // Keyboard navigation for preview (Escape to close, arrows to navigate)
+  useEffect(() => {
+    if (!previewDoc) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setPreviewDoc(null)
+      else if (e.key === 'ArrowLeft' && docs.length > 1) {
+        const idx = docs.findIndex(d => d.id === previewDoc!.id)
+        setPreviewDoc(docs[(idx - 1 + docs.length) % docs.length])
+      } else if (e.key === 'ArrowRight' && docs.length > 1) {
+        const idx = docs.findIndex(d => d.id === previewDoc!.id)
+        setPreviewDoc(docs[(idx + 1) % docs.length])
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [previewDoc, docs])
 
   if (!editable && docs.length === 0) return null
 
@@ -130,12 +154,13 @@ export function VenueDocManager({ venueId, editable = false }: VenueDocManagerPr
               </div>
             )}
             {editable && (
-              <button type="button"
+              <span role="button" tabIndex={0}
                 onClick={e => { e.stopPropagation(); handleDelete(doc.id) }}
-                className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center"
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); handleDelete(doc.id) } }}
+                className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center cursor-pointer"
               >
                 <X size={10} className="text-white" />
-              </button>
+              </span>
             )}
           </button>
         ))}
