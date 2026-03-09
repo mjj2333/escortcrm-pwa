@@ -176,28 +176,29 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         })
         setTimeout(() => setShowJournal(true), 400)
       } else {
-        const updates: Partial<Booking> = { status }
-        if (status === 'Confirmed') updates.confirmedAt = new Date()
-        await db.bookings.update(bookingId, updates)
-        // Create safety check when manually advancing to In Progress
-        if (status === 'In Progress') {
-          const fresh = await db.bookings.get(bookingId)
-          if (fresh?.requiresSafetyCheck) {
+        await db.transaction('rw', [db.bookings, db.safetyChecks], async () => {
+          const current = await db.bookings.get(bookingId)
+          if (!current || current.status === 'Completed' || current.status === 'Cancelled' || current.status === 'No Show') return
+          const updates: Partial<Booking> = { status }
+          if (status === 'Confirmed') updates.confirmedAt = new Date()
+          await db.bookings.update(bookingId, updates)
+          // Create safety check when manually advancing to In Progress
+          if (status === 'In Progress' && current.requiresSafetyCheck) {
             const existing = await db.safetyChecks.where('bookingId').equals(bookingId).first()
             if (!existing) {
-              const sessionStart = Math.max(new Date(fresh.dateTime).getTime(), Date.now())
-              const checkTime = addMinutes(new Date(sessionStart), fresh.safetyCheckMinutesAfter || 15)
+              const sessionStart = Math.max(new Date(current.dateTime).getTime(), Date.now())
+              const checkTime = addMinutes(new Date(sessionStart), current.safetyCheckMinutesAfter || 15)
               await db.safetyChecks.add({
                 id: newId(),
                 bookingId,
-                safetyContactId: fresh.safetyContactId,
+                safetyContactId: current.safetyContactId,
                 scheduledTime: checkTime,
                 bufferMinutes: 15,
                 status: 'pending',
               })
             }
           }
-        }
+        })
       }
     } catch (err) {
       showToast(`Status update failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
