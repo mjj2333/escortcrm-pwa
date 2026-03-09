@@ -240,9 +240,14 @@ export function useAutoStatusTransitions() {
         }
 
         if (now >= deadline) {
-          const fresh = await db.safetyChecks.get(check.id)
-          if (!fresh || fresh.status !== 'pending') continue
-          await db.safetyChecks.update(check.id, { status: 'overdue' })
+          let transitioned = false
+          await db.transaction('rw', db.safetyChecks, async () => {
+            const fresh = await db.safetyChecks.get(check.id)
+            if (!fresh || fresh.status !== 'pending') return
+            await db.safetyChecks.update(check.id, { status: 'overdue' })
+            transitioned = true
+          })
+          if (!transitioned) continue
           // Fire an urgent notification — this is safety-critical
           if (!overdueNotified.has(check.id) && 'Notification' in window && Notification.permission === 'granted') {
             markOverdueNotified(check.id)
