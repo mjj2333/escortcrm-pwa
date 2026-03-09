@@ -564,49 +564,63 @@ export async function seedSampleData(): Promise<void> {
   // ═══════════════════════════════════════════════════════════
   // PAYMENT LEDGER
   // ═══════════════════════════════════════════════════════════
+  // Pre-generate payment IDs so transactions can cross-reference them
+  const pJames1Dep = newId(), pJames1Bal = newId()
+  const pJames2Dep = newId(), pJames2Bal = newId()
+  const pJames3Dep = newId()
+  const pSophia1Dep = newId(), pSophia1Bal = newId()
+  const pSophia2Dep = newId()
+  const pRick1Dep = newId(), pRick1Bal = newId()
+  const pDavid1Dep = newId(), pDavid1Bal = newId(), pDavid1Tip = newId()
+  const pEthan1Dep = newId()
+  const pLiam1Dep = newId()
+  const pLiam2Dep = newId(), pLiam2Fee = newId()
+  const pLiam3Dep = newId()
+
   const payments: BookingPayment[] = [
-    { id: newId(), bookingId: bJames1, amount: 150, method: 'e-Transfer', label: 'Deposit', date: daysAgo(13) },
-    { id: newId(), bookingId: bJames1, amount: 450, method: 'Cash', label: 'Payment', date: daysAgo(12) },
-    { id: newId(), bookingId: bJames2, amount: 150, method: 'e-Transfer', label: 'Deposit', date: daysAgo(6) },
-    { id: newId(), bookingId: bJames2, amount: 450, method: 'Cash', label: 'Payment', date: daysAgo(5) },
-    { id: newId(), bookingId: bJames3, amount: 150, method: 'e-Transfer', label: 'Deposit', date: daysAgo(3) },
-    { id: newId(), bookingId: bSophia1, amount: 275, method: 'e-Transfer', label: 'Deposit', date: daysAgo(23) },
-    { id: newId(), bookingId: bSophia1, amount: 825, method: 'e-Transfer', label: 'Payment', date: daysAgo(21) },
-    { id: newId(), bookingId: bSophia2, amount: 275, method: 'e-Transfer', label: 'Deposit', date: daysAgo(4) },
-    { id: newId(), bookingId: bRick1, amount: 100, method: 'Cash', label: 'Deposit', date: daysAgo(14) },
-    { id: newId(), bookingId: bRick1, amount: 300, method: 'Cash', label: 'Payment', date: daysAgo(14) },
-    { id: newId(), bookingId: bDavid1, amount: 250, method: 'Cash App', label: 'Deposit', date: daysAgo(12) },
-    { id: newId(), bookingId: bDavid1, amount: 900, method: 'Cash', label: 'Payment', date: daysAgo(10) },
-    { id: newId(), bookingId: bDavid1, amount: 150, method: 'Cash', label: 'Tip', date: daysAgo(10), notes: 'Very generous' },
-    { id: newId(), bookingId: bEthan1, amount: 250, method: 'Crypto', label: 'Deposit', date: daysAgo(8) },
-    { id: newId(), bookingId: bLiam1, amount: 100, method: 'e-Transfer', label: 'Deposit', date: daysAgo(32) },
-    { id: newId(), bookingId: bLiam2, amount: 100, method: 'e-Transfer', label: 'Deposit', date: daysAgo(26) },
-    { id: newId(), bookingId: bLiam2, amount: 200, method: 'e-Transfer', label: 'Cancellation Fee', date: daysAgo(24), notes: 'No-show fee' },
-    { id: newId(), bookingId: bLiam3, amount: 200, method: 'e-Transfer', label: 'Deposit', date: daysAgo(3) },
+    { id: pJames1Dep, bookingId: bJames1, amount: 150, method: 'e-Transfer', label: 'Deposit', date: daysAgo(13) },
+    { id: pJames1Bal, bookingId: bJames1, amount: 450, method: 'Cash', label: 'Payment', date: daysAgo(12) },
+    { id: pJames2Dep, bookingId: bJames2, amount: 150, method: 'e-Transfer', label: 'Deposit', date: daysAgo(6) },
+    { id: pJames2Bal, bookingId: bJames2, amount: 450, method: 'Cash', label: 'Payment', date: daysAgo(5) },
+    { id: pJames3Dep, bookingId: bJames3, amount: 150, method: 'e-Transfer', label: 'Deposit', date: daysAgo(3) },
+    { id: pSophia1Dep, bookingId: bSophia1, amount: 275, method: 'e-Transfer', label: 'Deposit', date: daysAgo(23) },
+    { id: pSophia1Bal, bookingId: bSophia1, amount: 825, method: 'e-Transfer', label: 'Payment', date: daysAgo(21) },
+    { id: pSophia2Dep, bookingId: bSophia2, amount: 275, method: 'e-Transfer', label: 'Deposit', date: daysAgo(4) },
+    { id: pRick1Dep, bookingId: bRick1, amount: 100, method: 'Cash', label: 'Deposit', date: daysAgo(14) },
+    { id: pRick1Bal, bookingId: bRick1, amount: 300, method: 'Cash', label: 'Payment', date: daysAgo(14) },
+    { id: pDavid1Dep, bookingId: bDavid1, amount: 250, method: 'Cash App', label: 'Deposit', date: daysAgo(12) },
+    { id: pDavid1Bal, bookingId: bDavid1, amount: 900, method: 'Cash', label: 'Payment', date: daysAgo(10) },
+    { id: pDavid1Tip, bookingId: bDavid1, amount: 150, method: 'Cash', label: 'Tip', date: daysAgo(10), notes: 'Very generous' },
+    { id: pEthan1Dep, bookingId: bEthan1, amount: 250, method: 'Crypto', label: 'Deposit', date: daysAgo(8) },
+    { id: pLiam1Dep, bookingId: bLiam1, amount: 100, method: 'e-Transfer', label: 'Deposit', date: daysAgo(32) },
+    { id: pLiam2Dep, bookingId: bLiam2, amount: 100, method: 'e-Transfer', label: 'Deposit', date: daysAgo(26) },
+    { id: pLiam2Fee, bookingId: bLiam2, amount: 200, method: 'e-Transfer', label: 'Cancellation Fee', date: daysAgo(24), notes: 'No-show fee' },
+    { id: pLiam3Dep, bookingId: bLiam3, amount: 200, method: 'e-Transfer', label: 'Deposit', date: daysAgo(3) },
   ]
 
   // ═══════════════════════════════════════════════════════════
   // TRANSACTIONS
   // ═══════════════════════════════════════════════════════════
   const transactions: Transaction[] = [
-    // Income
-    { id: newId(), bookingId: bJames1, amount: 150, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(13), notes: 'Deposit' },
-    { id: newId(), bookingId: bJames1, amount: 450, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(12), notes: 'Balance' },
-    { id: newId(), bookingId: bJames2, amount: 150, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(6), notes: 'Deposit' },
-    { id: newId(), bookingId: bJames2, amount: 450, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(5), notes: 'Balance' },
-    { id: newId(), bookingId: bJames3, amount: 150, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(3), notes: 'Deposit' },
-    { id: newId(), bookingId: bSophia1, amount: 275, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(23), notes: 'Deposit' },
-    { id: newId(), bookingId: bSophia1, amount: 825, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(21), notes: 'Balance' },
-    { id: newId(), bookingId: bSophia2, amount: 275, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(4), notes: 'Deposit' },
-    { id: newId(), bookingId: bRick1, amount: 400, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(14), notes: 'Full payment at door' },
-    { id: newId(), bookingId: bDavid1, amount: 250, type: 'income', category: 'booking', paymentMethod: 'Cash App', date: daysAgo(12), notes: 'Deposit' },
-    { id: newId(), bookingId: bDavid1, amount: 900, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(10), notes: 'Balance' },
-    { id: newId(), bookingId: bDavid1, amount: 150, type: 'income', category: 'tip', paymentMethod: 'Cash', date: daysAgo(10), notes: 'Generous tip' },
-    { id: newId(), bookingId: bEthan1, amount: 250, type: 'income', category: 'booking', paymentMethod: 'Crypto', date: daysAgo(8), notes: 'Prepaid virtual' },
-    { id: newId(), bookingId: bLiam1, amount: 100, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(32), notes: 'Forfeited deposit' },
-    { id: newId(), bookingId: bLiam2, amount: 100, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(26), notes: 'Forfeited deposit' },
-    { id: newId(), bookingId: bLiam2, amount: 200, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(24), notes: 'No-show fee' },
-    { id: newId(), bookingId: bLiam3, amount: 200, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(3), notes: 'Deposit' },
+    // Income — linked to payments via paymentId
+    { id: newId(), bookingId: bJames1, paymentId: pJames1Dep, amount: 150, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(13), notes: 'Deposit — James' },
+    { id: newId(), bookingId: bJames1, paymentId: pJames1Bal, amount: 450, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(12), notes: 'Payment — James' },
+    { id: newId(), bookingId: bJames2, paymentId: pJames2Dep, amount: 150, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(6), notes: 'Deposit — James' },
+    { id: newId(), bookingId: bJames2, paymentId: pJames2Bal, amount: 450, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(5), notes: 'Payment — James' },
+    { id: newId(), bookingId: bJames3, paymentId: pJames3Dep, amount: 150, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(3), notes: 'Deposit — James' },
+    { id: newId(), bookingId: bSophia1, paymentId: pSophia1Dep, amount: 275, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(23), notes: 'Deposit — Sophia' },
+    { id: newId(), bookingId: bSophia1, paymentId: pSophia1Bal, amount: 825, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(21), notes: 'Payment — Sophia' },
+    { id: newId(), bookingId: bSophia2, paymentId: pSophia2Dep, amount: 275, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(4), notes: 'Deposit — Sophia' },
+    { id: newId(), bookingId: bRick1, paymentId: pRick1Dep, amount: 100, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(14), notes: 'Deposit — Rick' },
+    { id: newId(), bookingId: bRick1, paymentId: pRick1Bal, amount: 300, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(14), notes: 'Payment — Rick' },
+    { id: newId(), bookingId: bDavid1, paymentId: pDavid1Dep, amount: 250, type: 'income', category: 'booking', paymentMethod: 'Cash App', date: daysAgo(12), notes: 'Deposit — David' },
+    { id: newId(), bookingId: bDavid1, paymentId: pDavid1Bal, amount: 900, type: 'income', category: 'booking', paymentMethod: 'Cash', date: daysAgo(10), notes: 'Payment — David' },
+    { id: newId(), bookingId: bDavid1, paymentId: pDavid1Tip, amount: 150, type: 'income', category: 'tip', paymentMethod: 'Cash', date: daysAgo(10), notes: 'Tip — David' },
+    { id: newId(), bookingId: bEthan1, paymentId: pEthan1Dep, amount: 250, type: 'income', category: 'booking', paymentMethod: 'Crypto', date: daysAgo(8), notes: 'Deposit — Ethan' },
+    { id: newId(), bookingId: bLiam1, paymentId: pLiam1Dep, amount: 100, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(32), notes: 'Deposit — Liam' },
+    { id: newId(), bookingId: bLiam2, paymentId: pLiam2Dep, amount: 100, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(26), notes: 'Deposit — Liam' },
+    { id: newId(), bookingId: bLiam2, paymentId: pLiam2Fee, amount: 200, type: 'income', category: 'cancellation', paymentMethod: 'e-Transfer', date: daysAgo(24), notes: 'Cancellation Fee — Liam' },
+    { id: newId(), bookingId: bLiam3, paymentId: pLiam3Dep, amount: 200, type: 'income', category: 'booking', paymentMethod: 'e-Transfer', date: daysAgo(3), notes: 'Deposit — Liam' },
 
     // Expenses (diverse categories)
     { id: newId(), amount: 3600, type: 'expense', category: 'rent', date: daysAgo(15), notes: 'Monthly lease — The Palisade' },
