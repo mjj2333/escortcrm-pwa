@@ -133,7 +133,7 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
               style={type !== 'income' ? { color: 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' } : { WebkitTapHighlightColor: 'transparent' }}>
               Income
             </button>
-            <button type="button" onClick={() => { setType('expense'); setCategory(c => c === 'booking' || c === 'tip' || c === 'gift' ? 'supplies' : c) }}
+            <button type="button" onClick={() => { setType('expense'); setCategory(c => c === 'booking' || c === 'tip' || c === 'gift' || c === 'cancellation' ? 'supplies' : c) }}
               className={`flex-1 py-2.5 text-sm font-bold text-center transition-colors ${type === 'expense' ? 'bg-red-600 text-white' : ''}`}
               style={type !== 'expense' ? { color: 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' } : { WebkitTapHighlightColor: 'transparent' }}>
               Expense
