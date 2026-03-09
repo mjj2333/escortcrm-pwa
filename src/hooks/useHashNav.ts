@@ -85,8 +85,11 @@ export function useHashNav(
         ? (e.state as Record<string, unknown>)._depth as number : 0
       navDepth.current = poppedDepth
       const state = e.state as NavState | null
+      // Skip non-nav history entries (e.g. settings overlay) — their own
+      // popstate handlers manage them; parsing their hash would reset to Home.
+      if (e.state && (e.state as Record<string, unknown>).settings) return
       // Only trust state if it has a valid screen shape; other pushState
-      // callers (e.g. settings overlay) use different state shapes.
+      // callers use different state shapes.
       const isNavState = state && typeof state.tab === 'number' && state.screen && typeof state.screen.type === 'string'
       startTransition(() => {
         if (isNavState) {
