@@ -215,7 +215,7 @@ export function SchedulePage({ onOpenBooking }: SchedulePageProps) {
 
   // ── Day detail bookings ──────────────────────────────────────
   const dayDetailBookings = dayDetailDate
-    ? bookingsForDay(dayDetailDate).sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+    ? [...bookingsForDay(dayDetailDate)].sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
     : []
 
   // List view
