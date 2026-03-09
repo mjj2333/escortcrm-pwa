@@ -134,7 +134,8 @@ export function ClientDetail({ clientId, onBack, onOpenBooking, onShowPaywall }:
   // Visit frequency indicator
   const visitInterval = useMemo(() =>
     client ? computeClientInterval(completedBookings, client.lastSeen, detailNow) : null,
-    [completedBookings, client?.lastSeen, detailNow])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- use .getTime() for stable Date comparison
+    [completedBookings, client?.lastSeen?.getTime(), detailNow.getTime()])
 
   if (!client) {
     if (!settled) return null
