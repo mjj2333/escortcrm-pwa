@@ -445,7 +445,7 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
     }
     const ltvMap = new Map<string, number>()
     for (const t of allTransactions) {
-      if (t.type === 'income' && t.bookingId) {
+      if (t.type === 'income' && t.bookingId && t.category === 'booking') {
         const cid = bookingClientMap.get(t.bookingId)
         if (cid) ltvMap.set(cid, (ltvMap.get(cid) ?? 0) + t.amount)
       }
