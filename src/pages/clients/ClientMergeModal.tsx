@@ -129,10 +129,16 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
       .slice(0, 8)
   }, [allClients, search, sourceClient.id])
 
+  // Keep targetClient fresh from live query data
+  const freshTarget = useMemo(() => {
+    if (!targetClient) return null
+    return allClients.find(c => c.id === targetClient.id) ?? targetClient
+  }, [allClients, targetClient])
+
   const mergeFields = useMemo(() => {
-    if (!targetClient) return []
-    return buildMergeFields(sourceClient, targetClient)
-  }, [sourceClient, targetClient])
+    if (!freshTarget) return []
+    return buildMergeFields(sourceClient, freshTarget)
+  }, [sourceClient, freshTarget])
 
   // Count related records
   const sourceBookingCount = useLiveQuery(
@@ -394,7 +400,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
               <ArrowRight size={18} style={{ color: '#a855f7', flexShrink: 0 }} />
               <div className="flex-1 text-center">
                 <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--text-secondary)' }}>Keep</p>
-                <p className="text-sm font-bold text-purple-400">{targetClient.alias}</p>
+                <p className="text-sm font-bold text-purple-400">{freshTarget?.alias ?? targetClient?.alias}</p>
               </div>
             </div>
 
