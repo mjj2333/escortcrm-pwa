@@ -168,19 +168,24 @@ export function ClientEditor({ isOpen, onClose, client }: ClientEditorProps) {
 
     try {
       if (isEditing && client) {
-        // Use modify() so cleared optional fields are actually removed (update() ignores undefined keys)
-        await db.clients.where(':id').equals(client.id).modify(existing => {
-          Object.assign(existing, data)
-          // Delete optional fields that were cleared (empty string / undefined → remove key)
-          const optionalKeys = ['nickname', 'phone', 'email', 'telegram', 'signal', 'whatsapp',
-            'address', 'secondaryContact', 'screeningMethod', 'referenceSource', 'verificationNotes',
-            'birthday', 'clientSince'] as const
-          for (const key of optionalKeys) {
-            if (!data[key]) delete (existing as unknown as Record<string, unknown>)[key]
-          }
+        await db.transaction('rw', [db.clients, db.bookings], async () => {
+          // Re-read to get current screening status for accurate advance/downgrade
+          const fresh = await db.clients.get(client.id)
+          if (!fresh) return
+          // Use modify() so cleared optional fields are actually removed (update() ignores undefined keys)
+          await db.clients.where(':id').equals(client.id).modify(existing => {
+            Object.assign(existing, data)
+            // Delete optional fields that were cleared (empty string / undefined → remove key)
+            const optionalKeys = ['nickname', 'phone', 'email', 'telegram', 'signal', 'whatsapp',
+              'address', 'secondaryContact', 'screeningMethod', 'referenceSource', 'verificationNotes',
+              'birthday', 'clientSince'] as const
+            for (const key of optionalKeys) {
+              if (!data[key]) delete (existing as unknown as Record<string, unknown>)[key]
+            }
+          })
+          await advanceBookingsOnScreen(client.id, fresh.screeningStatus, screeningStatus)
+          await downgradeBookingsOnUnscreen(client.id, fresh.screeningStatus, screeningStatus)
         })
-        await advanceBookingsOnScreen(client.id, client.screeningStatus, screeningStatus)
-        await downgradeBookingsOnUnscreen(client.id, client.screeningStatus, screeningStatus)
 
         showToast('Client updated')
         onClose()
