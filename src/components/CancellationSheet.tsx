@@ -35,16 +35,17 @@ export function CancellationSheet({ booking, mode, onClose }: CancellationSheetP
   ) ?? []
   const totalDeposits = depositPayments.reduce((sum, p) => sum + p.amount, 0)
 
-  // Reset state when opened with a new booking
+  // Reset state when sheet opens (including reopen for same booking)
+  const isOpen = !!booking
   useEffect(() => {
-    if (booking) {
+    if (isOpen) {
       setCancelledBy('client')
       setCancelReason('')
       setDepositOutcome('')
       setFeeAmount('')
       setFeeMethod('')
     }
-  }, [booking?.id, mode])
+  }, [isOpen, booking?.id, mode])
 
   // Focus management: save previous focus, restore on close
   const sheetRef = useRef<HTMLDivElement>(null)
