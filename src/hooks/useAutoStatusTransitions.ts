@@ -176,31 +176,35 @@ export function useAutoStatusTransitions() {
               const existingChild = await db.bookings.where('parentBookingId').equals(b.id).first()
               if (existingChild) return
 
-              const needsDeposit = (b.depositAmount ?? 0) > 0
+              // Re-read parent fresh to avoid stale financial/config fields
+              const fresh = await db.bookings.get(b.id)
+              if (!fresh) return
+
+              const needsDeposit = (fresh.depositAmount ?? 0) > 0
               const nextBooking = createBooking({
-                clientId: b.clientId,
+                clientId: fresh.clientId,
                 dateTime: nextDate,
-                duration: b.duration,
-                locationType: b.locationType,
-                locationAddress: b.locationAddress,
-                locationNotes: b.locationNotes,
-                venueId: b.venueId,
+                duration: fresh.duration,
+                locationType: fresh.locationType,
+                locationAddress: fresh.locationAddress,
+                locationNotes: fresh.locationNotes,
+                venueId: fresh.venueId,
                 status: needsDeposit ? 'Pending Deposit' : 'Confirmed',
                 confirmedAt: needsDeposit ? undefined : new Date(),
-                baseRate: b.baseRate,
-                extras: b.extras,
-                travelFee: b.travelFee,
-                depositAmount: b.depositAmount,
-                depositMethod: b.depositMethod,
-                paymentMethod: b.paymentMethod,
+                baseRate: fresh.baseRate,
+                extras: fresh.extras,
+                travelFee: fresh.travelFee,
+                depositAmount: fresh.depositAmount,
+                depositMethod: fresh.depositMethod,
+                paymentMethod: fresh.paymentMethod,
                 tourId: undefined,
-                notes: b.notes,
-                requiresSafetyCheck: b.requiresSafetyCheck,
-                safetyCheckMinutesAfter: b.safetyCheckMinutesAfter,
-                safetyContactId: b.safetyContactId,
-                recurrence: b.recurrence,
-                parentBookingId: b.id,
-                recurrenceRootId: b.recurrenceRootId ?? b.id,
+                notes: fresh.notes,
+                requiresSafetyCheck: fresh.requiresSafetyCheck,
+                safetyCheckMinutesAfter: fresh.safetyCheckMinutesAfter,
+                safetyContactId: fresh.safetyContactId,
+                recurrence: fresh.recurrence,
+                parentBookingId: fresh.id,
+                recurrenceRootId: fresh.recurrenceRootId ?? fresh.id,
               })
               await db.bookings.add(nextBooking)
             })
