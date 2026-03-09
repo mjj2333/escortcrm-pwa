@@ -82,15 +82,19 @@ export function SafetyPage() {
   }
 
   async function checkInAll() {
+    let count = 0
     await db.transaction('rw', db.safetyChecks, async () => {
       for (const c of overdueChecks) {
+        const fresh = await db.safetyChecks.get(c.id)
+        if (!fresh || (fresh.status !== 'pending' && fresh.status !== 'overdue')) continue
         await db.safetyChecks.update(c.id, {
           status: 'checkedIn' as SafetyCheckStatus,
           checkedInAt: new Date(),
         })
+        count++
       }
     })
-    showToast(`${overdueChecks.length} check-in${overdueChecks.length > 1 ? 's' : ''} confirmed`)
+    if (count > 0) showToast(`${count} check-in${count > 1 ? 's' : ''} confirmed`)
   }
 
   // Build the sms: URI — iOS wants sms:[phone]&body=[text], Android wants sms:[phone]?body=[text].
