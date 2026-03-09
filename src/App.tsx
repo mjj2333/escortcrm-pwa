@@ -211,7 +211,7 @@ export default function App() {
     if (code) {
       setDeepLinkCode(code)
       setShowPaywall(true)
-      window.history.replaceState({}, '', window.location.pathname)
+      window.history.replaceState(history.state, '', window.location.pathname + window.location.hash)
     }
   }, [])
 
