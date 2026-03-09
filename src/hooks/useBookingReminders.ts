@@ -102,7 +102,7 @@ export function useBookingReminders(enabled: boolean) {
 
         // 1 hour reminder — only for confirmed/in-progress bookings
         const key1h = `${b.id}-1h`
-        if (msBefore > 0 && msBefore <= 60 * 60_000 && (b.status === 'Confirmed' || b.status === 'In Progress') && !notifiedRef.current.has(key1h)) {
+        if (msBefore > 15 * 60_000 && msBefore <= 60 * 60_000 && (b.status === 'Confirmed' || b.status === 'In Progress') && !notifiedRef.current.has(key1h)) {
           addNotified(key1h)
           showAppNotification('Booking in 1 hour', {
             body: `${name} — ${bookingDurationFormatted(b.duration)} ${b.locationType}`,
