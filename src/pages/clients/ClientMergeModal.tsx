@@ -124,7 +124,7 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
       .filter(c =>
         c.alias.toLowerCase().includes(q) ||
         c.nickname?.toLowerCase().includes(q) ||
-        c.phone?.replace(/\D/g, '').includes(q.replace(/\D/g, ''))
+        (q.replace(/\D/g, '') !== '' && c.phone?.replace(/\D/g, '').includes(q.replace(/\D/g, '')))
       )
       .slice(0, 8)
   }, [allClients, search, sourceClient.id])
