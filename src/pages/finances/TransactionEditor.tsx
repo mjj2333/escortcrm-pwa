@@ -23,6 +23,7 @@ interface TransactionEditorProps {
 
 export function TransactionEditor({ isOpen, onClose, initialType, transaction }: TransactionEditorProps) {
   const isEditing = !!transaction
+  const isLinkedToPayment = isEditing && !!transaction?.paymentId
   const tours = useLiveQuery(() => db.tours.filter(t => !t.isArchived).toArray()) ?? []
   const [type, setType] = useState<TransactionType>(initialType ?? 'income')
   const [amount, setAmount] = useState(0)
@@ -125,15 +126,15 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
       }
     >
       <form onSubmit={e => { e.preventDefault(); handleSave() }} className="px-4 py-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-        {/* Type Toggle */}
+        {/* Type Toggle — locked for payment-linked transactions */}
         <div className="pt-2 pb-3">
-          <div className="flex rounded-xl overflow-hidden" style={{ border: '2px solid var(--border)' }}>
-            <button type="button" onClick={() => { setType('income'); setCategory(c => ['supplies','travel','advertising','clothing','health','rent','phone'].includes(c) ? 'booking' : c) }}
+          <div className="flex rounded-xl overflow-hidden" style={{ border: '2px solid var(--border)', opacity: isLinkedToPayment ? 0.5 : 1 }}>
+            <button type="button" disabled={isLinkedToPayment} onClick={() => { setType('income'); setCategory(c => ['supplies','travel','advertising','clothing','health','rent','phone'].includes(c) ? 'booking' : c) }}
               className={`flex-1 py-2.5 text-sm font-bold text-center transition-colors ${type === 'income' ? 'bg-green-600 text-white' : ''}`}
               style={type !== 'income' ? { color: 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' } : { WebkitTapHighlightColor: 'transparent' }}>
               Income
             </button>
-            <button type="button" onClick={() => { setType('expense'); setCategory(c => c === 'booking' || c === 'tip' || c === 'gift' || c === 'cancellation' ? 'supplies' : c) }}
+            <button type="button" disabled={isLinkedToPayment} onClick={() => { setType('expense'); setCategory(c => c === 'booking' || c === 'tip' || c === 'gift' || c === 'cancellation' ? 'supplies' : c) }}
               className={`flex-1 py-2.5 text-sm font-bold text-center transition-colors ${type === 'expense' ? 'bg-red-600 text-white' : ''}`}
               style={type !== 'expense' ? { color: 'var(--text-secondary)', WebkitTapHighlightColor: 'transparent' } : { WebkitTapHighlightColor: 'transparent' }}>
               Expense
@@ -143,7 +144,7 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
 
         <SectionLabel label="Details" />
         <FieldCurrency label="Amount" value={amount} onChange={setAmount} />
-        <FieldSelect label="Category" value={category} options={type === 'income' ? incomeCategories : expenseCategories} onChange={setCategory} displayFn={titleCase} />
+        <FieldSelect label="Category" value={category} options={type === 'income' ? incomeCategories : expenseCategories} onChange={isLinkedToPayment ? () => {} : setCategory} displayFn={titleCase} />
         <FieldSelect label="Payment Method" value={paymentMethod} options={paymentMethods} onChange={setPaymentMethod} />
         <FieldDate label="Date" value={date} onChange={setDate} />
         {tours.length > 0 && (
