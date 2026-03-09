@@ -387,6 +387,10 @@ export function SettingsPage({ onClose, onShowPaywall }: SettingsPageProps) {
               showToast('Notifications are not supported in this browser', 'error')
               return
             }
+            if (val && 'Notification' in window && Notification.permission === 'denied') {
+              showToast('Notifications are blocked by your browser. Enable them in browser settings.', 'error')
+              return
+            }
             if (val && 'Notification' in window && Notification.permission === 'default') {
               Notification.requestPermission().then(p => {
                 setRemindersEnabled(p === 'granted')
