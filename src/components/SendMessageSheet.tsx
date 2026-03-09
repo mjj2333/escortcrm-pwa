@@ -8,7 +8,7 @@ import { showToast } from './Toast'
 import { contactMethodMeta, getContactValue, openChannel } from '../utils/contactChannel'
 import { fieldInputStyle } from './FormFields'
 import { lsKey } from '../hooks/useSettings'
-import type { Booking, Client, ContactMethod, IncallVenue } from '../types'
+import type { Booking, BookingPayment, Client, ContactMethod, IncallVenue } from '../types'
 
 const contactMethodIcons: Record<ContactMethod, typeof Phone> = {
   'Phone': Phone, 'Text': MessageSquare, 'Email': Mail, 'Telegram': Send,
@@ -100,6 +100,7 @@ function resolveTemplatePlaceholders(
   booking: Booking | null | undefined,
   venue: IncallVenue | null | undefined,
   totalPaid: number,
+  depositPaid: number,
   serviceRates: { name: string; duration: number; rate: number }[],
 ): string {
   const workingName = localStorage.getItem(lsKey('profileWorkingName'))?.replace(/^"|"$/g, '') || ''
@@ -111,10 +112,11 @@ function resolveTemplatePlaceholders(
   const twitter = localStorage.getItem(lsKey('profileTwitter'))?.replace(/^"|"$/g, '') || ''
   const bsky = localStorage.getItem(lsKey('profileBsky'))?.replace(/^"|"$/g, '') || ''
 
-  // Deposit string
+  // Deposit string — show remaining deposit, not full amount
   let depositStr: string
   if (booking && booking.depositAmount > 0) {
-    depositStr = formatCurrency(booking.depositAmount)
+    const remaining = Math.max(0, booking.depositAmount - depositPaid)
+    depositStr = formatCurrency(remaining > 0 ? remaining : booking.depositAmount)
   } else {
     const depositType = localStorage.getItem(lsKey('defaultDepositType'))?.replace(/^"|"$/g, '') || 'percent'
     const depositPct = parseInt(localStorage.getItem(lsKey('defaultDepositPercentage'))?.replace(/^"|"$/g, '') || '25')
@@ -214,12 +216,14 @@ export function SendMessageSheet({ isOpen, onClose, client, booking: bookingProp
   ) ?? []
 
   // Total paid for balance calculation
-  const totalPaid = useLiveQuery(
+  const bookingPayments: BookingPayment[] = useLiveQuery(
     () => booking
-      ? db.payments.where('bookingId').equals(booking.id).toArray().then(ps => ps.filter(p => p.label !== 'Tip' && p.label !== 'Cancellation Fee').reduce((s, p) => s + p.amount, 0))
-      : Promise.resolve(0),
+      ? db.payments.where('bookingId').equals(booking.id).toArray()
+      : [],
     [booking?.id]
-  ) ?? 0
+  ) ?? []
+  const totalPaid = bookingPayments.filter(p => p.label !== 'Tip' && p.label !== 'Cancellation Fee').reduce((s, p) => s + p.amount, 0)
+  const depositPaid = bookingPayments.filter(p => p.label === 'Deposit').reduce((s, p) => s + p.amount, 0)
 
   // Reset when sheet opens
   useEffect(() => {
@@ -237,9 +241,9 @@ export function SendMessageSheet({ isOpen, onClose, client, booking: bookingProp
     const config = TEMPLATES.find(t => t.key === selectedType)
     if (!config) return
     const template = loadTemplate(config)
-    setMessage(resolveTemplatePlaceholders(template, client, booking, venue, totalPaid, serviceRates))
+    setMessage(resolveTemplatePlaceholders(template, client, booking, venue, totalPaid, depositPaid, serviceRates))
   // eslint-disable-next-line react-hooks/exhaustive-deps -- booking object identity changes on live-query update
-  }, [isOpen, selectedType, client.id, booking?.id, booking?.depositAmount, booking?.baseRate, booking?.extras, booking?.travelFee, booking?.dateTime, booking?.duration, totalPaid, serviceRates.length])
+  }, [isOpen, selectedType, client.id, booking?.id, booking?.depositAmount, booking?.baseRate, booking?.extras, booking?.travelFee, booking?.dateTime, booking?.duration, totalPaid, depositPaid, serviceRates.length])
 
   // Focus management + Escape key — must be before early return to satisfy Rules of Hooks
   const sheetRef = useRef<HTMLDivElement>(null)
