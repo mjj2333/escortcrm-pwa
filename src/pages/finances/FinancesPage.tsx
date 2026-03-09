@@ -1832,28 +1832,30 @@ function AllTransactionsModal({ isOpen, onClose, transactions }: { isOpen: boole
       }
 
       showUndoToast('Transaction deleted', async () => {
-        if (txnSnap) await db.transactions.put(txnSnap)
-        if (paySnap) {
-          await db.payments.put(paySnap)
-          // Re-sync booking payment booleans and status
-          const booking = await db.bookings.get(paySnap.bookingId)
-          if (booking) {
-            const allPayments = await db.payments.where('bookingId').equals(paySnap.bookingId).toArray()
-            const allPaid = allPayments.filter(p => p.label !== 'Tip' && p.label !== 'Cancellation Fee').reduce((s, p) => s + p.amount, 0)
-            const depositPaid = allPayments.filter(p => p.label === 'Deposit').reduce((s, p) => s + p.amount, 0)
-            const updates: Record<string, unknown> = {
-              paymentReceived: allPaid >= bookingTotal(booking),
-              depositReceived: depositPaid >= booking.depositAmount,
+        await db.transaction('rw', [db.transactions, db.payments, db.bookings], async () => {
+          if (txnSnap) await db.transactions.put(txnSnap)
+          if (paySnap) {
+            await db.payments.put(paySnap)
+            // Re-sync booking payment booleans and status
+            const booking = await db.bookings.get(paySnap.bookingId)
+            if (booking) {
+              const allPayments = await db.payments.where('bookingId').equals(paySnap.bookingId).toArray()
+              const allPaid = allPayments.filter(p => p.label !== 'Tip' && p.label !== 'Cancellation Fee').reduce((s, p) => s + p.amount, 0)
+              const depositPaid = allPayments.filter(p => p.label === 'Deposit').reduce((s, p) => s + p.amount, 0)
+              const updates: Record<string, unknown> = {
+                paymentReceived: allPaid >= bookingTotal(booking),
+                depositReceived: depositPaid >= booking.depositAmount,
+              }
+              // Restore status if deposit was removed and booking was downgraded
+              if (paySnap.label === 'Deposit' && depositPaid >= booking.depositAmount
+                && booking.status === 'Pending Deposit' && booking.depositAmount > 0) {
+                updates.status = 'Confirmed'
+                updates.confirmedAt = new Date()
+              }
+              await db.bookings.update(paySnap.bookingId, updates)
             }
-            // Restore status if deposit was removed and booking was downgraded
-            if (paySnap.label === 'Deposit' && depositPaid >= booking.depositAmount
-              && booking.status === 'Pending Deposit' && booking.depositAmount > 0) {
-              updates.status = 'Confirmed'
-              updates.confirmedAt = new Date()
-            }
-            await db.bookings.update(paySnap.bookingId, updates)
           }
-        }
+        })
       })
     } catch (err) {
       showToast(`Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
