@@ -159,7 +159,7 @@ export function HomePage({ onNavigateTab, onOpenSettings, onOpenBooking, onOpenC
   const paymentsByBookingId = useMemo(() => {
     const map = new Map<string, number>()
     for (const p of allPayments) {
-      if (p.label === 'Tip') continue
+      if (p.label === 'Tip' || p.label === 'Cancellation Fee') continue
       map.set(p.bookingId, (map.get(p.bookingId) ?? 0) + p.amount)
     }
     return map
