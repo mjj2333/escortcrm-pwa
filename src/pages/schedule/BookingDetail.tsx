@@ -160,7 +160,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
         // if the auto-status timer fires at the same moment
         await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients, db.safetyChecks], async () => {
           const current = await db.bookings.get(bookingId)
-          if (!current || current.status === 'Completed') return
+          if (!current || current.status === 'Completed' || current.status === 'Cancelled' || current.status === 'No Show') return
           await db.bookings.update(bookingId, { status: 'Completed', completedAt: new Date() })
           const c = current.clientId ? await db.clients.get(current.clientId) : undefined
           await completeBookingPayment(current, c?.alias)
