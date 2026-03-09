@@ -257,7 +257,7 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
       if (newStatus === 'Completed') {
         await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients, db.safetyChecks], async () => {
           const current = await db.bookings.get(booking.id)
-          if (!current || current.status === 'Completed') return
+          if (!current || current.status === 'Completed' || current.status === 'Cancelled' || current.status === 'No Show') return
           await db.bookings.update(booking.id, { status: 'Completed', completedAt: new Date() })
           const c = current.clientId ? await db.clients.get(current.clientId) : undefined
           await completeBookingPayment(current, c?.alias)
@@ -273,6 +273,8 @@ export const SwipeableBookingRow = memo(function SwipeableBookingRow({ booking, 
         })
       } else if (newStatus === 'In Progress' && booking.requiresSafetyCheck) {
         await db.transaction('rw', [db.bookings, db.safetyChecks], async () => {
+          const current = await db.bookings.get(booking.id)
+          if (!current || current.status === 'Completed' || current.status === 'Cancelled' || current.status === 'No Show') return
           await db.bookings.update(booking.id, { status: 'In Progress' })
           const existing = await db.safetyChecks.where('bookingId').equals(booking.id).first()
           if (!existing) {
