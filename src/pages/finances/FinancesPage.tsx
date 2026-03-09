@@ -212,18 +212,16 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
   const { totalIncome, totalExpenses, netIncome, avgBooking, estimatedTax, suggestedSetAside } = useMemo(() => {
     let income = 0, expenses = 0, bookingTotal = 0
     const bookingIds = new Set<string>()
-    let manualBookings = 0
     for (const t of filtered) {
       if (t.type === 'income') income += t.amount
       else if (t.type === 'expense') expenses += t.amount
       if (t.category === 'booking') {
         bookingTotal += t.amount
         if (t.bookingId) bookingIds.add(t.bookingId)
-        else manualBookings++
       }
     }
     const net = income - expenses
-    const count = bookingIds.size + manualBookings
+    const count = bookingIds.size
     return {
       totalIncome: income,
       totalExpenses: expenses,
