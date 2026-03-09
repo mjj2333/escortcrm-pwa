@@ -265,48 +265,48 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
     setSaving(true)
     try {
     if (isEditing && booking) {
-      await db.bookings.update(booking.id, {
-        clientId,
-        dateTime: dt,
-        duration,
-        locationType,
-        locationAddress: locationAddress.trim() || undefined,
-        locationNotes: locationNotes.trim() || undefined,
-        venueId: locationType === 'Incall' && venueId ? venueId : undefined,
-        status,
-        baseRate,
-        extras,
-        travelFee: finalTravelFee,
-        depositAmount,
-        paymentMethod: paymentMethod || undefined,
-        requiresSafetyCheck,
-        safetyContactId: requiresSafetyCheck && safetyContactId ? safetyContactId : undefined,
-        recurrence,
-        tourId: tourId || undefined,
-        notes: notes.trim() || '',
-        // Set timestamps when status changes
-        ...(status === 'Confirmed' && booking.status !== 'Confirmed' && !booking.confirmedAt ? { confirmedAt: new Date() } : {}),
-        ...(status === 'Completed' && booking.status !== 'Completed' ? { completedAt: new Date() } : {}),
-        ...(status === 'Cancelled' && booking.status !== 'Cancelled' ? { cancelledAt: new Date(), cancelledBy: 'provider' as const } : {}),
-        ...(status === 'No Show' && booking.status !== 'No Show' ? { cancelledAt: new Date(), cancelledBy: 'client' as const } : {}),
-      })
-
-      // Recalculate depositReceived when depositAmount changes
-      if (depositAmount !== booking.depositAmount) {
-        const depositPayments = await db.payments
-          .where('bookingId').equals(booking.id)
-          .filter(p => p.label === 'Deposit')
-          .toArray()
-        const totalDeposits = depositPayments.reduce((sum, p) => sum + p.amount, 0)
+      await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
         await db.bookings.update(booking.id, {
-          depositReceived: depositAmount > 0 ? totalDeposits >= depositAmount : false,
+          clientId,
+          dateTime: dt,
+          duration,
+          locationType,
+          locationAddress: locationAddress.trim() || undefined,
+          locationNotes: locationNotes.trim() || undefined,
+          venueId: locationType === 'Incall' && venueId ? venueId : undefined,
+          status,
+          baseRate,
+          extras,
+          travelFee: finalTravelFee,
+          depositAmount,
+          paymentMethod: paymentMethod || undefined,
+          requiresSafetyCheck,
+          safetyContactId: requiresSafetyCheck && safetyContactId ? safetyContactId : undefined,
+          recurrence,
+          tourId: tourId || undefined,
+          notes: notes.trim() || '',
+          // Set timestamps when status changes
+          ...(status === 'Confirmed' && booking.status !== 'Confirmed' && !booking.confirmedAt ? { confirmedAt: new Date() } : {}),
+          ...(status === 'Completed' && booking.status !== 'Completed' ? { completedAt: new Date() } : {}),
+          ...(status === 'Cancelled' && booking.status !== 'Cancelled' ? { cancelledAt: new Date(), cancelledBy: 'provider' as const } : {}),
+          ...(status === 'No Show' && booking.status !== 'No Show' ? { cancelledAt: new Date(), cancelledBy: 'client' as const } : {}),
         })
-      }
 
-      // Side effects when status changes via editor
-      if (status !== booking.status) {
-        if (status === 'Completed') {
-          await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
+        // Recalculate depositReceived when depositAmount changes
+        if (depositAmount !== booking.depositAmount) {
+          const depositPayments = await db.payments
+            .where('bookingId').equals(booking.id)
+            .filter(p => p.label === 'Deposit')
+            .toArray()
+          const totalDeposits = depositPayments.reduce((sum, p) => sum + p.amount, 0)
+          await db.bookings.update(booking.id, {
+            depositReceived: depositAmount > 0 ? totalDeposits >= depositAmount : false,
+          })
+        }
+
+        // Side effects when status changes via editor
+        if (status !== booking.status) {
+          if (status === 'Completed') {
             const updatedBooking = await db.bookings.get(booking.id)
             if (updatedBooking) {
               await completeBookingPayment(updatedBooking, selectedClient?.alias)
@@ -314,21 +314,21 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
             if (clientId) {
               await db.clients.update(clientId, { lastSeen: new Date() })
             }
-          })
-        }
-        // Escalate client risk level on No Show (matches BookingDetail & SwipeableBookingRow logic)
-        if (status === 'No Show' && clientId) {
-          const clientBookings = await db.bookings.where('clientId').equals(clientId).toArray()
-          const noShows = clientBookings.filter(b => b.status === 'No Show').length
-          const currentClient = await db.clients.get(clientId)
-          if (currentClient) {
-            let riskLevel = currentClient.riskLevel
-            if (noShows >= 2) riskLevel = 'High Risk'
-            else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
-            await db.clients.update(clientId, { riskLevel })
+          }
+          // Escalate client risk level on No Show (matches BookingDetail & SwipeableBookingRow logic)
+          if (status === 'No Show' && clientId) {
+            const clientBookings = await db.bookings.where('clientId').equals(clientId).toArray()
+            const noShows = clientBookings.filter(b => b.status === 'No Show').length
+            const currentClient = await db.clients.get(clientId)
+            if (currentClient) {
+              let riskLevel = currentClient.riskLevel
+              if (noShows >= 2) riskLevel = 'High Risk'
+              else if (noShows >= 1 && (riskLevel === 'Unknown' || riskLevel === 'Low Risk')) riskLevel = 'Medium Risk'
+              await db.clients.update(clientId, { riskLevel })
+            }
           }
         }
-      }
+      })
 
       if (overrideAvailability) {
         await adjustAvailabilityForBooking(dt, duration, booking.id)
