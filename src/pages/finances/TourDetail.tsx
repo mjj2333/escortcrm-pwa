@@ -65,7 +65,7 @@ export function TourDetail({ tourId, onBack, onOpenBooking }: TourDetailProps) {
   const nonBookingIncome = transactions
     .filter(t => t.type === 'income' && (!t.bookingId || !bookingIdSet.has(t.bookingId)))
     .reduce((s, t) => s + t.amount, 0)
-  const bookingIncome = payments.filter(p => p.label !== 'Tip' && p.label !== 'Cancellation Fee').reduce((s, p) => s + p.amount, 0)
+  const bookingIncome = payments.reduce((s, p) => s + p.amount, 0)
   const income = bookingIncome + nonBookingIncome
   const expenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const net = income - expenses
