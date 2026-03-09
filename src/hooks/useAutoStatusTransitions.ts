@@ -97,16 +97,16 @@ export function useAutoStatusTransitions() {
             if (!current || current.status !== 'Confirmed') return
             await db.bookings.update(b.id, { status: 'In Progress' })
 
-            // Create safety check if required
-            if (b.requiresSafetyCheck) {
+            // Create safety check if required — use fresh `current` fields
+            if (current.requiresSafetyCheck) {
               const existing = await db.safetyChecks.where('bookingId').equals(b.id).first()
               if (!existing) {
-                const sessionStart = Math.max(new Date(b.dateTime).getTime(), Date.now())
-                const checkTime = addMinutes(new Date(sessionStart), b.safetyCheckMinutesAfter || 15)
+                const sessionStart = Math.max(new Date(current.dateTime).getTime(), Date.now())
+                const checkTime = addMinutes(new Date(sessionStart), current.safetyCheckMinutesAfter || 15)
                 await db.safetyChecks.add({
                   id: newId(),
                   bookingId: b.id,
-                  safetyContactId: b.safetyContactId,
+                  safetyContactId: current.safetyContactId,
                   scheduledTime: checkTime,
                   bufferMinutes: 15,
                   status: 'pending',
