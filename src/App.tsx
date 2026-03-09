@@ -93,6 +93,26 @@ function EncryptionRecovery({ onDone }: { onDone: () => void }) {
   async function handleSkip() {
     try {
       const { db } = await import('./db')
+      const { SENSITIVE_FIELDS } = await import('./db/fieldCrypto')
+      // Strip orphaned enc: values so they don't display as garbage
+      for (const [tableName, fields] of Object.entries(SENSITIVE_FIELDS)) {
+        const table = (db as any)[tableName] as import('dexie').Table | undefined
+        if (!table) continue
+        await db.transaction('rw', table, async () => {
+          const records: any[] = await table.toArray()
+          for (const record of records) {
+            const updates: Record<string, string> = {}
+            let changed = false
+            for (const f of fields) {
+              if (typeof record[f] === 'string' && record[f].startsWith('enc:')) {
+                updates[f] = ''
+                changed = true
+              }
+            }
+            if (changed) await table.update(record.id, updates)
+          }
+        })
+      }
       await db.meta.delete('field_encryption_key')
       await db.meta.delete('encrypt_schema_version')
       showToast('Encryption cleared — encrypted fields cannot be recovered', 'info')
