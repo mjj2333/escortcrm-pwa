@@ -346,10 +346,12 @@ export async function recordBookingPayment(opts: {
     })
     // Create matching income transaction
     if (amount > 0) {
+      const bkForTour = await db.bookings.get(opts.bookingId)
       await db.transactions.add({
         id: newId(),
         bookingId: opts.bookingId,
         paymentId,
+        tourId: bkForTour?.tourId,
         amount,
         type: 'income',
         category: opts.label === 'Tip' ? 'tip' : opts.label === 'Cancellation Fee' ? 'cancellation' : 'booking',
