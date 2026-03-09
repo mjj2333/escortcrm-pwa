@@ -59,6 +59,8 @@ export function ClientsPage({ onOpenClient }: ClientsPageProps) {
     pinnedTimerRef.current = setTimeout(() => setPinnedToast(null), 1500)
   }, [])
 
+  useEffect(() => () => clearTimeout(pinnedTimerRef.current), [])
+
   // Hooks must be called before any early return to satisfy Rules of Hooks
   const blockedCount = useMemo(() => clients ? clients.filter(c => c.isBlocked).length : 0, [clients])
 
