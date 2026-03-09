@@ -96,6 +96,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
 
   // Availability conflict
   const [conflictWarning, setConflictWarning] = useState<{ reason: string; dayStatus: string; isDoubleBook: boolean; isBufferConflict: boolean } | null>(null)
+  const [screeningWarning, setScreeningWarning] = useState(false)
 
   // Escape key to dismiss conflict warning
   const handleConflictEscape = useCallback((e: KeyboardEvent) => {
@@ -155,6 +156,7 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
       setNewClientPreferences('')
       setNewClientBoundaries('')
       setConflictWarning(null)
+      setScreeningWarning(false)
     }
     wasOpen.current = isOpen
   }, [isOpen, booking, rebookFrom, preselectedClientId, preselectedDate])
@@ -253,6 +255,13 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
         isDoubleBook: conflict.isDoubleBook ?? false,
         isBufferConflict: conflict.isBufferConflict ?? false,
       })
+      return
+    }
+
+    // Warn when creating a booking for an unscreened client
+    if (!isEditing && selectedClient && !clientIsScreened && !screeningWarning) {
+      setSaving(false)
+      setScreeningWarning(true)
       return
     }
 
@@ -881,6 +890,38 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
               style={{ background: conflictWarning.isDoubleBook && !conflictWarning.isBufferConflict
                 ? 'linear-gradient(135deg, #ef4444, #dc2626)'
                 : 'linear-gradient(135deg, #f97316, #ef4444)' }}>
+              Book Anyway</button>
+          </div>
+        </div>
+      </div>
+    )}
+    {/* Screening Warning — confirm booking for unscreened client */}
+    {screeningWarning && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center px-6"
+        role="dialog" aria-modal="true"
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setScreeningWarning(false)}>
+        <div className="w-full max-w-sm rounded-2xl p-6"
+          style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+          onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: 'rgba(249,115,22,0.15)' }}>
+              <AlertTriangle size={20} style={{ color: '#f97316' }} />
+            </div>
+            <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
+              Client Not Screened
+            </h3>
+          </div>
+          <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
+            {selectedClient?.alias} has not been screened yet. Are you sure you want to create this booking?
+          </p>
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setScreeningWarning(false)}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold"
+              style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Go Back</button>
+            <button type="button" disabled={saving} onClick={() => { setScreeningWarning(false); saveBooking() }}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
+              style={{ background: 'linear-gradient(135deg, #f97316, #ef4444)' }}>
               Book Anyway</button>
           </div>
         </div>
