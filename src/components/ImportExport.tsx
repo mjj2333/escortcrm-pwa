@@ -278,8 +278,8 @@ function parseDate(val: unknown): Date | undefined {
 
 function parseTags(val: unknown): ClientTag[] {
   if (!val || typeof val !== 'string') return []
-  // Split on semicolons (CSV export) or commas (Excel export) for cross-format compat
-  return val.split(/[;,]/).map(s => s.trim()).filter(Boolean).map(s => {
+  // Split on semicolons only — commas may appear in tag names
+  return val.split(';').map(s => s.trim()).filter(Boolean).map(s => {
     // Extract color suffix (e.g., "|#8b5cf6") if present
     let color = '#8b5cf6'
     let tag = s
