@@ -84,9 +84,10 @@ function buildMergeFields(source: Client, target: Client): MergeField[] {
   add('address', 'Address', source.address ?? '—', target.address ?? '—', target.address ? 'target' : 'source')
   add('birthday', 'Birthday', fmtDate(source.birthday), fmtDate(target.birthday), target.birthday ? 'target' : 'source')
   add('clientSince', 'Client Since', fmtDate(source.clientSince), fmtDate(target.clientSince),
-    // prefer earliest clientSince
-    source.clientSince && target.clientSince && new Date(source.clientSince) < new Date(target.clientSince)
-      ? 'source' : 'target')
+    // prefer earliest clientSince, or whichever has a date
+    !source.clientSince ? 'target'
+      : !target.clientSince ? 'source'
+      : new Date(source.clientSince) < new Date(target.clientSince) ? 'source' : 'target')
 
   return fields
 }
