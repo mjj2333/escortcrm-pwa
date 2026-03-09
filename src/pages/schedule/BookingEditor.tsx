@@ -258,17 +258,16 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
       return
     }
 
-    // Warn when creating a booking for an unscreened client
+    await saveBooking()
+  }
+
+  async function saveBooking(overrideAvailability = false) {
+    // Warn when creating a booking for an unscreened client (also catches conflict-override path)
     if (!isEditing && selectedClient && !clientIsScreened && !screeningWarning) {
       setSaving(false)
       setScreeningWarning(true)
       return
     }
-
-    await saveBooking()
-  }
-
-  async function saveBooking(overrideAvailability = false) {
     const dt = new Date(dateTime)
     const finalTravelFee = (locationType === 'Outcall' || locationType === 'Travel') ? travelFee : 0
     setSaving(true)
