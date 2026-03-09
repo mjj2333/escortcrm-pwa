@@ -10,7 +10,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Search, ArrowRight, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { fmtMediumDate } from '../../utils/dateFormat'
-import { db } from '../../db'
+import { db, advanceBookingsOnScreen, downgradeBookingsOnUnscreen } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import type { Client, ClientTag } from '../../types'
@@ -238,9 +238,21 @@ export function ClientMergeModal({ isOpen, onClose, sourceClient, onMergeComplet
         }
 
         // 6. Apply merged fields to target
-        await db.clients.update(targetClient.id, merged)
+        // Dexie's update() skips undefined values, so convert them to null to clear fields
+        const mergedForDb = Object.fromEntries(
+          Object.entries(merged).map(([k, v]) => [k, v === undefined ? null : v])
+        ) as Record<string, unknown>
+        await db.clients.update(targetClient.id, mergedForDb as Partial<Client>)
 
-        // 7. Delete source
+        // 7. Adjust booking statuses if screening status changed
+        const oldScreening = freshTarget.screeningStatus
+        const newScreening = merged.screeningStatus!
+        if (oldScreening !== newScreening) {
+          await advanceBookingsOnScreen(targetClient.id, oldScreening, newScreening)
+          await downgradeBookingsOnUnscreen(targetClient.id, oldScreening, newScreening)
+        }
+
+        // 8. Delete source
         await db.clients.delete(sourceClient.id)
       })
 
