@@ -42,6 +42,7 @@ export function useServiceWorker() {
 
     let reg: ServiceWorkerRegistration | null = null
     let trackedInstalling: ServiceWorker | null = null
+    let cancelled = false
 
     function onStateChange() {
       if (trackedInstalling?.state === 'installed' && navigator.serviceWorker.controller) {
@@ -59,6 +60,7 @@ export function useServiceWorker() {
     }
 
     navigator.serviceWorker.register('/sw.js').then((registration) => {
+      if (cancelled) return
       reg = registration
 
       // If a worker is already waiting (e.g. user ignored the prompt last time)
@@ -81,6 +83,7 @@ export function useServiceWorker() {
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
 
     return () => {
+      cancelled = true
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
       window.removeEventListener('beforeinstallprompt', onBeforeInstall)
       if (reg) reg.removeEventListener('updatefound', onUpdateFound)
