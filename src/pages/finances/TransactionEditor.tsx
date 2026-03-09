@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check } from 'lucide-react'
 import { format } from 'date-fns'
-import { db, createTransaction } from '../../db'
+import { db, createTransaction, bookingTotal } from '../../db'
 import { Modal } from '../../components/Modal'
 import { showToast } from '../../components/Toast'
 import { SectionLabel, FieldCurrency, FieldSelect, FieldDate, FieldTextArea } from '../../components/FormFields'
@@ -64,11 +64,33 @@ export function TransactionEditor({ isOpen, onClose, initialType, transaction }:
     setSaving(true)
     try {
       if (isEditing && transaction) {
-        await db.transactions.update(transaction.id, {
-          amount, type, category, paymentMethod,
-          date: new Date(date + 'T00:00:00'),
-          notes: notes.trim(),
-          tourId: tourId || undefined,
+        await db.transaction('rw', [db.transactions, db.payments, db.bookings], async () => {
+          await db.transactions.update(transaction.id, {
+            amount, type, category, paymentMethod,
+            date: new Date(date + 'T00:00:00'),
+            notes: notes.trim(),
+            tourId: tourId || undefined,
+          })
+          // Sync the linked BookingPayment if one exists
+          if (transaction.paymentId) {
+            await db.payments.update(transaction.paymentId, {
+              amount,
+              method: paymentMethod || undefined,
+            })
+            // Re-sync booking payment booleans
+            if (transaction.bookingId) {
+              const booking = await db.bookings.get(transaction.bookingId)
+              if (booking) {
+                const allPayments = await db.payments.where('bookingId').equals(transaction.bookingId).toArray()
+                const allPaid = allPayments.filter(p => p.label !== 'Tip' && p.label !== 'Cancellation Fee').reduce((s, p) => s + p.amount, 0)
+                const depositPaid = allPayments.filter(p => p.label === 'Deposit').reduce((s, p) => s + p.amount, 0)
+                await db.bookings.update(transaction.bookingId, {
+                  paymentReceived: allPaid >= bookingTotal(booking),
+                  depositReceived: booking.depositAmount > 0 ? depositPaid >= booking.depositAmount : false,
+                })
+              }
+            }
+          }
         })
         showToast('Transaction updated')
       } else {
