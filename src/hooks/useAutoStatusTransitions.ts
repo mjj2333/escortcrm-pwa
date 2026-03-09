@@ -116,6 +116,7 @@ export function useAutoStatusTransitions() {
           })
         } else if (b.status === 'In Progress' && now >= fiveAfterEnd) {
           let clientAlias = 'Client'
+          let didComplete = false
           await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients, db.safetyChecks], async () => {
             // Re-check status to avoid race with manual completion
             const current = await db.bookings.get(b.id)
@@ -124,6 +125,7 @@ export function useAutoStatusTransitions() {
               status: 'Completed',
               completedAt: new Date(),
             })
+            didComplete = true
             // Record remaining payment via ledger — use fresh current.clientId
             const client = current.clientId ? await db.clients.get(current.clientId) : undefined
             clientAlias = client?.alias ?? 'Client'
@@ -139,8 +141,8 @@ export function useAutoStatusTransitions() {
               await db.safetyChecks.update(pendingCheck.id, { status: 'checkedIn', checkedInAt: new Date() })
             }
           })
-          // Nudge to write session notes
-          sendCompletionNotification(clientAlias, b.duration)
+          // Nudge to write session notes — only if we actually completed
+          if (didComplete) sendCompletionNotification(clientAlias, b.duration)
         }
 
         // Spawn next recurring booking when this one completes, is cancelled, or is a no-show.
