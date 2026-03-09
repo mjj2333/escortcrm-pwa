@@ -465,7 +465,8 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
     const completedCountByClient = new Map<string, number>()
     const earliestByClient = new Map<string, number>()
     for (const b of completedBookings) {
-      const cid = b.clientId ?? ''
+      if (!b.clientId) continue
+      const cid = b.clientId
       completedCountByClient.set(cid, (completedCountByClient.get(cid) ?? 0) + 1)
       const dt = new Date(b.dateTime).getTime()
       const prev = earliestByClient.get(cid)
