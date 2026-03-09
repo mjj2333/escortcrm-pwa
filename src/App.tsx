@@ -316,7 +316,7 @@ export default function App() {
             showToast('Encryption failed — some data may appear as [encrypted]', 'error')
             setIsLocked(false) // unlock anyway so user isn't stuck
           }
-        }} />
+        }} onSetPin={(hash) => setPinCode(hash)} />
       </div>
     )
   }
