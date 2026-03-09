@@ -73,13 +73,17 @@ export function useHashNav(
   // History-only — no setState, so no Suspense boundary issue.
   useEffect(() => {
     const hash = stateToHash({ tab: activeTab, screen })
-    history.replaceState({ tab: activeTab, screen }, '', hash)
+    history.replaceState({ tab: activeTab, screen, _depth: 0 }, '', hash)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Back/forward button handler
   useEffect(() => {
     function onPopState(e: PopStateEvent) {
-      if (navDepth.current > 0) navDepth.current--
+      // Derive navDepth from the popped state's _depth tag so forward
+      // navigation doesn't underflow the counter.
+      const poppedDepth = e.state && typeof (e.state as Record<string, unknown>)._depth === 'number'
+        ? (e.state as Record<string, unknown>)._depth as number : 0
+      navDepth.current = poppedDepth
       const state = e.state as NavState | null
       // Only trust state if it has a valid screen shape; other pushState
       // callers (e.g. settings overlay) use different state shapes.
@@ -102,8 +106,8 @@ export function useHashNav(
   /** Push a new navigation entry (adds to browser history). */
   const pushNav = useCallback((tab: number, screen: Screen) => {
     const hash = stateToHash({ tab, screen })
-    history.pushState({ tab, screen }, '', hash)
     navDepth.current++
+    history.pushState({ tab, screen, _depth: navDepth.current }, '', hash)
     startTransition(() => {
       setActiveTab(tab)
       setScreen(screen)

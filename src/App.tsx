@@ -261,8 +261,8 @@ export default function App() {
   // Push a history entry when settings opens so back-button closes it
   useEffect(() => {
     if (!showSettings) return
-    history.pushState({ settings: true }, '', '#settings')
     navDepth.current++
+    history.pushState({ settings: true, _depth: navDepth.current }, '', '#settings')
     function onPop(e: PopStateEvent) {
       // Only close settings when navigating back past the settings entry
       if (e.state && (e.state as Record<string, unknown>).settings) return
