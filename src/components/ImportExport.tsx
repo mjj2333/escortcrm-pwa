@@ -311,6 +311,13 @@ function validateEnum<T extends string>(value: string, allowed: T[], fallback: T
   return allowed.includes(value as T) ? (value as T) : fallback
 }
 
+/** Strip currency symbols and formatting from an amount string (e.g. "$1,500.00" → 1500) */
+function parseAmount(raw: unknown): number {
+  const s = String(raw ?? '').replace(/[^0-9.\-]/g, '')
+  const n = Number(s)
+  return isNaN(n) ? 0 : n
+}
+
 async function importClients(rows: Record<string, unknown>[]): Promise<{ imported: number; skipped: number; duplicates: number }> {
   const { isPro, getActiveClientCount, FREE_CLIENT_LIMIT } = await import('./planLimits')
   const pro = isPro()
@@ -320,10 +327,12 @@ async function importClients(rows: Record<string, unknown>[]): Promise<{ importe
   let skipped = 0
   let duplicates = 0
   let activeCount = pro ? 0 : await getActiveClientCount()
+
+  // Collect valid clients first, then bulk-add atomically
+  const toAdd: Client[] = []
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
     if (!pro && activeCount >= FREE_CLIENT_LIMIT) {
-      // Count only remaining rows that have a valid alias
       for (let j = i; j < rows.length; j++) {
         const a = String(rows[j]['Alias'] ?? rows[j]['alias'] ?? '').trim()
         if (a) skipped++
@@ -334,7 +343,6 @@ async function importClients(rows: Record<string, unknown>[]): Promise<{ importe
     const alias = String(row['Alias'] ?? row['alias'] ?? '').trim()
     if (!alias) continue
 
-    // Skip duplicates by alias
     if (existingAliases.has(alias.toLowerCase())) { duplicates++; continue }
     existingAliases.add(alias.toLowerCase())
 
@@ -369,20 +377,24 @@ async function importClients(rows: Record<string, unknown>[]): Promise<{ importe
       isPinned: yesNo(row['Pinned'] ?? row['isPinned']),
       requiresSafetyCheck: yesNo(row['Safety Check'] ?? row['requiresSafetyCheck'] ?? 'Yes'),
     }
-    await db.clients.add(client)
+    toAdd.push(client)
     if (!client.isBlocked) activeCount++
     imported++
+  }
+
+  if (toAdd.length > 0) {
+    await db.transaction('rw', db.clients, () => db.clients.bulkAdd(toAdd))
   }
   return { imported, skipped, duplicates }
 }
 
 async function importTransactions(rows: Record<string, unknown>[]): Promise<number> {
-  let count = 0
+  const toAdd: Transaction[] = []
   for (const row of rows) {
-    const amount = Number(row['Amount'] ?? row['amount'] ?? 0)
+    const amount = parseAmount(row['Amount'] ?? row['amount'])
     if (!amount) continue
 
-    const t: Transaction = {
+    toAdd.push({
       id: newId(),
       amount,
       type: validateEnum(String(row['Type'] ?? row['type'] ?? 'income'), VALID_TRANSACTION_TYPES, 'income'),
@@ -394,11 +406,12 @@ async function importTransactions(rows: Record<string, unknown>[]): Promise<numb
       date: parseDate(row['Date'] ?? row['date']) ?? new Date(),
       notes: String(row['Notes'] ?? row['notes'] ?? ''),
       bookingId: undefined,
-    }
-    await db.transactions.add(t)
-    count++
+    })
   }
-  return count
+  if (toAdd.length > 0) {
+    await db.transaction('rw', db.transactions, () => db.transactions.bulkAdd(toAdd))
+  }
+  return toAdd.length
 }
 
 async function importSafetyContacts(rows: Record<string, unknown>[]): Promise<number> {
