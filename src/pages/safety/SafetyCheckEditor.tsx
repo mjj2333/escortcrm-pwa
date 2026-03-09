@@ -44,6 +44,12 @@ export function SafetyCheckEditor({ isOpen, onClose, check }: SafetyCheckEditorP
     if (!isValid || saving) return
     setSaving(true)
     try {
+      const fresh = await db.safetyChecks.get(check.id)
+      if (!fresh || fresh.status === 'checkedIn' || fresh.status === 'alert') {
+        showToast('This check has already been resolved')
+        onClose()
+        return
+      }
       await db.safetyChecks.update(check.id, {
         scheduledTime: new Date(scheduledTime),
         bufferMinutes,
