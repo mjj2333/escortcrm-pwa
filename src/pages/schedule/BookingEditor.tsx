@@ -361,22 +361,22 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
         ...(status === 'Confirmed' || status === 'In Progress' || status === 'Completed' ? { confirmedAt: new Date() } : {}),
         ...(status === 'Completed' ? { completedAt: new Date() } : {}),
       })
-      await db.bookings.add(newBooking)
+      await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
+        await db.bookings.add(newBooking)
 
-      // If deposit marked as received at creation, record it through the payment ledger
-      if (depositReceived && depositAmount > 0) {
-        await recordBookingPayment({
-          bookingId: newBooking.id,
-          amount: depositAmount,
-          method: paymentMethod || undefined,
-          label: 'Deposit',
-          clientAlias: selectedClient?.alias,
-        })
-      }
+        // If deposit marked as received at creation, record it through the payment ledger
+        if (depositReceived && depositAmount > 0) {
+          await recordBookingPayment({
+            bookingId: newBooking.id,
+            amount: depositAmount,
+            method: paymentMethod || undefined,
+            label: 'Deposit',
+            clientAlias: selectedClient?.alias,
+          })
+        }
 
-      // Side effects when creating with an advanced status
-      if (status === 'Completed') {
-        await db.transaction('rw', [db.bookings, db.payments, db.transactions, db.clients], async () => {
+        // Side effects when creating with an advanced status
+        if (status === 'Completed') {
           const updatedBooking = await db.bookings.get(newBooking.id)
           if (updatedBooking) {
             await completeBookingPayment(updatedBooking, selectedClient?.alias)
@@ -384,8 +384,8 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
           if (clientId) {
             await db.clients.update(clientId, { lastSeen: new Date() })
           }
-        })
-      }
+        }
+      })
 
       if (overrideAvailability) {
         await adjustAvailabilityForBooking(dt, duration, newBooking.id)
