@@ -263,7 +263,9 @@ export default function App() {
     if (!showSettings) return
     history.pushState({ settings: true }, '', '#settings')
     navDepth.current++
-    function onPop() {
+    function onPop(e: PopStateEvent) {
+      // Only close settings when navigating back past the settings entry
+      if (e.state && (e.state as Record<string, unknown>).settings) return
       setShowSettings(false)
     }
     window.addEventListener('popstate', onPop)
