@@ -400,14 +400,15 @@ export function FinancesPage({ onOpenBooking, onOpenTour }: { onOpenBooking?: (b
 
   // Week over Week — single pass
   const { wowCurrentIncome, wowChange } = useMemo(() => {
+    const now = Date.now()
     const currentStart = startOfWeek(new Date(), { weekStartsOn: 1 }).getTime()
     const prevStart = subWeeks(new Date(currentStart), 1).getTime()
     let current = 0, prev = 0
     for (const t of allTransactions) {
       if (t.type !== 'income') continue
       const td = new Date(t.date).getTime()
-      if (td >= currentStart) current += t.amount
-      else if (td >= prevStart) prev += t.amount
+      if (td >= currentStart && td <= now) current += t.amount
+      else if (td >= prevStart && td < currentStart) prev += t.amount
     }
     return {
       wowCurrentIncome: current,
