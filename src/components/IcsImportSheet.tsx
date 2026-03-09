@@ -168,7 +168,7 @@ export function IcsImportSheet({ isOpen, onClose }: IcsImportSheetProps) {
           status: r.event.start < now ? 'Completed' : 'Pending Deposit',
         })
       )
-      await db.bookings.bulkAdd(bookings)
+      await db.transaction('rw', db.bookings, () => db.bookings.bulkAdd(bookings))
       showToast(`Imported ${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`)
       handleClose()
     } catch (err) {
