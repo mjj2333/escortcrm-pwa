@@ -125,8 +125,10 @@ export function BookingEditor({ isOpen, onClose, booking, preselectedClientId, p
       setVenueId(booking?.venueId ?? rebookFrom?.venueId ?? '')
       // Load venue name
       const vid = booking?.venueId ?? rebookFrom?.venueId
-      if (vid) db.incallVenues.get(vid).then(v => setVenueName(v?.name ?? ''))
-      else setVenueName('')
+      if (vid) {
+        setVenueName('') // clear while loading
+        db.incallVenues.get(vid).then(v => setVenueName(v?.name ?? ''))
+      } else setVenueName('')
       setStatus(booking?.status ?? 'Pending Deposit')
       setBaseRate(booking?.baseRate ?? rebookFrom?.baseRate ?? 0)
       setExtras(booking?.extras ?? rebookFrom?.extras ?? 0)
