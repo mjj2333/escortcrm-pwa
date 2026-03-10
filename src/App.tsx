@@ -279,13 +279,23 @@ export default function App() {
   const { pushNav, replaceNav, navDepth } = useHashNav(activeTab, screen, setActiveTab, setScreen)
 
   // Push a history entry when settings opens so back-button closes it
+  const settingsHistoryPushed = useRef(false)
   useEffect(() => {
-    if (!showSettings) return
+    if (!showSettings) {
+      // Settings closed via UI (not back button) — pop the orphaned history entry
+      if (settingsHistoryPushed.current) {
+        settingsHistoryPushed.current = false
+        history.back()
+      }
+      return
+    }
     navDepth.current++
+    settingsHistoryPushed.current = true
     history.pushState({ settings: true, _depth: navDepth.current }, '', '#settings')
     function onPop(e: PopStateEvent) {
       // Only close settings when navigating back past the settings entry
       if (e.state && (e.state as Record<string, unknown>).settings) return
+      settingsHistoryPushed.current = false
       setShowSettings(false)
     }
     window.addEventListener('popstate', onPop)
