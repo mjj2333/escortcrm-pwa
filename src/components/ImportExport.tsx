@@ -511,6 +511,7 @@ function parseCSV(rawText: string): Record<string, unknown>[] {
       } else field += ch
     }
   }
+  if (inQuotes) field = '' // discard malformed unclosed-quote field
   current.push(field)
   if (current.some(c => c.trim())) lines.push(current)
 
