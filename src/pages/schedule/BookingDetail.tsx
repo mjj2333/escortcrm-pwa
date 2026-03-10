@@ -3,8 +3,8 @@ import { useScrollLock } from '../../hooks/useScrollLock'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft, Edit, Clock, MapPin, Send,
-  CheckCircle, XCircle, UserX, RotateCcw, Shield,
-  ChevronRight, Trash2, Plus, DollarSign, CalendarPlus
+  XCircle, UserX, RotateCcw, Shield,
+  ChevronRight, ChevronDown, Trash2, Plus, DollarSign, CalendarPlus
 } from 'lucide-react'
 import { addMinutes } from 'date-fns'
 import { fmtFullDayDateYear, fmtDateAndTime, fmtFullDateAndTime, fmtTime } from '../../utils/dateFormat'
@@ -37,12 +37,8 @@ interface BookingDetailProps {
   onShowPaywall?: () => void
 }
 
-// Status progression map
-const nextStatus: Partial<Record<BookingStatus, BookingStatus>> = {
-  'Pending Deposit': 'Confirmed',
-  'Confirmed': 'In Progress',
-  'In Progress': 'Completed',
-}
+// Valid statuses for the status picker (in progression order)
+const PICKER_STATUSES: BookingStatus[] = ['Pending Deposit', 'Confirmed', 'In Progress', 'Completed']
 
 export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }: BookingDetailProps) {
   const booking = useLiveQuery(() => db.bookings.get(bookingId))
@@ -122,7 +118,7 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const endTime = bookingEndTime(booking)
   const isTerminal = ['Completed', 'Cancelled', 'No Show'].includes(booking.status)
   const clientIsScreened = client?.screeningStatus === 'Screened'
-  const next = nextStatus[booking.status]
+  const [showStatusPicker, setShowStatusPicker] = useState(false)
 
   const totalPaid = (payments ?? []).filter(p => p.label !== 'Tip' && p.label !== 'Cancellation Fee').reduce((sum, p) => sum + p.amount, 0)
   const balance = total - totalPaid
@@ -342,21 +338,45 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
       <div className="px-4 py-4 max-w-lg mx-auto space-y-4">
         {/* Status Banner */}
         <div className="flex flex-col items-center py-4">
-          <div className="flex items-center gap-2">
-            <StatusBadge text={booking.status} color={bookingStatusColors[booking.status]} size="md" />
+          <div className="relative flex items-center gap-2">
+            {isTerminal ? (
+              <StatusBadge text={booking.status} color={bookingStatusColors[booking.status]} size="md" />
+            ) : (
+              <button type="button" onClick={() => setShowStatusPicker(p => !p)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full font-medium">
+                <StatusBadge text={booking.status} color={bookingStatusColors[booking.status]} size="md" />
+                <ChevronDown size={12} className={`transition-transform ${showStatusPicker ? 'rotate-180' : ''}`}
+                  style={{ color: 'var(--text-secondary)' }} />
+              </button>
+            )}
             {booking.recurrence && booking.recurrence !== 'none' && (
               <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-purple-500/15 text-purple-500">
                 🔄 {booking.recurrence === 'weekly' ? 'Weekly' : booking.recurrence === 'biweekly' ? 'Biweekly' : 'Monthly'}
               </span>
             )}
-            {next && (
-              <button type="button"
-                onClick={() => updateStatus(next)}
-                className="text-[10px] px-2.5 py-1 rounded-full font-semibold flex items-center gap-1"
-                style={{ backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e' }}
-              >
-                <CheckCircle size={10} /> {next}
-              </button>
+            {/* Status picker dropdown */}
+            {showStatusPicker && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowStatusPicker(false)} />
+                <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 z-50 rounded-xl shadow-lg overflow-hidden min-w-[170px]"
+                  style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                  {PICKER_STATUSES.filter(s => s !== booking.status).map(s => {
+                    const color = bookingStatusColors[s]
+                    const dotColors: Record<string, string> = {
+                      orange: '#f97316', green: '#22c55e', teal: '#14b8a6', gray: '#6b7280',
+                    }
+                    return (
+                      <button key={s} type="button"
+                        onClick={() => { setShowStatusPicker(false); updateStatus(s) }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left active:opacity-70"
+                        style={{ color: 'var(--text-primary)' }}>
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: dotColors[color] ?? '#6b7280' }} />
+                        {s}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </div>
           <h2 className="text-xl font-bold mt-3" style={{ color: 'var(--text-primary)' }}>
