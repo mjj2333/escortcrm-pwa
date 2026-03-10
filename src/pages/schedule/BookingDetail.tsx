@@ -276,6 +276,13 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
     if (!amount || amount <= 0 || submittingPayment) return
     setSubmittingPayment(true)
     try {
+      // Verify booking hasn't been cancelled/completed by another process
+      const current = await db.bookings.get(bookingId)
+      if (!current || current.status === 'Cancelled' || current.status === 'No Show') {
+        showToast(`Booking is ${current?.status ?? 'deleted'} — cannot record payment`, 'info')
+        setShowPaymentForm(false)
+        return
+      }
       const pid = await recordBookingPayment({
         bookingId,
         amount,
