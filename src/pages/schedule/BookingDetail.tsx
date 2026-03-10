@@ -91,6 +91,8 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const earlyStartConfirmed = useRef(false)
   const unscreenedConfirmed = useRef(false)
 
+  const [showStatusPicker, setShowStatusPicker] = useState(false)
+
   // Allow Dexie time to resolve before showing "not found"
   const [settled, setSettled] = useState(false)
   useEffect(() => {
@@ -118,7 +120,6 @@ export function BookingDetail({ bookingId, onBack, onOpenClient, onShowPaywall }
   const endTime = bookingEndTime(booking)
   const isTerminal = ['Completed', 'Cancelled', 'No Show'].includes(booking.status)
   const clientIsScreened = client?.screeningStatus === 'Screened'
-  const [showStatusPicker, setShowStatusPicker] = useState(false)
 
   const totalPaid = (payments ?? []).filter(p => p.label !== 'Tip' && p.label !== 'Cancellation Fee').reduce((sum, p) => sum + p.amount, 0)
   const balance = total - totalPaid
