@@ -141,9 +141,9 @@ export function parseICS(raw: string): ParsedEvent[] {
           let durationMin = 60
           if (dtend) {
             const end = parseICSDate(dtend, dtendTzid || undefined)
-            if (end) durationMin = Math.round((end.getTime() - start.getTime()) / 60000)
+            if (end) durationMin = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000))
           } else if (duration) {
-            durationMin = parseDuration(duration)
+            durationMin = Math.max(1, parseDuration(duration))
           }
           if (durationMin <= 0) durationMin = 60
 
