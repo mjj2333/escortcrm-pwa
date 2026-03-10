@@ -256,6 +256,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
         verifyingRef.current = false
       }).catch(() => {
         verifyingRef.current = false
+        if (cancelled) return
         setError('Verification failed — please try again')
         setPin('')
       })
@@ -272,6 +273,7 @@ export function PinLock({ onUnlock, correctPin, isSetup, onSetPin, onCancel }: P
           if (onSetPin) await onSetPin(hash, pin)
           onUnlockRef.current(pin)
         }).catch(() => {
+          if (cancelled) return
           setError('Failed to set PIN — please try again')
           setConfirmPin('')
           setPhase('enter')
