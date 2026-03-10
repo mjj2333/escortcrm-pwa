@@ -147,9 +147,11 @@ export function useAutoStatusTransitions() {
 
         // Spawn next recurring booking when this one completes, is cancelled, or is a no-show.
         // Cancelled/No-Show should NOT break the chain — the user still expects next week's booking.
-        const effectiveStatus = (await db.bookings.get(b.id))?.status ?? b.status
+        const freshBooking = await db.bookings.get(b.id)
+        const effectiveStatus = freshBooking?.status ?? b.status
+        const effectiveRecurrence = freshBooking?.recurrence ?? b.recurrence
         const shouldSpawn = (effectiveStatus === 'Completed' || effectiveStatus === 'Cancelled' || effectiveStatus === 'No Show')
-          && b.recurrence && b.recurrence !== 'none'
+          && effectiveRecurrence && effectiveRecurrence !== 'none'
         if (shouldSpawn) {
           if (!parentIdsWithChildren.has(b.id)) {
             // Only auto-create if client still exists and is screened
@@ -162,7 +164,7 @@ export function useAutoStatusTransitions() {
 
             const currentDate = new Date(b.dateTime)
             let nextDate: Date
-            switch (b.recurrence) {
+            switch (effectiveRecurrence) {
               case 'weekly': nextDate = addWeeks(currentDate, 1); break
               case 'biweekly': nextDate = addWeeks(currentDate, 2); break
               case 'monthly': nextDate = addMonths(currentDate, 1); break
