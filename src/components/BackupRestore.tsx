@@ -219,7 +219,7 @@ async function restoreBackup(payload: BackupPayload): Promise<{ total: number }>
   // malformed or crafted backup can't inject broken records.
   const requiredFields: Record<string, string[]> = {
     clients:        ['id', 'alias'],
-    bookings:       ['id'],
+    bookings:       ['id', 'dateTime', 'duration'],
     transactions:   ['id', 'amount'],
     availability:   ['id', 'date'],
     safetyContacts: ['id', 'name'],
