@@ -189,6 +189,7 @@ export function SafetyPage() {
   }
 
   async function confirmAlertAllStep() {
+    if (alertAllQueue.length === 0) return // queue was cancelled
     const nextIdx = alertAllIdx + 1
     if (nextIdx < alertAllQueue.length) {
       // Open the next contact's SMS
